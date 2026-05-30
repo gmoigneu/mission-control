@@ -174,6 +174,27 @@ export interface ObservationCreate {
 }
 export type ObservationUpdate = Partial<ObservationCreate>;
 
+export interface JournalEntry {
+  id: string;
+  date: string;
+  title: string | null;
+  body: string;
+  mood: number | null;
+  energy: number | null;
+  source: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface JournalEntryCreate {
+  date: string;
+  body: string;
+  title?: string | null;
+  mood?: number | null;
+  energy?: number | null;
+  source?: string | null;
+}
+export type JournalEntryUpdate = Partial<JournalEntryCreate>;
+
 export interface EntityTag {
   id: string;
   tag_id: string;

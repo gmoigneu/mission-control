@@ -37,6 +37,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import SessionLocal
 from app.models.company import Company
 from app.models.context import Context
+from app.models.journal_entry import JournalEntry
 from app.models.observation import Observation
 from app.models.person import Person
 from app.models.project import Project
@@ -143,6 +144,7 @@ class Stats:
     tasks: int = 0
     observations: int = 0
     relationships: int = 0
+    journal_entries: int = 0
     errors: list[tuple[str, str]] = field(default_factory=list)
     unresolved_links: list[str] = field(default_factory=list)
     skipped_sections: list[str] = field(default_factory=list)
@@ -156,6 +158,7 @@ class Stats:
         print(f"  tasks         : {self.tasks}")
         print(f"  observations  : {self.observations}")
         print(f"  relationships : {self.relationships}")
+        print(f"  journal       : {self.journal_entries}")
         if self.unresolved_links:
             print(f"\n  unresolved links ({len(self.unresolved_links)}):")
             for u in self.unresolved_links[:20]:
@@ -779,6 +782,60 @@ async def import_relationships(
     await db.commit()
 
 
+async def import_journal(
+    db: AsyncSession,
+    vault: Path,
+    stats: Stats,
+) -> None:
+    """Import daily journal entries from 01.journal/**/<date>.md.
+
+    Keyed by date for idempotency: re-import upserts the matching row.
+    """
+    journal_dir = vault / "01.journal"
+    if not journal_dir.exists():
+        stats.skipped_sections.append("01.journal (not found)")
+        return
+
+    for jfile in sorted(journal_dir.rglob("*.md")):
+        try:
+            post = frontmatter.load(str(jfile))
+            entry_date = _parse_date(post.get("date")) or _parse_date(jfile.stem)
+            if entry_date is None:
+                stats.errors.append((str(jfile), "no parseable date"))
+                continue
+
+            title = str(post.get("title") or jfile.stem).strip() or None
+            body = (post.content or "").strip()
+            if not body:
+                continue
+            source_raw = post.get("source")
+            source = str(source_raw).strip() if source_raw else None
+
+            result = await db.execute(
+                select(JournalEntry).where(JournalEntry.date == entry_date)
+            )
+            obj = result.scalar_one_or_none()
+            if obj is None:
+                obj = JournalEntry(
+                    id=uuid.uuid4(),
+                    date=entry_date,
+                    title=title,
+                    body=body,
+                    source=source,
+                )
+                db.add(obj)
+            else:
+                obj.title = title
+                obj.body = body
+                obj.source = source
+            await db.flush()
+            stats.journal_entries += 1
+        except Exception as exc:
+            stats.errors.append((str(jfile), str(exc)))
+
+    await db.commit()
+
+
 # ---------------------------------------------------------------------------
 # Reindex
 # ---------------------------------------------------------------------------
@@ -836,6 +893,13 @@ async def reindex_all(
         except Exception:
             pass
 
+    # Journal entries
+    for obj in (await db.execute(select(JournalEntry))).scalars():
+        try:
+            await index_subject(db, "journal_entry", obj)
+        except Exception:
+            pass
+
     await db.commit()
     print("Reindex complete.")
 
@@ -854,7 +918,6 @@ async def import_vault(db: AsyncSession, vault_path: Path, *, reindex: bool = Tr
 
     # Sections we know have no DB table yet
     stats.skipped_sections.extend([
-        "01.journal (no journal table)",
         "00.inbox (no inbox table)",
         "04.knowledge (no knowledge table)",
         "meetings/ sub-folders (no meeting table)",
@@ -883,6 +946,9 @@ async def import_vault(db: AsyncSession, vault_path: Path, *, reindex: bool = Tr
 
     await import_relationships(db, vault_path, stats, person_ids, context_ids)
     print(f"  relationships: {stats.relationships}")
+
+    await import_journal(db, vault_path, stats)
+    print(f"  journal: {stats.journal_entries}")
 
     if reindex:
         await reindex_all(db, stats, context_ids, company_ids, person_ids)
