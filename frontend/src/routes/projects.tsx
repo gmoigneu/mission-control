@@ -13,7 +13,7 @@ import { rootRoute } from "./root";
 const STATUS_OPTIONS = [
   { value: "active", label: "Active" },
   { value: "on_hold", label: "On Hold" },
-  { value: "complete", label: "Complete" },
+  { value: "done", label: "Done" },
   { value: "archived", label: "Archived" },
 ];
 
@@ -187,7 +187,7 @@ export function ProjectsPage() {
                 />
               </Field>
               <div className="col-span-2 flex gap-2">
-                <Button type="submit">{editingId ? "Save" : "Add"}</Button>
+                <Button type="submit" disabled={!form.context_id}>{editingId ? "Save" : "Add"}</Button>
                 {editingId && (
                   <Button type="button" onClick={handleCancel} className="bg-gray-400 hover:bg-gray-500">
                     Cancel

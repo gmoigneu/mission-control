@@ -18,6 +18,7 @@ interface FormState {
   company_id: string;
   primary_context_id: string;
   email: string;
+  linkedin: string;
   first_met: string;
   summary: string;
 }
@@ -29,20 +30,31 @@ const EMPTY_FORM: FormState = {
   company_id: "",
   primary_context_id: "",
   email: "",
+  linkedin: "",
   first_met: "",
   summary: "",
 };
 
-/** Build a PersonCreate/PersonUpdate payload, omitting empty optional FK/date fields. */
-function buildPayload(form: FormState) {
+/** Build a PersonCreate/PersonUpdate payload.
+ * On create: omit empty optional FK/date fields entirely.
+ * On update: send null for cleared optional FK/date fields so the backend can unset them.
+ */
+function buildPayload(form: FormState, isEdit: boolean) {
   return {
     name: form.name,
     slug: form.slug,
     ...(form.role ? { role: form.role } : { role: null }),
-    ...(form.company_id ? { company_id: form.company_id } : {}),
-    ...(form.primary_context_id ? { primary_context_id: form.primary_context_id } : {}),
+    ...(isEdit
+      ? { company_id: form.company_id || null }
+      : form.company_id ? { company_id: form.company_id } : {}),
+    ...(isEdit
+      ? { primary_context_id: form.primary_context_id || null }
+      : form.primary_context_id ? { primary_context_id: form.primary_context_id } : {}),
     ...(form.email ? { email: form.email } : { email: null }),
-    ...(form.first_met ? { first_met: form.first_met } : {}),
+    ...(form.linkedin ? { linkedin: form.linkedin } : { linkedin: null }),
+    ...(isEdit
+      ? { first_met: form.first_met || null }
+      : form.first_met ? { first_met: form.first_met } : {}),
     ...(form.summary ? { summary: form.summary } : { summary: null }),
   };
 }
@@ -76,6 +88,7 @@ export function PeoplePage() {
       company_id: row.company_id ?? "",
       primary_context_id: row.primary_context_id ?? "",
       email: row.email ?? "",
+      linkedin: row.linkedin ?? "",
       first_met: row.first_met ?? "",
       summary: row.summary ?? "",
     });
@@ -88,7 +101,7 @@ export function PeoplePage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const payload = buildPayload(form);
+    const payload = buildPayload(form, !!editingId);
     if (editingId) {
       updatePerson.mutate(
         { id: editingId, data: payload },
@@ -194,6 +207,14 @@ export function PeoplePage() {
                   onChange={handleChange("email")}
                   placeholder="jane@example.com"
                   aria-label="Email"
+                />
+              </Field>
+              <Field label="LinkedIn">
+                <Input
+                  value={form.linkedin}
+                  onChange={handleChange("linkedin")}
+                  placeholder="https://linkedin.com/in/jane-doe"
+                  aria-label="LinkedIn"
                 />
               </Field>
               <Field label="First met">

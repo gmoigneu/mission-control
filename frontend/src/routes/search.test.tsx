@@ -17,9 +17,13 @@ function renderSearch(fetchMock: ReturnType<typeof vi.fn>) {
   vi.stubGlobal("fetch", fetchMock);
 
   const root = createRootRoute();
+  // Create a local route with the same validateSearch so SearchPage's useSearch() works.
   const search = createRoute({
     getParentRoute: () => root,
     path: "/search",
+    validateSearch: (s: Record<string, unknown>) => ({
+      q: typeof s.q === "string" ? s.q : undefined,
+    }),
     component: SearchPage,
   });
   const login = createRoute({

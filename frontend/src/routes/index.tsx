@@ -256,7 +256,15 @@ function Dashboard() {
     const nowDone = !done[id];
     setDone((d) => ({ ...d, [id]: nowDone }));
     if (nowDone) {
-      updateTask.mutate({ id, data: { status: "done" } });
+      updateTask.mutate(
+        { id, data: { status: "done" } },
+        {
+          onError: () => {
+            // Revert local optimistic state on failure
+            setDone((d) => ({ ...d, [id]: false }));
+          },
+        },
+      );
     }
   }
 

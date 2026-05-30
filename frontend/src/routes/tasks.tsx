@@ -33,17 +33,28 @@ const EMPTY_FORM: FormState = {
   outcome: "",
 };
 
-/** Build a TaskCreate/TaskUpdate payload, omitting empty optional FK/date fields. */
-function buildPayload(form: FormState) {
+/** Build a TaskCreate/TaskUpdate payload.
+ * On create: omit empty optional FK/date fields entirely.
+ * On update: send null for cleared optional FK/date fields so the backend can unset them.
+ */
+function buildPayload(form: FormState, isEdit: boolean) {
   return {
     title: form.title,
     status: form.status,
     priority: form.priority,
-    ...(form.due ? { due: form.due } : {}),
-    ...(form.scheduled ? { scheduled: form.scheduled } : {}),
-    ...(form.context_id ? { context_id: form.context_id } : {}),
-    ...(form.project_id ? { project_id: form.project_id } : {}),
-    ...(form.outcome ? { outcome: form.outcome } : {}),
+    ...(isEdit
+      ? { due: form.due || null }
+      : form.due ? { due: form.due } : {}),
+    ...(isEdit
+      ? { scheduled: form.scheduled || null }
+      : form.scheduled ? { scheduled: form.scheduled } : {}),
+    ...(isEdit
+      ? { context_id: form.context_id || null }
+      : form.context_id ? { context_id: form.context_id } : {}),
+    ...(isEdit
+      ? { project_id: form.project_id || null }
+      : form.project_id ? { project_id: form.project_id } : {}),
+    ...(form.outcome ? { outcome: form.outcome } : { outcome: null }),
   };
 }
 
@@ -101,7 +112,7 @@ export function TasksPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const payload = buildPayload(form);
+    const payload = buildPayload(form, !!editingId);
     if (editingId) {
       updateTask.mutate(
         { id: editingId, data: payload },

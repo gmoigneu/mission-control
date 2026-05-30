@@ -22,8 +22,10 @@ const columns = [
 ];
 
 export function SearchPage() {
-  const [input, setInput] = useState("");
-  const [query, setQuery] = useState("");
+  const { q: initialQ } = searchRoute.useSearch();
+  // Seed from URL param on mount (e.g. when navigated from ⌘K with a query)
+  const [input, setInput] = useState(initialQ ?? "");
+  const [query, setQuery] = useState(initialQ ?? "");
 
   const { data = [] } = useSearch(query);
 
@@ -60,5 +62,8 @@ export function SearchPage() {
 export const searchRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/search",
+  validateSearch: (s: Record<string, unknown>) => ({
+    q: typeof s.q === "string" ? s.q : undefined,
+  }),
   component: SearchPage,
 });

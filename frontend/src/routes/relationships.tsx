@@ -34,14 +34,22 @@ const EMPTY_FORM: FormState = {
   notes: "",
 };
 
-function buildPayload(form: FormState) {
+/** Build a RelationshipCreate/RelationshipUpdate payload.
+ * On create: omit empty optional FK/date fields entirely.
+ * On update: send null for cleared optional FK/date fields so the backend can unset them.
+ */
+function buildPayload(form: FormState, isEdit: boolean) {
   return {
     from_person_id: form.from_person_id,
     to_person_id: form.to_person_id,
     type: form.type || "knows",
-    ...(form.context_id ? { context_id: form.context_id } : {}),
-    ...(form.since ? { since: form.since } : {}),
-    ...(form.notes ? { notes: form.notes } : {}),
+    ...(isEdit
+      ? { context_id: form.context_id || null }
+      : form.context_id ? { context_id: form.context_id } : {}),
+    ...(isEdit
+      ? { since: form.since || null }
+      : form.since ? { since: form.since } : {}),
+    ...(form.notes ? { notes: form.notes } : { notes: null }),
   };
 }
 
@@ -86,7 +94,7 @@ export function RelationshipsPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const payload = buildPayload(form);
+    const payload = buildPayload(form, !!editingId);
     if (editingId) {
       updateRelationship.mutate(
         { id: editingId, data: payload },

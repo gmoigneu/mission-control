@@ -474,7 +474,7 @@ function CommandPalette({
           style={{ marginBottom: 12 }}
           onKeyDown={(e) => {
             if (e.key === "Enter" && query.trim()) {
-              navigate({ to: "/search" } as Parameters<typeof navigate>[0]);
+              navigate({ to: "/search", search: { q: query.trim() } } as unknown as Parameters<typeof navigate>[0]);
               onClose();
             }
           }}
@@ -491,7 +491,7 @@ function CommandPalette({
           {query.trim() && (
             <button
               onClick={() => {
-                navigate({ to: "/search" } as Parameters<typeof navigate>[0]);
+                navigate({ to: "/search", search: { q: query.trim() } } as unknown as Parameters<typeof navigate>[0]);
                 onClose();
               }}
               style={{
@@ -691,6 +691,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [ayaOpen, setAyaOpen] = useState(true);
   const [mobileNav, setMobileNav] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsJustClosed = useRef(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -848,7 +849,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             className="iconbtn"
             title="Settings"
             aria-label="Settings"
-            onClick={() => setSettingsOpen((v) => !v)}
+            onClick={() => {
+              if (settingsJustClosed.current) {
+                settingsJustClosed.current = false;
+                return;
+              }
+              setSettingsOpen((v) => !v);
+            }}
           >
             <Settings size={18} strokeWidth={1.6} />
           </button>
@@ -948,7 +955,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             setTheme={setTheme}
             navOpen={navOpen}
             setNavOpen={setNavOpen}
-            close={() => setSettingsOpen(false)}
+            close={() => {
+              settingsJustClosed.current = true;
+              setSettingsOpen(false);
+            }}
           />
         )}
       </header>
@@ -1013,6 +1023,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* ===== Content ===== */}
       <main
         style={{
+          gridColumn: 2,
+          gridRow: 2,
           overflow: "auto",
           minWidth: 0,
           position: "relative",
