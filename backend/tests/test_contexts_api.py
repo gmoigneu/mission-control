@@ -1,12 +1,4 @@
-from app.models.user import AppUser
-from app.security import hash_password
-
-
-async def _login(client, db):
-    db.add(AppUser(email="g@example.com", password_hash=hash_password("pw")))
-    await db.flush()
-    r = await client.post("/auth/login", json={"email": "g@example.com", "password": "pw"})
-    assert r.status_code == 200
+from tests.helpers import login
 
 
 async def test_contexts_crud_requires_auth(client):
@@ -14,7 +6,7 @@ async def test_contexts_crud_requires_auth(client):
 
 
 async def test_contexts_crud_flow(client, db):
-    await _login(client, db)
+    await login(client, db)
 
     created = await client.post(
         "/contexts", json={"slug": "upsun", "name": "Upsun", "category": "work"}
@@ -39,7 +31,7 @@ async def test_contexts_crud_flow(client, db):
 
 
 async def test_get_missing_context_404(client, db):
-    await _login(client, db)
+    await login(client, db)
     import uuid
 
     assert (await client.get(f"/contexts/{uuid.uuid4()}")).status_code == 404

@@ -1,16 +1,8 @@
-from app.models.user import AppUser
-from app.security import hash_password
-
-
-async def _login(client, db):
-    db.add(AppUser(email="g@example.com", password_hash=hash_password("pw")))
-    await db.flush()
-    resp = await client.post("/auth/login", json={"email": "g@example.com", "password": "pw"})
-    assert resp.status_code == 200
+from tests.helpers import login
 
 
 async def test_create_then_revert_via_api(client, db):
-    await _login(client, db)
+    await login(client, db)
 
     created = await client.post("/contexts", json={"slug": "gaal", "name": "Gaal"})
     cid = created.json()["id"]

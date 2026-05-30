@@ -77,3 +77,40 @@ async def test_revert_twice_conflicts(db):
         raise AssertionError("expected HTTPException")
     except HTTPException as exc:
         assert exc.status_code == 409
+
+
+async def test_revert_create_when_row_already_deleted_is_safe_noop(db):
+    ctx = Context(slug="gone", name="Gone")
+    db.add(ctx)
+    await db.flush()
+    audit = await record_create(db, "context", ctx, surface="ui")
+    await db.flush()
+    # row deleted out from under the audit entry
+    await db.delete(ctx)
+    await db.flush()
+
+    await revert_audit(db, audit, surface="ui")
+
+    assert audit.reverted is True
+    assert await db.get(Context, ctx.id) is None
+
+
+async def test_revert_update_when_row_deleted_raises_404(db):
+    from fastapi import HTTPException
+
+    ctx = Context(slug="upd", name="Upd")
+    db.add(ctx)
+    await db.flush()
+    before = model_to_dict(ctx)
+    ctx.name = "Changed"
+    await db.flush()
+    audit = await record_update(db, "context", ctx, before, surface="ui")
+    await db.flush()
+    await db.delete(ctx)
+    await db.flush()
+
+    try:
+        await revert_audit(db, audit, surface="ui")
+        raise AssertionError("expected HTTPException 404")
+    except HTTPException as exc:
+        assert exc.status_code == 404
