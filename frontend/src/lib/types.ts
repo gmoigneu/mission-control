@@ -210,3 +210,33 @@ export interface EntityLinkCreate {
   to_id: string;
   kind?: string;
 }
+
+export interface InboxItem {
+  id: string;
+  title: string;
+  source_type: string;
+  url: string | null;
+  status: string;
+  priority: string;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InboxItemCreate {
+  title: string;
+  source_type?: string;
+  url?: string | null;
+  status?: string;
+  priority?: string;
+  note?: string | null;
+}
+
+export interface InboxItemUpdate {
+  title?: string;
+  source_type?: string;
+  url?: string | null;
+  status?: string;
+  priority?: string;
+  note?: string | null;
+}
