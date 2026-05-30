@@ -21,10 +21,21 @@ async def engine():
 
 @pytest_asyncio.fixture(loop_scope="session")
 async def db(engine) -> AsyncSession:
-    sessionmaker = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-    async with sessionmaker() as session:
+    connection = await engine.connect()
+    trans = await connection.begin()
+    sessionmaker = async_sessionmaker(
+        bind=connection,
+        expire_on_commit=False,
+        class_=AsyncSession,
+        join_transaction_mode="create_savepoint",
+    )
+    session = sessionmaker()
+    try:
         yield session
-        await session.rollback()
+    finally:
+        await session.close()
+        await trans.rollback()
+        await connection.close()
 
 
 @pytest_asyncio.fixture(loop_scope="session")
