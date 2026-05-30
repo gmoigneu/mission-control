@@ -90,9 +90,11 @@ def _mock_complete(  # noqa: ARG001
         company = m.group(1).strip().rstrip("?").strip()
         return _tool("who_do_i_know_at", {"company": company})
 
-    # ---- create task ----
+    # ---- create task ----  (match keywords case-insensitively but PRESERVE the title's casing)
     m2 = re.search(
-        r"(?:create(?: a)? task(?: to)?|task to|todo:?|remind me to)\s+(.+)", lower
+        r"(?:create(?: a)? task(?: to)?|task to|todo:?|remind me to)\s+(.+)",
+        text,
+        re.IGNORECASE,
     )
     if m2:
         title = m2.group(1).strip().rstrip(".")
@@ -104,8 +106,8 @@ def _mock_complete(  # noqa: ARG001
         name = m3.group(1).strip()
         return _tool("create_person", {"name": name, "slug": _slugify(name)})
 
-    # ---- create context ----
-    m4 = re.search(r"(?:create(?: a)? context|new context)\s+(.+)", lower)
+    # ---- create context ----  (preserve the name's casing)
+    m4 = re.search(r"(?:create(?: a)? context|new context)\s+(.+)", text, re.IGNORECASE)
     if m4:
         cname = m4.group(1).strip().rstrip(".")
         return _tool("create_context", {"name": cname, "slug": _slugify(cname)})

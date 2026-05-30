@@ -36,6 +36,18 @@ def test_mock_create_task_todo():
     assert turn.tool_calls[0].name == "create_task"
 
 
+def test_mock_create_task_preserves_title_casing():
+    turn = _mock_complete([_user("create a task to Email Bob about the Q3 Budget")], [], "")
+    assert turn.tool_calls[0].name == "create_task"
+    assert turn.tool_calls[0].input["title"] == "Email Bob about the Q3 Budget"
+
+
+def test_mock_create_context_preserves_name_casing():
+    turn = _mock_complete([_user("create context Helios Robotics")], [], "")
+    assert turn.tool_calls[0].name == "create_context"
+    assert turn.tool_calls[0].input["name"] == "Helios Robotics"
+
+
 # ---------------------------------------------------------------------------
 # who_do_i_know_at
 # ---------------------------------------------------------------------------
