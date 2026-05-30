@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     embeddings_dim: int = 1536
     embeddings_provider: str = "fake"
     embeddings_model: str = "text-embedding-3-small"
+    # Multi-chunk indexing: long bodies are split into overlapping windows so a
+    # single large entity indexes as several chunks rather than one diluted one.
+    search_chunk_size: int = 1200
+    search_chunk_overlap: int = 200
     openai_api_key: str | None = None
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_user: str = "neo4j"

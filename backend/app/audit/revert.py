@@ -7,7 +7,9 @@ from app.audit.registry import ENTITY_MODELS
 from app.audit.serialize import coerce_value, model_to_dict
 from app.audit.service import record_create, record_delete, record_update
 from app.models.audit import AuditLog
-from app.search.index import deindex_subject, index_subject
+
+# Re-indexing is decoupled: record_* emits a search outbox event the search
+# worker drains, so revert no longer needs to (de)index inline.
 
 
 async def revert_audit(
@@ -35,7 +37,6 @@ async def revert_audit(
         await record_delete(
             db, audit.entity_type, before, audit.entity_id, actor=actor, surface=surface
         )
-        await deindex_subject(db, audit.entity_type, audit.entity_id)
     elif audit.action == "update":
         obj = await db.get(model, audit.entity_id)
         if obj is None:
@@ -47,14 +48,12 @@ async def revert_audit(
             setattr(obj, key, coerce_value(model, key, value))
         await db.flush()
         await record_update(db, audit.entity_type, obj, before, actor=actor, surface=surface)
-        await index_subject(db, audit.entity_type, obj)
     elif audit.action == "delete":
         data = {key: coerce_value(model, key, value) for key, value in (audit.before or {}).items()}
         obj = model(**data)
         db.add(obj)
         await db.flush()
         await record_create(db, audit.entity_type, obj, actor=actor, surface=surface)
-        await index_subject(db, audit.entity_type, obj)
 
     audit.reverted = True
     await db.flush()

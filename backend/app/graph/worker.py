@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.graph.client import Runner
-from app.models.outbox import OutboxEvent
+from app.models.outbox import CHANNEL_GRAPH, OutboxEvent
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,10 @@ async def process_outbox(db: AsyncSession, run: Runner, limit: int = 500) -> int
 
     stmt = (
         select(OutboxEvent)
-        .where(OutboxEvent.processed_at.is_(None))
+        .where(
+            OutboxEvent.channel == CHANNEL_GRAPH,
+            OutboxEvent.processed_at.is_(None),
+        )
         .order_by(OutboxEvent.created_at)
         .limit(limit)
     )
