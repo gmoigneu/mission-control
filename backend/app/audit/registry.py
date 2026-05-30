@@ -1,5 +1,6 @@
 from app.models.company import Company
 from app.models.context import Context
+from app.models.observation import Observation
 from app.models.person import Person
 from app.models.project import Project
 from app.models.relationship import Relationship
@@ -14,4 +15,5 @@ ENTITY_MODELS: dict[str, type] = {
     "person": Person,
     "task": Task,
     "relationship": Relationship,
+    "observation": Observation,
 }
