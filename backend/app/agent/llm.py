@@ -132,7 +132,7 @@ async def _anthropic_complete(
 
     from app.config import settings
 
-    client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+    client = AsyncAnthropic(api_key=settings.openai_api_key)
     response = await client.messages.create(
         model=settings.llm_model,
         max_tokens=4096,

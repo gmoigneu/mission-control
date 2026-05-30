@@ -4,8 +4,9 @@ Revision ID: 0018
 Revises: 0017
 """
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql  # noqa: F401
+
 from alembic import op
-from sqlalchemy.dialects import postgresql
 
 revision = "0018"
 down_revision = "0017"
@@ -24,8 +25,12 @@ def upgrade() -> None:
         sa.Column("account_id", sa.String(), nullable=True),
         sa.Column("plan_type", sa.String(), nullable=True),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
     )
     op.create_index("ix_oauth_credential_provider", "oauth_credential", ["provider"], unique=True)
 

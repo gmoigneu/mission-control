@@ -17,6 +17,7 @@ dependencies = [
     "pgvector>=0.3",
     "neo4j>=5.20",
     "python-frontmatter>=1.1",
+    "httpx>=0.28",
 ]
 
 [dependency-groups]

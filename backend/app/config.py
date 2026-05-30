@@ -21,8 +21,12 @@ class Settings(BaseSettings):
     neo4j_user: str = "neo4j"
     neo4j_password: str = "mc-neo4j-pw"
     llm_provider: str = "mock"
-    anthropic_api_key: str | None = None
-    llm_model: str = "claude-sonnet-4-6"
+    llm_model: str = "gpt-5"  # a ChatGPT/Codex model id; confirm in the live smoke
+    openai_oauth_client_id: str = "app_EMoamEEZ73f0CkXaXp7hrann"
+    openai_auth_base_url: str = "https://auth.openai.com"
+    openai_responses_url: str = "https://chatgpt.com/backend-api/codex/responses"
+    openai_originator: str = "codex_cli_rs"  # confirm in the live smoke
+    openai_user_agent: str = "mission-control-agent/0.1"  # confirm in the live smoke
 
     @model_validator(mode="after")
     def _require_secure_secret_in_prod(self) -> "Settings":
