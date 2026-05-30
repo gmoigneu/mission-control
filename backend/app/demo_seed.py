@@ -16,6 +16,8 @@ from datetime import UTC, date, datetime, timedelta
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agent.persona_store import SEED_PERSONA
+from app.models.agent_persona import AgentPersona
 from app.models.audit import AuditLog
 from app.models.company import Company
 from app.models.context import Context
@@ -33,6 +35,7 @@ from app.security import hash_password
 # dependent rows; RESTART IDENTITY resets any serial sequences.
 _WIPE_TABLES = [
     "audit_log",
+    "agent_persona",
     "agent_run",
     "outbox_event",
     "chunk",
@@ -245,6 +248,9 @@ async def seed_demo(
 
     db.add(AppUser(email=email, name=name, password_hash=hash_password(password), settings={}))
 
+    # A friendly default SOUL so the Settings → Soul section is populated.
+    db.add(AgentPersona(**SEED_PERSONA))
+
     contexts: dict[str, Context] = {}
     for slug, nm, category, desc in _CONTEXTS:
         contexts[slug] = Context(
@@ -358,4 +364,5 @@ async def seed_demo(
         "inbox_items": len(_INBOX_ITEMS),
         "relationships": len(_RELATIONSHIPS),
         "activity": len(feed),
+        "persona": 1,
     }

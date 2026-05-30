@@ -1,4 +1,4 @@
-"""Agent API — /agent/chat, /agent/capture, /agent/runs/{run_id}/revert."""
+"""Agent API — /agent/chat, /agent/capture, /agent/runs/{run_id}/revert, /agent/persona."""
 from __future__ import annotations
 
 import uuid
@@ -9,10 +9,20 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.agent import run_agent
+from app.agent.persona_store import (
+    DEFAULT_PERSONA,
+    get_persona,
+    reset_persona,
+    upsert_persona,
+)
 from app.audit.revert import revert_audit
+from app.audit.serialize import model_to_dict
+from app.audit.service import record_create, record_update
 from app.db import get_db
 from app.deps import get_current_user
+from app.models.agent_persona import AgentPersona
 from app.models.audit import AuditLog
+from app.schemas.agent_persona import PersonaOut, PersonaUpdate
 
 router = APIRouter(
     prefix="/agent",
@@ -105,3 +115,74 @@ async def revert_run(
 
     await db.commit()
     return {"reverted": reverted_count}
+
+
+# ---------------------------------------------------------------------------
+# SOUL / persona  (GET / PUT / reset)
+# ---------------------------------------------------------------------------
+
+def _persona_out(persona: AgentPersona | None) -> PersonaOut:
+    """Serialize the persona row, or the built-in default when absent."""
+    if persona is None:
+        return PersonaOut(
+            name=DEFAULT_PERSONA.name,
+            role=DEFAULT_PERSONA.role,
+            tone=DEFAULT_PERSONA.tone,
+            greeting=DEFAULT_PERSONA.greeting,
+            instructions=DEFAULT_PERSONA.instructions,
+            principles=DEFAULT_PERSONA.principles,
+            boundaries=DEFAULT_PERSONA.boundaries,
+            enabled=DEFAULT_PERSONA.enabled,
+            is_default=True,
+        )
+    return PersonaOut.model_validate(persona)
+
+
+@router.get("/persona", response_model=PersonaOut)
+async def get_persona_route(
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> PersonaOut:
+    persona = await get_persona(db)
+    return _persona_out(persona)
+
+
+@router.put("/persona", response_model=PersonaOut)
+async def put_persona_route(
+    payload: PersonaUpdate,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> PersonaOut:
+    existing = await get_persona(db)
+    before = model_to_dict(existing) if existing is not None else None
+
+    persona = await upsert_persona(db, **payload.model_dump(exclude_unset=True))
+
+    # Record through the audit/undo write-path so persona edits are reversible
+    # from the Activity page.
+    if existing is None:
+        await record_create(db, "agent_persona", persona, actor="user", surface="ui")
+    else:
+        await record_update(db, "agent_persona", persona, before or {}, actor="user", surface="ui")
+
+    await db.commit()
+    await db.refresh(persona)
+    return PersonaOut.model_validate(persona)
+
+
+@router.post("/persona/reset", response_model=PersonaOut)
+async def reset_persona_route(
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> PersonaOut:
+    """Restore the built-in default SOUL (clears every editable field)."""
+    existing = await get_persona(db)
+    before = model_to_dict(existing) if existing is not None else None
+
+    persona = await reset_persona(db)
+
+    if existing is None:
+        await record_create(db, "agent_persona", persona, actor="user", surface="ui")
+    else:
+        await record_update(db, "agent_persona", persona, before or {}, actor="user", surface="ui")
+
+    await db.commit()
+    await db.refresh(persona)
+    return PersonaOut.model_validate(persona)

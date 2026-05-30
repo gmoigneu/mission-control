@@ -7,6 +7,7 @@ import {
   createRouter,
 } from "@tanstack/react-router";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { SettingsPage } from "./settings";
 
@@ -24,7 +25,24 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function renderSettings() {
+const DEFAULT_PERSONA = {
+  id: null,
+  name: "Aya",
+  role: null,
+  tone: null,
+  greeting: null,
+  instructions: null,
+  principles: null,
+  boundaries: null,
+  enabled: true,
+  created_at: null,
+  updated_at: null,
+  is_default: true,
+};
+
+function renderSettings(fetchMock: ReturnType<typeof vi.fn>) {
+  vi.stubGlobal("fetch", fetchMock);
+
   const root = createRootRoute();
   const settings = createRoute({
     getParentRoute: () => root,
@@ -36,9 +54,14 @@ function renderSettings() {
     path: "/login",
     component: () => <div>login-page</div>,
   });
+  const activity = createRoute({
+    getParentRoute: () => root,
+    path: "/activity",
+    component: () => <div>activity-page</div>,
+  });
   const history = createMemoryHistory({ initialEntries: ["/settings"] });
   const router = createRouter({
-    routeTree: root.addChildren([settings, login]),
+    routeTree: root.addChildren([settings, login, activity]),
     history,
   });
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -48,6 +71,88 @@ function renderSettings() {
     </QueryClientProvider>,
   );
 }
+
+it("renders the Soul form and PUTs edits on Save", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    calls.push([String(url), init]);
+    if (String(url).includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
+        status: 200,
+      });
+    }
+    if (String(url).includes("/auth/webauthn/passkeys")) {
+      return new Response("[]", { status: 200 });
+    }
+    if (String(url).includes("/agent/persona") && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify(DEFAULT_PERSONA), { status: 200 });
+    }
+    if (String(url).includes("/agent/persona") && init?.method === "PUT") {
+      const body = JSON.parse(init.body as string);
+      return new Response(
+        JSON.stringify({ ...DEFAULT_PERSONA, ...body, is_default: false }),
+        { status: 200 },
+      );
+    }
+    return new Response(JSON.stringify({}), { status: 200 });
+  });
+
+  renderSettings(fetchMock);
+
+  await screen.findByRole("heading", { name: "Soul" });
+
+  const nameInput = screen.getByRole("textbox", { name: /^name$/i });
+  await waitFor(() => expect((nameInput as HTMLInputElement).value).toBe("Aya"));
+
+  await userEvent.clear(nameInput);
+  await userEvent.type(nameInput, "Nova");
+  await userEvent.click(screen.getByRole("button", { name: /^save$/i }));
+
+  await waitFor(() => {
+    const put = calls.find(
+      ([url, init]) => String(url).includes("/agent/persona") && init?.method === "PUT",
+    );
+    expect(put).toBeDefined();
+    expect(JSON.parse(put![1]!.body as string).name).toBe("Nova");
+  });
+
+  await screen.findByText("Saved");
+});
+
+it("POSTs to reset when Reset to default is clicked", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    calls.push([String(url), init]);
+    if (String(url).includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
+        status: 200,
+      });
+    }
+    if (String(url).includes("/auth/webauthn/passkeys")) {
+      return new Response("[]", { status: 200 });
+    }
+    if (String(url).includes("/agent/persona/reset")) {
+      return new Response(JSON.stringify(DEFAULT_PERSONA), { status: 200 });
+    }
+    if (String(url).includes("/agent/persona")) {
+      return new Response(
+        JSON.stringify({ ...DEFAULT_PERSONA, name: "Nova", is_default: false }),
+        { status: 200 },
+      );
+    }
+    return new Response(JSON.stringify({}), { status: 200 });
+  });
+
+  renderSettings(fetchMock);
+
+  await screen.findByRole("heading", { name: "Soul" });
+  await userEvent.click(screen.getByRole("button", { name: /reset to default/i }));
+
+  await waitFor(() => {
+    const reset = calls.find(([url]) => String(url).includes("/agent/persona/reset"));
+    expect(reset).toBeDefined();
+  });
+});
 
 it("lists registered passkeys", async () => {
   const fetchMock = vi.fn(async (url: string) => {
@@ -62,11 +167,13 @@ it("lists registered passkeys", async () => {
         { status: 200 },
       );
     }
+    if (String(url).includes("/agent/persona")) {
+      return new Response(JSON.stringify(DEFAULT_PERSONA), { status: 200 });
+    }
     return new Response("[]", { status: 200 });
   });
-  vi.stubGlobal("fetch", fetchMock);
 
-  renderSettings();
+  renderSettings(fetchMock);
   await screen.findByRole("heading", { name: "Settings" });
   await waitFor(() => expect(screen.getByText("MacBook")).toBeInTheDocument());
   expect(screen.getByRole("button", { name: /register a passkey/i })).toBeInTheDocument();
