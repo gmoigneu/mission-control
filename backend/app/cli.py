@@ -4,7 +4,11 @@ import httpx
 import typer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agent.openai_auth import poll_for_token, request_device_code
+from app.agent.openai_auth import (
+    exchange_authorization_code,
+    poll_for_authorization,
+    request_device_code,
+)
 from app.agent.token_store import get_credential, upsert_credential
 from app.db import SessionLocal
 from app.models.user import AppUser
@@ -52,7 +56,8 @@ async def _auth_openai(http: httpx.AsyncClient, db: AsyncSession) -> None:
     typer.echo(f"  1. Open: {device.verification_uri}")
     typer.echo(f"  2. Enter code: {device.user_code}\n")
     typer.echo("Waiting for approval… (Ctrl-C to cancel)")
-    tokens = await poll_for_token(http, device)
+    auth = await poll_for_authorization(http, device)
+    tokens = await exchange_authorization_code(http, auth.authorization_code, auth.code_verifier)
     await upsert_credential(
         db,
         "openai",
@@ -64,7 +69,7 @@ async def _auth_openai(http: httpx.AsyncClient, db: AsyncSession) -> None:
         expires_at=tokens.expires_at,
     )
     await db.commit()
-    typer.echo(f"Authorized. account_id={tokens.account_id} plan={tokens.plan_type}")
+    typer.echo(f"Authorized. account_id={tokens.account_id}")
 
 
 @cli.command("auth-openai")

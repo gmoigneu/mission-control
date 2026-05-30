@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     llm_model: str = "gpt-5"  # a ChatGPT/Codex model id; confirm in the live smoke
     openai_oauth_client_id: str = "app_EMoamEEZ73f0CkXaXp7hrann"
     openai_auth_base_url: str = "https://auth.openai.com"
+    openai_token_url: str = "https://auth.openai.com/oauth/token"
+    openai_device_usercode_url: str = "https://auth.openai.com/api/accounts/deviceauth/usercode"
+    openai_device_token_url: str = "https://auth.openai.com/api/accounts/deviceauth/token"
+    openai_device_verification_uri: str = "https://auth.openai.com/codex/device"
+    openai_device_redirect_uri: str = "https://auth.openai.com/deviceauth/callback"
     openai_responses_url: str = "https://chatgpt.com/backend-api/codex/responses"
     openai_originator: str = "codex_cli_rs"  # confirm in the live smoke
     openai_user_agent: str = "mission-control-agent/0.1"  # confirm in the live smoke

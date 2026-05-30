@@ -12,16 +12,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.agent.token_store import get_credential, upsert_credential
 from app.config import settings
 
-_SCOPE = "openid profile email offline_access"
+
+@dataclass
+class DeviceAuth:
+    device_auth_id: str
+    user_code: str
+    interval: int
+    verification_uri: str
 
 
 @dataclass
-class DeviceCode:
-    device_code: str
-    user_code: str
-    verification_uri: str
-    interval: int
-    expires_in: int
+class DeviceAuthorization:
+    authorization_code: str
+    code_verifier: str
 
 
 @dataclass
@@ -55,7 +58,13 @@ def account_id_and_expiry(access_token: str) -> tuple[str | None, datetime | Non
 
 def _token_set(data: dict, *, fallback_refresh: str = "") -> TokenSet:
     access = data["access_token"]
-    account_id, expires_at = account_id_and_expiry(access)
+    account_id, _ = account_id_and_expiry(access)
+    expires_in = data.get("expires_in")
+    expires_at = (
+        datetime.now(UTC) + timedelta(seconds=int(expires_in))
+        if expires_in is not None
+        else None
+    )
     return TokenSet(
         access_token=access,
         refresh_token=data.get("refresh_token") or fallback_refresh,
@@ -66,63 +75,106 @@ def _token_set(data: dict, *, fallback_refresh: str = "") -> TokenSet:
     )
 
 
-async def request_device_code(http: httpx.AsyncClient) -> DeviceCode:
-    # NOTE: confirm the exact device-authorization path against the Codex source in the live smoke.
+async def request_device_code(http: httpx.AsyncClient) -> DeviceAuth:
     resp = await http.post(
-        f"{settings.openai_auth_base_url}/oauth/device/code",
-        data={"client_id": settings.openai_oauth_client_id, "scope": _SCOPE},
+        settings.openai_device_usercode_url,
+        headers={"Content-Type": "application/json"},
+        json={"client_id": settings.openai_oauth_client_id},
     )
+    if resp.status_code == 404:
+        raise RuntimeError(
+            "OpenAI device code login is not enabled for this server. "
+            "Verify the server URL or use an alternative login method."
+        )
     resp.raise_for_status()
     d = resp.json()
-    return DeviceCode(
-        device_code=d["device_code"],
+    return DeviceAuth(
+        device_auth_id=d["device_auth_id"],
         user_code=d["user_code"],
-        verification_uri=(
-            d.get("verification_uri_complete")
-            or d.get("verification_uri")
-            or f"{settings.openai_auth_base_url}/device"
-        ),
-        interval=int(d.get("interval", 5)),
-        expires_in=int(d.get("expires_in", 900)),
+        interval=int(d["interval"]),
+        verification_uri=settings.openai_device_verification_uri,
     )
 
 
-async def poll_for_token(
+async def poll_for_authorization(
     http: httpx.AsyncClient,
-    device: DeviceCode,
+    device: DeviceAuth,
     *,
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
     now: Callable[[], float] = time.monotonic,
-) -> TokenSet:
-    deadline = now() + device.expires_in
+    timeout: int = 900,
+) -> DeviceAuthorization:
+    deadline = now() + timeout
     interval = device.interval
     while now() < deadline:
         resp = await http.post(
-            f"{settings.openai_auth_base_url}/oauth/token",
-            data={
-                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
-                "device_code": device.device_code,
-                "client_id": settings.openai_oauth_client_id,
-            },
+            settings.openai_device_token_url,
+            headers={"Content-Type": "application/json"},
+            json={"device_auth_id": device.device_auth_id, "user_code": device.user_code},
         )
         if resp.status_code == 200:
-            return _token_set(resp.json())
-        err = (resp.json() or {}).get("error") if resp.content else None
-        if err == "authorization_pending":
-            pass
-        elif err == "slow_down":
+            d = resp.json()
+            if not d.get("authorization_code") or not d.get("code_verifier"):
+                raise RuntimeError(
+                    f"Device auth token response missing fields: {json.dumps(d)}"
+                )
+            return DeviceAuthorization(
+                authorization_code=d["authorization_code"],
+                code_verifier=d["code_verifier"],
+            )
+        if resp.status_code in (403, 404):
+            await sleep(interval)
+            continue
+        # Parse error body for structured error codes
+        error_code: str | None = None
+        if resp.content:
+            try:
+                body = resp.json()
+                err = body.get("error")
+                if isinstance(err, dict):
+                    error_code = err.get("code")
+                elif isinstance(err, str):
+                    error_code = err
+            except Exception:
+                pass
+        if error_code == "deviceauth_authorization_pending":
+            await sleep(interval)
+            continue
+        elif error_code == "slow_down":
             interval += 5
-        elif err in ("expired_token", "access_denied"):
-            raise RuntimeError(f"Device authorization failed: {err}")
+            await sleep(interval)
+            continue
         else:
-            resp.raise_for_status()
-        await sleep(interval)
+            raise RuntimeError(
+                f"Device authorization failed (HTTP {resp.status_code}): "
+                f"{resp.text}"
+            )
     raise RuntimeError("Device authorization timed out")
+
+
+async def exchange_authorization_code(
+    http: httpx.AsyncClient,
+    code: str,
+    code_verifier: str,
+) -> TokenSet:
+    resp = await http.post(
+        settings.openai_token_url,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        data={
+            "grant_type": "authorization_code",
+            "client_id": settings.openai_oauth_client_id,
+            "code": code,
+            "code_verifier": code_verifier,
+            "redirect_uri": settings.openai_device_redirect_uri,
+        },
+    )
+    resp.raise_for_status()
+    return _token_set(resp.json())
 
 
 async def refresh(http: httpx.AsyncClient, refresh_token: str) -> TokenSet:
     resp = await http.post(
-        f"{settings.openai_auth_base_url}/oauth/token",
+        settings.openai_token_url,
         data={
             "grant_type": "refresh_token",
             "refresh_token": refresh_token,
