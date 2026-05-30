@@ -11,6 +11,11 @@ from app.services.auth import get_user_by_email
 cli = typer.Typer(help="mission-control backend admin CLI")
 
 
+@cli.callback()
+def main() -> None:
+    """mission-control backend admin CLI."""
+
+
 async def _seed_user(db: AsyncSession, email: str, password: str, name: str | None) -> None:
     existing = await get_user_by_email(db, email)
     if existing is not None:
