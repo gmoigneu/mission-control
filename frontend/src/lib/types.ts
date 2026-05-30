@@ -118,3 +118,88 @@ export interface TaskCreate {
   source?: string | null;
 }
 export type TaskUpdate = Partial<TaskCreate>;
+
+export interface Tag {
+  id: string;
+  name: string;
+  kind: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface TagCreate {
+  name: string;
+  kind?: string | null;
+}
+export type TagUpdate = Partial<TagCreate>;
+
+export interface Relationship {
+  id: string;
+  from_person_id: string;
+  to_person_id: string;
+  type: string;
+  context_id: string | null;
+  since: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface RelationshipCreate {
+  from_person_id: string;
+  to_person_id: string;
+  type?: string;
+  context_id?: string | null;
+  since?: string | null;
+  notes?: string | null;
+}
+export type RelationshipUpdate = Partial<RelationshipCreate>;
+
+export interface Observation {
+  id: string;
+  subject_type: string;
+  subject_id: string;
+  date: string | null;
+  kind: string;
+  body: string;
+  source: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface ObservationCreate {
+  subject_type: string;
+  subject_id: string;
+  body: string;
+  kind?: string;
+  date?: string | null;
+  source?: string | null;
+}
+export type ObservationUpdate = Partial<ObservationCreate>;
+
+export interface EntityTag {
+  id: string;
+  tag_id: string;
+  subject_type: string;
+  subject_id: string;
+  created_at: string;
+}
+export interface EntityTagCreate {
+  tag_id: string;
+  subject_type: string;
+  subject_id: string;
+}
+
+export interface EntityLink {
+  id: string;
+  from_type: string;
+  from_id: string;
+  to_type: string;
+  to_id: string;
+  kind: string;
+  created_at: string;
+}
+export interface EntityLinkCreate {
+  from_type: string;
+  from_id: string;
+  to_type: string;
+  to_id: string;
+  kind?: string;
+}
