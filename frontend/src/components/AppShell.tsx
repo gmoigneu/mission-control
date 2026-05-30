@@ -1,71 +1,1127 @@
-import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import {
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
+import {
+  Activity,
+  BookOpen,
+  Building2,
+  CalendarDays,
+  Check,
+  ClipboardCheck,
+  Flame,
+  FolderKanban,
+  Inbox,
+  Layers,
+  LayoutDashboard,
+  Link2,
+  Menu,
+  Mic,
+  Moon,
+  NotebookPen,
+  PanelLeft,
+  PanelRight,
+  Search,
+  Send,
+  Settings,
+  Share2,
+  Sparkles,
+  SquareCheckBig,
+  StickyNote,
+  Sun,
+  Tag,
+  Tags,
+  Target,
+  Undo2,
+  Users,
+} from "lucide-react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useLogout, useMe } from "../lib/auth";
 
-const NAV = [
-  { to: "/", label: "Dashboard" },
-  { to: "/search", label: "Search" },
-  { to: "/contexts", label: "Contexts" },
-  { to: "/projects", label: "Projects" },
-  { to: "/people", label: "People" },
-  { to: "/companies", label: "Companies" },
-  { to: "/tasks", label: "Tasks" },
-  { to: "/relationships", label: "Relationships" },
-  { to: "/observations", label: "Observations" },
-  { to: "/tags", label: "Tags" },
-  { to: "/entity-tags", label: "Entity Tags" },
-  { to: "/entity-links", label: "Entity Links" },
-  { to: "/journal", label: "Journal" },
-  { to: "/habits", label: "Habits" },
-  { to: "/meetings", label: "Meetings" },
-  { to: "/knowledge", label: "Knowledge" },
-  { to: "/inbox", label: "Inbox" },
-  { to: "/telos", label: "TELOS" },
-  { to: "/activity", label: "Activity" },
+// ─── Nav definition ───────────────────────────────────────────────────────────
+
+type NavEntry =
+  | { divider: true }
+  | {
+      divider?: false;
+      key: string;
+      label: string;
+      to: string;
+      Icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+    };
+
+const NAV: NavEntry[] = [
+  { key: "dashboard", label: "Dashboard", to: "/", Icon: LayoutDashboard },
+  { key: "contexts", label: "Contexts", to: "/contexts", Icon: Layers },
+  { key: "projects", label: "Projects", to: "/projects", Icon: FolderKanban },
+  { key: "people", label: "People", to: "/people", Icon: Users },
+  { key: "companies", label: "Companies", to: "/companies", Icon: Building2 },
+  { key: "tasks", label: "Tasks", to: "/tasks", Icon: SquareCheckBig },
+  { key: "journal", label: "Journal", to: "/journal", Icon: NotebookPen },
+  { key: "reviews", label: "Reviews", to: "/reviews", Icon: ClipboardCheck },
+  { key: "habits", label: "Habits", to: "/habits", Icon: Flame },
+  { key: "meetings", label: "Meetings", to: "/meetings", Icon: CalendarDays },
+  { key: "knowledge", label: "Knowledge", to: "/knowledge", Icon: BookOpen },
+  { key: "inbox", label: "Inbox", to: "/inbox", Icon: Inbox },
+  { key: "telos", label: "TELOS", to: "/telos", Icon: Target },
+  { divider: true },
+  { key: "relationships", label: "Relationships", to: "/relationships", Icon: Share2 },
+  { key: "observations", label: "Observations", to: "/observations", Icon: StickyNote },
+  { key: "tags", label: "Tags", to: "/tags", Icon: Tag },
+  { key: "entity-tags", label: "Entity Tags", to: "/entity-tags", Icon: Tags },
+  { key: "entity-links", label: "Entity Links", to: "/entity-links", Icon: Link2 },
+  { divider: true },
+  { key: "search", label: "Search", to: "/search", Icon: Search },
+  { key: "activity", label: "Activity", to: "/activity", Icon: Activity },
+  { key: "settings", label: "Settings", to: "/settings", Icon: Settings },
 ];
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+
+interface Toast {
+  id: number;
+  text: string;
+  undo?: boolean;
+}
+
+// ─── Local components ─────────────────────────────────────────────────────────
+
+function Logo() {
+  return (
+    <span
+      style={{
+        width: 30,
+        height: 30,
+        borderRadius: 8,
+        background: "var(--surface-3)",
+        border: "1px solid var(--line-bright)",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+        flexShrink: 0,
+      }}
+    >
+      <span
+        style={{
+          width: 9,
+          height: 9,
+          borderRadius: 9,
+          background: "var(--signal)",
+          boxShadow: "0 0 10px var(--signal-halo)",
+        }}
+      />
+      <span
+        style={{
+          position: "absolute",
+          inset: 5,
+          border: "1px solid var(--line-bright)",
+          borderRadius: 5,
+          opacity: 0.6,
+        }}
+      />
+    </span>
+  );
+}
+
+function NavItemComp({
+  entry,
+  active,
+  open,
+  onClick,
+}: {
+  entry: Extract<NavEntry, { divider?: false }>;
+  active: boolean;
+  open: boolean;
+  onClick: () => void;
+}) {
+  const { Icon: IconComp } = entry;
+  return (
+    <button
+      onClick={onClick}
+      className={"nav-item row gap-3" + (active ? " active" : "")}
+      title={!open ? entry.label : ""}
+      style={{
+        width: "100%",
+        padding: open ? "8px 12px" : "9px",
+        borderRadius: "var(--r-sm)",
+        border: 0,
+        cursor: "pointer",
+        justifyContent: open ? "flex-start" : "center",
+        background: active ? "var(--surface-3)" : "transparent",
+        color: active ? "var(--fg)" : "var(--fg-dim)",
+        marginBottom: 1,
+        textAlign: "left",
+        position: "relative",
+      }}
+    >
+      {active && (
+        <span
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 8,
+            bottom: 8,
+            width: 2.5,
+            borderRadius: 9,
+            background: "var(--signal)",
+          }}
+        />
+      )}
+      <IconComp size={17} strokeWidth={1.6} />
+      {open && (
+        <span style={{ fontSize: 13, fontWeight: active ? 600 : 500 }}>
+          {entry.label}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function BottomItemComp({
+  Icon: IconComp,
+  label,
+  active,
+  onClick,
+}: {
+  Icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="col"
+      style={{
+        alignItems: "center",
+        gap: 3,
+        border: 0,
+        background: "transparent",
+        cursor: "pointer",
+        color: active ? "var(--signal)" : "var(--fg-dim)",
+        padding: "4px 10px",
+      }}
+    >
+      <IconComp size={20} strokeWidth={1.6} />
+      <span
+        style={{
+          fontSize: 9.5,
+          fontFamily: "var(--mono)",
+          letterSpacing: "0.04em",
+        }}
+      >
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function Toggle2({
+  a,
+  b,
+  iconA,
+  iconB,
+  value,
+  onChange,
+  text,
+}: {
+  a: string;
+  b: string;
+  iconA?: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+  iconB?: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+  value: string;
+  onChange: (v: string) => void;
+  text?: boolean;
+}) {
+  return (
+    <div
+      className="row"
+      style={{
+        background: "var(--bg-deep)",
+        borderRadius: "var(--r-sm)",
+        padding: 2,
+        border: "1px solid var(--line)",
+      }}
+    >
+      {[a, b].map((opt, i) => {
+        const IconComp = i === 0 ? iconA : iconB;
+        return (
+          <button
+            key={opt}
+            onClick={() => onChange(opt)}
+            className="row gap-1"
+            style={{
+              padding: text ? "4px 9px" : "4px 8px",
+              borderRadius: 5,
+              border: 0,
+              cursor: "pointer",
+              fontFamily: text ? "var(--mono)" : "var(--sans)",
+              fontSize: text ? 10.5 : 12,
+              letterSpacing: text ? "0.04em" : 0,
+              textTransform: text ? "uppercase" : "none",
+              background: value === opt ? "var(--surface-4)" : "transparent",
+              color: value === opt ? "var(--fg)" : "var(--fg-dim)",
+            }}
+          >
+            {!text && IconComp && <IconComp size={13} strokeWidth={1.6} />}
+            {opt}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function SetRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className="row"
+      style={{
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 11,
+      }}
+    >
+      <span style={{ fontSize: 13 }}>{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function SettingsPopover({
+  theme,
+  setTheme,
+  navOpen,
+  setNavOpen,
+  close,
+}: {
+  theme: string;
+  setTheme: (t: string) => void;
+  navOpen: boolean;
+  setNavOpen: (v: boolean) => void;
+  close: () => void;
+}) {
+  return (
+    <>
+      <div
+        onClick={close}
+        style={{ position: "fixed", inset: 0, zIndex: 41 }}
+      />
+      <div
+        className="card rise"
+        style={{
+          position: "absolute",
+          top: 50,
+          right: 12,
+          width: 268,
+          padding: 16,
+          zIndex: 42,
+          boxShadow: "var(--shadow-pop)",
+          background: "var(--surface-1)",
+        }}
+      >
+        <div className="label" style={{ marginBottom: 12 }}>
+          Display
+        </div>
+        <SetRow label="Theme">
+          <Toggle2
+            a="dark"
+            b="light"
+            iconA={Moon}
+            iconB={Sun}
+            value={theme}
+            onChange={setTheme}
+          />
+        </SetRow>
+        <SetRow label="Nav rail">
+          <Toggle2
+            a="full"
+            b="icons"
+            value={navOpen ? "full" : "icons"}
+            onChange={(v) => setNavOpen(v === "full")}
+            text
+          />
+        </SetRow>
+        <div
+          className="meta"
+          style={{
+            marginTop: 12,
+            lineHeight: 1.4,
+            color: "var(--fg-faint)",
+          }}
+        >
+          Press ⌘K anywhere to capture. Drag task cards between board columns.
+        </div>
+      </div>
+    </>
+  );
+}
+
+function Avatar({
+  initials,
+  size = 30,
+}: {
+  initials: string;
+  size?: number;
+}) {
+  return (
+    <span
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        background: "var(--ctx-work)",
+        color: "var(--signal-ink)",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: size * 0.4,
+        fontWeight: 700,
+        fontFamily: "var(--mono)",
+        letterSpacing: 0,
+        flexShrink: 0,
+      }}
+    >
+      {initials}
+    </span>
+  );
+}
+
+function CommandPalette({
+  onClose,
+  onNavigate,
+}: {
+  onClose: () => void;
+  onNavigate: (to: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  const navEntries = NAV.filter(
+    (n): n is Extract<NavEntry, { divider?: false }> => !n.divider,
+  );
+
+  const filtered =
+    query.trim()
+      ? navEntries.filter((n) =>
+          n.label.toLowerCase().includes(query.trim().toLowerCase()),
+        )
+      : navEntries;
+
+  function handleAction(to: string) {
+    navigate({ to } as Parameters<typeof navigate>[0]);
+    onNavigate(to);
+    onClose();
+  }
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 80,
+          background: "oklch(0.1 0.01 258 / 0.55)",
+          backdropFilter: "blur(4px)",
+        }}
+      />
+      {/* Modal */}
+      <div
+        className="card rise"
+        style={{
+          position: "fixed",
+          top: "20%",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "min(560px, 92vw)",
+          zIndex: 81,
+          padding: 16,
+          boxShadow: "var(--shadow-pop)",
+          background: "var(--surface-2)",
+          maxHeight: "60vh",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <input
+          ref={inputRef}
+          className="input"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Capture anything… or navigate"
+          style={{ marginBottom: 12 }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && query.trim()) {
+              navigate({ to: "/search" } as Parameters<typeof navigate>[0]);
+              onClose();
+            }
+          }}
+        />
+        <div
+          style={{
+            overflowY: "auto",
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+          }}
+        >
+          {query.trim() && (
+            <button
+              onClick={() => {
+                navigate({ to: "/search" } as Parameters<typeof navigate>[0]);
+                onClose();
+              }}
+              style={{
+                textAlign: "left",
+                background: "var(--surface-3)",
+                border: "1px solid var(--line)",
+                borderRadius: "var(--r-sm)",
+                padding: "8px 12px",
+                cursor: "pointer",
+                fontSize: 13,
+                color: "var(--signal)",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 4,
+              }}
+            >
+              <Search size={14} strokeWidth={1.6} />
+              Search for &ldquo;{query}&rdquo;
+            </button>
+          )}
+          {filtered.map((entry) => (
+            <button
+              key={entry.key}
+              onClick={() => handleAction(entry.to)}
+              style={{
+                textAlign: "left",
+                background: "transparent",
+                border: 0,
+                borderRadius: "var(--r-sm)",
+                padding: "7px 10px",
+                cursor: "pointer",
+                fontSize: 13,
+                color: "var(--fg-muted)",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                transition: "background var(--dur) var(--ease), color var(--dur) var(--ease)",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background =
+                  "var(--surface-3)";
+                (e.currentTarget as HTMLButtonElement).style.color = "var(--fg)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background =
+                  "transparent";
+                (e.currentTarget as HTMLButtonElement).style.color =
+                  "var(--fg-muted)";
+              }}
+            >
+              <entry.Icon size={15} strokeWidth={1.6} />
+              {entry.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function AyaPanel({ onClose }: { onClose: () => void }) {
+  const [msg, setMsg] = useState("");
+
+  return (
+    <div
+      style={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        background: "var(--surface-1)",
+        borderLeft: "1px solid var(--line-soft)",
+      }}
+    >
+      {/* Header */}
+      <div
+        className="row gap-2"
+        style={{
+          padding: "12px 14px",
+          borderBottom: "1px solid var(--line-soft)",
+          flexShrink: 0,
+        }}
+      >
+        <span className="aya-orb" />
+        <span
+          className="serif"
+          style={{ fontSize: 15, fontWeight: 460, flex: 1 }}
+        >
+          Aya
+        </span>
+        <span className="meta" style={{ color: "var(--fg-faint)", fontSize: 11 }}>
+          idle
+        </span>
+        <button
+          className="iconbtn"
+          onClick={onClose}
+          title="Close Aya"
+          aria-label="Close Aya"
+        >
+          <span
+            style={{
+              fontSize: 16,
+              lineHeight: 1,
+              color: "var(--fg-dim)",
+              fontFamily: "var(--mono)",
+            }}
+          >
+            ×
+          </span>
+        </button>
+      </div>
+
+      {/* Transcript */}
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "16px 14px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            alignSelf: "flex-start",
+            maxWidth: "88%",
+            background:
+              "linear-gradient(135deg, var(--signal-ghost), oklch(0.80 0.13 215 / 0.06))",
+            border: "1px solid var(--signal-ghost)",
+            borderRadius: "0 var(--r-md) var(--r-md) var(--r-md)",
+            padding: "10px 13px",
+            fontSize: 13,
+            lineHeight: 1.5,
+            color: "var(--fg-muted)",
+          }}
+        >
+          Hi G — I&apos;m Aya. I&apos;ll be able to read and act on your data here soon.
+        </div>
+      </div>
+
+      {/* Composer */}
+      <div
+        style={{
+          padding: "10px 12px",
+          borderTop: "1px solid var(--line-soft)",
+          flexShrink: 0,
+          display: "flex",
+          gap: 8,
+          alignItems: "flex-end",
+        }}
+      >
+        <input
+          className="input"
+          placeholder="Message Aya…"
+          value={msg}
+          onChange={(e) => setMsg(e.target.value)}
+          disabled
+          style={{ flex: 1, opacity: 0.6 }}
+        />
+        <button
+          className="iconbtn"
+          disabled
+          title="Send"
+          aria-label="Send"
+          style={{ opacity: 0.4, flexShrink: 0 }}
+        >
+          <Send size={15} strokeWidth={1.6} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── AppShell ──────────────────────────────────────────────────────────────────
 
 export function AppShell({ children }: { children: ReactNode }) {
   const me = useMe();
   const logout = useLogout();
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  // Persistent state
+  const [theme, setTheme] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("mc-theme") ?? "dark";
+    }
+    return "dark";
+  });
+  const [navOpen, setNavOpen] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("mc-nav-open");
+      return saved !== null ? saved === "true" : true;
+    }
+    return true;
+  });
+  const [ayaOpen, setAyaOpen] = useState(true);
+  const [mobileNav, setMobileNav] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  const [captureOpen, setCaptureOpen] = useState(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  // Sync theme to DOM + localStorage
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("mc-theme", theme);
+  }, [theme]);
+
+  // Sync navOpen to localStorage
+  useEffect(() => {
+    localStorage.setItem("mc-nav-open", String(navOpen));
+  }, [navOpen]);
+
+  // Global ⌘K
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCaptureOpen(true);
+      }
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
+
+  function addToast(t: Omit<Toast, "id">) {
+    const id = Date.now() + Math.random();
+    setToasts((ts) => [...ts, { ...t, id }]);
+    setTimeout(() => setToasts((ts) => ts.filter((x) => x.id !== id)), 7000);
+  }
+
+  function dismissToast(id: number) {
+    setToasts((ts) => ts.filter((x) => x.id !== id));
+  }
+
+  function goTo(to: string) {
+    navigate({ to } as Parameters<typeof navigate>[0]);
+    setMobileNav(false);
+  }
+
+  const showDock = ayaOpen;
+  const userInitial = me.data?.email?.[0]?.toUpperCase() ?? me.data?.name?.[0]?.toUpperCase() ?? "?";
+
+  const gridCols =
+    (navOpen ? "232px" : "60px") + " 1fr" + (showDock ? " 372px" : "");
+
   return (
-    <div className="flex h-full">
-      <aside className="w-56 shrink-0 border-r border-gray-200 bg-gray-50 p-4">
-        <div className="mb-6 text-lg font-semibold">mission-control</div>
-        <nav className="space-y-1">
-          {NAV.map((n) => (
-            <Link
-              key={n.to}
-              to={n.to}
-              className="block rounded px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 [&.active]:bg-gray-200 [&.active]:font-medium"
-            >
-              {n.label}
-            </Link>
-          ))}
-        </nav>
-      </aside>
-      <div className="flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-gray-200 px-6 py-3">
+    <div
+      className="shell"
+      style={{
+        display: "grid",
+        gridTemplateColumns: gridCols,
+        gridTemplateRows: "56px 1fr",
+        height: "100vh",
+        overflow: "hidden",
+      }}
+    >
+      {/* ===== Top bar ===== */}
+      <header
+        className="topbar"
+        style={{
+          gridColumn: "1 / -1",
+          display: "flex",
+          alignItems: "center",
+          gap: 16,
+          padding: "0 16px",
+          borderBottom: "1px solid var(--line-soft)",
+          background:
+            "color-mix(in oklch, var(--surface-1) 88%, transparent)",
+          backdropFilter: "blur(12px)",
+          position: "relative",
+          zIndex: 40,
+        }}
+      >
+        {/* Logo + title */}
+        <div
+          className="row gap-3"
+          style={{
+            width: navOpen ? 216 : "auto",
+            flexShrink: 0,
+          }}
+        >
           <button
-            disabled
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-400"
-            title="Coming soon"
+            className="iconbtn mobile-only"
+            onClick={() => setMobileNav((v) => !v)}
+            aria-label="Open navigation"
           >
-            ⌘K Capture
+            <Menu size={18} strokeWidth={1.6} />
           </button>
-          <div className="flex items-center gap-3 text-sm text-gray-600">
-            <span>{me.data?.email}</span>
-            <button className="text-gray-500 hover:text-gray-900" onClick={() => logout.mutate()}>
-              Log out
-            </button>
+          <div className="row gap-2">
+            <Logo />
+            <span
+              className="serif desktop-only"
+              style={{
+                fontSize: 16,
+                fontWeight: 460,
+                letterSpacing: "-0.01em",
+              }}
+            >
+              Mission Control
+            </span>
           </div>
-        </header>
-        <div className="flex flex-1">
-          <main className="flex-1 overflow-auto">{children}</main>
-          <aside className="hidden w-72 shrink-0 border-l border-gray-200 p-4 text-sm text-gray-400 lg:block">
-            <div className="font-medium text-gray-600">Aya</div>
-            <p className="mt-2">Chat coming soon.</p>
-          </aside>
         </div>
+
+        {/* Cmd-K capture trigger */}
+        <button
+          onClick={() => setCaptureOpen(true)}
+          className="capture-trigger row gap-2"
+          style={{
+            flex: 1,
+            maxWidth: 520,
+            margin: "0 auto",
+            background: "var(--bg-deep)",
+            border: "1px solid var(--line)",
+            borderRadius: "var(--r-md)",
+            padding: "8px 12px",
+            cursor: "text",
+            color: "var(--fg-faint)",
+          }}
+        >
+          <Sparkles
+            size={16}
+            strokeWidth={1.6}
+            style={{ color: "var(--signal)", flexShrink: 0 }}
+          />
+          <span
+            style={{ flex: 1, textAlign: "left", fontSize: 13 }}
+          >
+            Capture anything…
+          </span>
+          <span
+            className="badge desktop-only"
+            style={{
+              border: "1px solid var(--line)",
+              color: "var(--fg-dim)",
+            }}
+          >
+            ⌘K
+          </span>
+        </button>
+
+        {/* Action buttons */}
+        <div className="row gap-1" style={{ flexShrink: 0 }}>
+          <button
+            className="iconbtn"
+            title="Voice capture"
+            aria-label="Voice capture"
+            onClick={() => addToast({ text: "Listening…", undo: false })}
+          >
+            <Mic size={18} strokeWidth={1.6} />
+          </button>
+          <button
+            className="iconbtn"
+            title="Settings"
+            aria-label="Settings"
+            onClick={() => setSettingsOpen((v) => !v)}
+          >
+            <Settings size={18} strokeWidth={1.6} />
+          </button>
+          {!showDock && (
+            <button
+              className="iconbtn"
+              title="Open Aya"
+              aria-label="Open Aya"
+              onClick={() => setAyaOpen(true)}
+              style={{ color: "var(--signal)" }}
+            >
+              <Sparkles size={18} strokeWidth={1.6} />
+            </button>
+          )}
+          {/* Avatar / user menu */}
+          <div style={{ position: "relative" }}>
+            <button
+              className="avatar-btn"
+              title={me.data?.email ?? "Account"}
+              aria-label="Account menu"
+              onClick={() => setAvatarMenuOpen((v) => !v)}
+            >
+              <Avatar initials={userInitial} size={30} />
+            </button>
+            {avatarMenuOpen && (
+              <>
+                <div
+                  onClick={() => setAvatarMenuOpen(false)}
+                  style={{ position: "fixed", inset: 0, zIndex: 41 }}
+                />
+                <div
+                  className="card rise"
+                  style={{
+                    position: "absolute",
+                    top: 36,
+                    right: 0,
+                    width: 220,
+                    padding: "8px 0",
+                    zIndex: 42,
+                    boxShadow: "var(--shadow-pop)",
+                    background: "var(--surface-1)",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "8px 14px 10px",
+                      borderBottom: "1px solid var(--line-soft)",
+                      marginBottom: 4,
+                      fontSize: 12,
+                      color: "var(--fg-dim)",
+                      fontFamily: "var(--mono)",
+                    }}
+                  >
+                    {me.data?.email ?? ""}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setAvatarMenuOpen(false);
+                      logout.mutate();
+                    }}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      textAlign: "left",
+                      background: "transparent",
+                      border: 0,
+                      padding: "7px 14px",
+                      fontSize: 13,
+                      cursor: "pointer",
+                      color: "var(--fg-muted)",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background =
+                        "var(--surface-3)";
+                      (e.currentTarget as HTMLButtonElement).style.color =
+                        "var(--fg)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background =
+                        "transparent";
+                      (e.currentTarget as HTMLButtonElement).style.color =
+                        "var(--fg-muted)";
+                    }}
+                  >
+                    Log out
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Settings popover */}
+        {settingsOpen && (
+          <SettingsPopover
+            theme={theme}
+            setTheme={setTheme}
+            navOpen={navOpen}
+            setNavOpen={setNavOpen}
+            close={() => setSettingsOpen(false)}
+          />
+        )}
+      </header>
+
+      {/* ===== Left nav ===== */}
+      <nav
+        className={"leftnav " + (mobileNav ? "mobile-open" : "")}
+        style={{
+          borderRight: "1px solid var(--line-soft)",
+          background: "var(--surface-1)",
+          overflowY: "auto",
+          overflowX: "hidden",
+          padding: "12px 10px",
+        }}
+      >
+        {NAV.map((n, i) =>
+          "divider" in n && n.divider ? (
+            <div key={i} className="hr" style={{ margin: "10px 8px" }} />
+          ) : (
+            <NavItemComp
+              key={(n as Extract<NavEntry, { divider?: false }>).key}
+              entry={n as Extract<NavEntry, { divider?: false }>}
+              active={
+                (n as Extract<NavEntry, { divider?: false }>).to === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(
+                      (n as Extract<NavEntry, { divider?: false }>).to,
+                    )
+              }
+              open={navOpen}
+              onClick={() =>
+                goTo((n as Extract<NavEntry, { divider?: false }>).to)
+              }
+            />
+          ),
+        )}
+        <button
+          className="navrail-toggle desktop-only"
+          onClick={() => setNavOpen((v) => !v)}
+          title="Collapse"
+          style={{ marginTop: 8 }}
+        >
+          {navOpen ? (
+            <PanelLeft size={16} strokeWidth={1.6} />
+          ) : (
+            <PanelRight size={16} strokeWidth={1.6} />
+          )}
+          {navOpen && <span style={{ fontSize: 12 }}>Collapse</span>}
+        </button>
+      </nav>
+
+      {/* Nav scrim (mobile) */}
+      {mobileNav && (
+        <div
+          className="nav-scrim"
+          onClick={() => setMobileNav(false)}
+        />
+      )}
+
+      {/* ===== Content ===== */}
+      <main
+        style={{
+          overflow: "auto",
+          minWidth: 0,
+          position: "relative",
+          background: "var(--bg)",
+        }}
+      >
+        {children}
+      </main>
+
+      {/* ===== Docked Aya ===== */}
+      {showDock && (
+        <aside className="aya-dock desktop-only" style={{ overflow: "hidden" }}>
+          <AyaPanel onClose={() => setAyaOpen(false)} />
+        </aside>
+      )}
+
+      {/* ===== Mobile bottom nav ===== */}
+      <nav className="bottomnav mobile-only">
+        <BottomItemComp
+          Icon={LayoutDashboard}
+          label="Today"
+          active={pathname === "/"}
+          onClick={() => goTo("/")}
+        />
+        <BottomItemComp
+          Icon={SquareCheckBig}
+          label="Tasks"
+          active={pathname.startsWith("/tasks")}
+          onClick={() => goTo("/tasks")}
+        />
+        <button
+          className="bottom-fab"
+          onClick={() => setCaptureOpen(true)}
+          aria-label="Capture"
+        >
+          <Sparkles size={22} strokeWidth={1.6} />
+        </button>
+        <BottomItemComp
+          Icon={NotebookPen}
+          label="Journal"
+          active={pathname.startsWith("/journal")}
+          onClick={() => goTo("/journal")}
+        />
+        <BottomItemComp
+          Icon={Sparkles}
+          label="Aya"
+          active={false}
+          onClick={() => setAyaOpen(true)}
+        />
+      </nav>
+
+      {/* ===== Command palette ===== */}
+      {captureOpen && (
+        <CommandPalette
+          onClose={() => setCaptureOpen(false)}
+          onNavigate={() => {}}
+        />
+      )}
+
+      {/* ===== Toasts ===== */}
+      <div
+        className="toast-stack"
+        style={{
+          position: "fixed",
+          bottom: 22,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 90,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          alignItems: "center",
+        }}
+      >
+        {toasts.map((t) => (
+          <div
+            key={t.id}
+            className="toast rise row gap-3"
+            style={{
+              background: "var(--surface-3)",
+              border: "1px solid var(--line-bright)",
+              borderRadius: "var(--r-md)",
+              padding: "10px 12px 10px 14px",
+              boxShadow: "var(--shadow-pop)",
+              alignItems: "center",
+              minWidth: 240,
+            }}
+          >
+            {t.undo && (
+              <span className="spark">
+                <Sparkles size={14} strokeWidth={1.6} />
+              </span>
+            )}
+            <span style={{ flex: 1, fontSize: 13 }}>{t.text}</span>
+            {t.undo ? (
+              <button
+                className="btn ghost sm"
+                onClick={() => dismissToast(t.id)}
+              >
+                <Undo2 size={12} strokeWidth={1.6} />
+                Undo
+              </button>
+            ) : (
+              <Check
+                size={15}
+                strokeWidth={1.6}
+                style={{ color: "var(--st-done)" }}
+              />
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
