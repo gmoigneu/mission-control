@@ -187,6 +187,13 @@ export interface EntityTagCreate {
   subject_id: string;
 }
 
+export interface SearchResult {
+  subject_type: string;
+  subject_id: string;
+  score: number;
+  snippet: string;
+}
+
 export interface EntityLink {
   id: string;
   from_type: string;
