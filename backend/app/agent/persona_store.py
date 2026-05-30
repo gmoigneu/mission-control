@@ -150,6 +150,29 @@ async def upsert_persona(
     return persona
 
 
+async def reset_persona(db: AsyncSession) -> AgentPersona:
+    """Clear every editable field back to the blank default.
+
+    Unlike :func:`upsert_persona` (which only writes provided fields and so
+    cannot null a field out), this explicitly resets the row: the name returns
+    to the default and every other field is cleared, with ``enabled`` back on.
+    """
+    persona = await get_persona(db)
+    if persona is None:
+        persona = AgentPersona(name=DEFAULT_PERSONA.name)
+        db.add(persona)
+    persona.name = DEFAULT_PERSONA.name
+    persona.role = None
+    persona.tone = None
+    persona.greeting = None
+    persona.instructions = None
+    persona.principles = None
+    persona.boundaries = None
+    persona.enabled = True
+    await db.flush()
+    return persona
+
+
 # ---------------------------------------------------------------------------
 # Prompt composition
 # ---------------------------------------------------------------------------

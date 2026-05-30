@@ -12,6 +12,7 @@ from app.agent.agent import run_agent
 from app.agent.persona_store import (
     DEFAULT_PERSONA,
     get_persona,
+    reset_persona,
     upsert_persona,
 )
 from app.audit.revert import revert_audit
@@ -175,17 +176,7 @@ async def reset_persona_route(
     existing = await get_persona(db)
     before = model_to_dict(existing) if existing is not None else None
 
-    persona = await upsert_persona(
-        db,
-        name=DEFAULT_PERSONA.name,
-        role=None,
-        tone=None,
-        greeting=None,
-        instructions=None,
-        principles=None,
-        boundaries=None,
-        enabled=True,
-    )
+    persona = await reset_persona(db)
 
     if existing is None:
         await record_create(db, "agent_persona", persona, actor="user", surface="ui")
