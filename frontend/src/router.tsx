@@ -2,9 +2,11 @@ import { createRouter } from "@tanstack/react-router";
 import { rootRoute } from "./routes/root";
 import { indexRoute } from "./routes/index";
 import { loginRoute } from "./routes/login";
+import { contextsRoute } from "./routes/contexts";
+import { activityRoute } from "./routes/activity";
 import { placeholderRoute } from "./routes/placeholder";
 
-const routeTree = rootRoute.addChildren([indexRoute, loginRoute, placeholderRoute]);
+const routeTree = rootRoute.addChildren([indexRoute, loginRoute, contextsRoute, activityRoute, placeholderRoute]);
 
 export const router = createRouter({ routeTree });
 
