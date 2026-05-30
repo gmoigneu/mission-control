@@ -7,7 +7,6 @@ from app.audit.serialize import model_to_dict
 from app.audit.service import record_create, record_delete, record_update
 from app.models.context import Context
 from app.schemas.context import ContextCreate, ContextUpdate
-from app.search.index import deindex_subject, index_subject
 
 ENTITY = "context"
 
@@ -26,7 +25,6 @@ async def create_context(db: AsyncSession, data: ContextCreate, *, surface: str 
     db.add(obj)
     await db.flush()
     await record_create(db, ENTITY, obj, surface=surface)
-    await index_subject(db, ENTITY, obj)
     return obj
 
 
@@ -38,7 +36,6 @@ async def update_context(
         setattr(obj, key, value)
     await db.flush()
     await record_update(db, ENTITY, obj, before, surface=surface)
-    await index_subject(db, ENTITY, obj)
     return obj
 
 
@@ -48,4 +45,3 @@ async def delete_context(db: AsyncSession, obj: Context, *, surface: str = "api"
     await db.delete(obj)
     await db.flush()
     await record_delete(db, ENTITY, before, entity_id, surface=surface)
-    await deindex_subject(db, ENTITY, entity_id)

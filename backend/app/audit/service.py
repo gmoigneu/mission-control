@@ -6,7 +6,28 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.agent.context import agent_run_id_var
 from app.audit.serialize import model_to_dict
 from app.models.audit import AuditLog
-from app.models.outbox import OutboxEvent
+from app.models.outbox import CHANNEL_GRAPH, CHANNEL_SEARCH, OutboxEvent
+
+
+def _emit(
+    db: AsyncSession, entity_type: str, entity_id: Any, op: str, payload: dict | None
+) -> None:
+    """Fan a single change out to every outbox consumer.
+
+    Both the Neo4j projector and the semantic indexer are decoupled from the
+    request path: each drains its own channel, so search/graph work happens in
+    the worker rather than inline in the user's write transaction.
+    """
+    for channel in (CHANNEL_GRAPH, CHANNEL_SEARCH):
+        db.add(
+            OutboxEvent(
+                channel=channel,
+                aggregate_type=entity_type,
+                aggregate_id=entity_id,
+                op=op,
+                payload=payload,
+            )
+        )
 
 
 async def record_create(
@@ -19,7 +40,7 @@ async def record_create(
         agent_run_id=agent_run_id_var.get(),
     )
     db.add(entry)
-    db.add(OutboxEvent(aggregate_type=entity_type, aggregate_id=obj.id, op="upsert", payload=after))
+    _emit(db, entity_type, obj.id, "upsert", after)
     return entry
 
 
@@ -35,7 +56,7 @@ async def record_update(
         agent_run_id=agent_run_id_var.get(),
     )
     db.add(entry)
-    db.add(OutboxEvent(aggregate_type=entity_type, aggregate_id=obj.id, op="upsert", payload=after))
+    _emit(db, entity_type, obj.id, "upsert", after)
     return entry
 
 
@@ -49,9 +70,5 @@ async def record_delete(
         agent_run_id=agent_run_id_var.get(),
     )
     db.add(entry)
-    db.add(
-        OutboxEvent(
-            aggregate_type=entity_type, aggregate_id=entity_id, op="delete", payload=before
-        )
-    )
+    _emit(db, entity_type, entity_id, "delete", before)
     return entry

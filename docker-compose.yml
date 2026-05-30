@@ -76,6 +76,22 @@ services:
       neo4j:
         condition: service_healthy
 
+  search-worker:
+    profiles: ["deploy"]
+    build: ./backend
+    command: uv run python -m app.search.worker
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+asyncpg://mc:mc@postgres:5432/mc
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      EMBEDDINGS_PROVIDER: ${EMBEDDINGS_PROVIDER:-fake}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   caddy:
     profiles: ["deploy"]
     build: ./frontend

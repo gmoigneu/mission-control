@@ -3,13 +3,13 @@ import uuid
 
 from sqlalchemy import select
 
-from app.models.outbox import OutboxEvent
+from app.models.outbox import CHANNEL_GRAPH, CHANNEL_SEARCH, OutboxEvent
 from app.schemas.context import ContextCreate
 from app.services.context import create_context, delete_context
 
 
-async def test_outbox_create_context(db):
-    """Creating a context emits exactly one upsert OutboxEvent."""
+async def test_outbox_create_context_fans_out_to_both_channels(db):
+    """Creating a context emits one upsert event per consumer channel."""
     data = ContextCreate(slug=f"test-ctx-{uuid.uuid4().hex[:6]}", name="Test Context")
     ctx = await create_context(db, data)
     await db.flush()
@@ -22,12 +22,13 @@ async def test_outbox_create_context(db):
     )
     rows = result.scalars().all()
 
-    assert len(rows) == 1, f"Expected 1 outbox row, got {len(rows)}"
-    row = rows[0]
-    assert row.op == "upsert"
-    assert row.processed_at is None
-    assert row.payload is not None
-    assert row.payload.get("slug") == data.slug
+    assert len(rows) == 2, f"Expected 2 outbox rows (graph+search), got {len(rows)}"
+    assert {r.channel for r in rows} == {CHANNEL_GRAPH, CHANNEL_SEARCH}
+    for row in rows:
+        assert row.op == "upsert"
+        assert row.processed_at is None
+        assert row.payload is not None
+        assert row.payload.get("slug") == data.slug
 
 
 async def test_outbox_delete_context(db):
