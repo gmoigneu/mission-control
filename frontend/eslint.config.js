@@ -26,6 +26,13 @@ export default defineConfig([
       'react-refresh/only-export-components': 'off',
     },
   },
+  // console.tsx intentionally exports both components and design-system constants/helpers
+  {
+    files: ['src/components/console.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
   // vite.config.ts uses a vitest triple-slash reference which is intentional
   {
     files: ['vite.config.ts'],

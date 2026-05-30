@@ -1,8 +1,49 @@
 import { createRoute, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
-import { Button, Card, Field, Input } from "../components/ui";
 import { useLogin } from "../lib/auth";
 import { rootRoute } from "./root";
+
+// ─── Logo mark (reused from AppShell) ─────────────────────────────────────────
+
+function Logo() {
+  return (
+    <span
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        background: "var(--surface-3)",
+        border: "1px solid var(--line-bright)",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+        flexShrink: 0,
+      }}
+    >
+      <span
+        style={{
+          width: 10,
+          height: 10,
+          borderRadius: 9,
+          background: "var(--signal)",
+          boxShadow: "0 0 12px var(--signal-halo)",
+        }}
+      />
+      <span
+        style={{
+          position: "absolute",
+          inset: 6,
+          border: "1px solid var(--line-bright)",
+          borderRadius: 6,
+          opacity: 0.6,
+        }}
+      />
+    </span>
+  );
+}
+
+// ─── Login page ────────────────────────────────────────────────────────────────
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -16,33 +57,128 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex h-full items-center justify-center bg-gray-100">
-      <div className="w-full max-w-sm">
-        <Card>
-          <h1 className="mb-4 text-xl font-semibold">Sign in</h1>
-          <form className="space-y-4" onSubmit={onSubmit}>
-            <Field label="Email">
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="username"
-              />
-            </Field>
-            <Field label="Password">
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-              />
-            </Field>
-            {login.isError && <p className="text-sm text-red-600">Invalid credentials</p>}
-            <Button type="submit" disabled={login.isPending} className="w-full">
-              {login.isPending ? "Signing in…" : "Sign in"}
-            </Button>
-          </form>
-        </Card>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--bg)",
+        padding: "24px 16px",
+      }}
+    >
+      {/* Card */}
+      <div
+        className="card ticks rise"
+        style={{
+          width: "100%",
+          maxWidth: 380,
+          padding: "40px 36px 36px",
+        }}
+      >
+        {/* Logo + wordmark */}
+        <div
+          className="row gap-3"
+          style={{ marginBottom: 32 }}
+        >
+          <Logo />
+          <span
+            className="serif"
+            style={{ fontSize: 16, fontWeight: 460, letterSpacing: "-0.01em" }}
+          >
+            Mission Control
+          </span>
+        </div>
+
+        {/* Heading */}
+        <h1
+          className="title"
+          style={{ margin: "0 0 28px" }}
+        >
+          Sign in
+        </h1>
+
+        <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Email */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <label
+              htmlFor="login-email"
+              className="label"
+              style={{ display: "block" }}
+            >
+              Email
+            </label>
+            <input
+              id="login-email"
+              className="input"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"
+              placeholder="you@example.com"
+              required
+            />
+          </div>
+
+          {/* Password */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <label
+              htmlFor="login-password"
+              className="label"
+              style={{ display: "block" }}
+            >
+              Password
+            </label>
+            <input
+              id="login-password"
+              className="input"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              placeholder="••••••••"
+              required
+            />
+          </div>
+
+          {/* Error */}
+          {login.isError && (
+            <p
+              style={{
+                margin: 0,
+                fontSize: 12.5,
+                color: "var(--st-danger)",
+                fontFamily: "var(--mono)",
+              }}
+            >
+              Invalid credentials — check your email and password.
+            </p>
+          )}
+
+          {/* Submit */}
+          <button
+            type="submit"
+            className="btn primary"
+            disabled={login.isPending}
+            style={{ width: "100%", justifyContent: "center", marginTop: 4 }}
+          >
+            {login.isPending ? "Signing in…" : "Sign in"}
+          </button>
+        </form>
+
+        {/* Footer note */}
+        <p
+          className="meta"
+          style={{
+            marginTop: 24,
+            textAlign: "center",
+            color: "var(--fg-faint)",
+            fontSize: 11,
+          }}
+        >
+          Your personal OS. Private by design.
+        </p>
       </div>
     </div>
   );
