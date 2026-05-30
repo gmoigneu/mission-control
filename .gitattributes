@@ -5,3 +5,5 @@ backend/app/main.py              merge=union
 backend/app/audit/registry.py    merge=union
 frontend/src/router.tsx          merge=union
 frontend/src/lib/types.ts        merge=union
+backend/scripts/import_aya.py    merge=union
+backend/tests/test_import_aya.py merge=union
