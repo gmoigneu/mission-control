@@ -61,6 +61,38 @@ export interface Company {
   updated_at: string;
 }
 
+export interface Habit {
+  id: string;
+  slug: string;
+  name: string;
+  cadence: string;
+  active: boolean;
+  streak: number;
+  logged_today: boolean;
+  created_at: string;
+  updated_at: string;
+}
+export interface HabitCreate {
+  slug: string;
+  name: string;
+  cadence?: string;
+  active?: boolean;
+}
+export type HabitUpdate = Partial<HabitCreate>;
+
+export interface HabitLog {
+  id: string;
+  habit_id: string;
+  date: string;
+  done: boolean;
+  created_at: string;
+  updated_at: string;
+}
+export interface HabitLogCreate {
+  date: string;
+  done?: boolean;
+}
+
 export interface Person {
   id: string;
   slug: string;
