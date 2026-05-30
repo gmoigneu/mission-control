@@ -4,7 +4,7 @@ import { apiFetch } from "../../lib/api";
 import type { AuditEntry } from "../../lib/types";
 
 /** Maps backend entity_type singular → frontend query key (plural). */
-const ENTITY_TYPE_TO_KEY: Record<string, string> = {
+export const ENTITY_TYPE_TO_KEY: Record<string, string> = {
   context: "contexts",
   project: "projects",
   company: "companies",

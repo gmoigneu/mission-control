@@ -2,6 +2,7 @@ import {
   useNavigate,
   useRouterState,
 } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   BookOpen,
@@ -15,6 +16,7 @@ import {
   Layers,
   LayoutDashboard,
   Link2,
+  Loader2,
   Menu,
   Mic,
   Moon,
@@ -37,6 +39,13 @@ import {
 } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useLogout, useMe } from "../lib/auth";
+import {
+  type AgentWrite,
+  invalidateForWrites,
+  useCapture,
+  useChat,
+  useRevertRun,
+} from "../features/agent/api";
 
 // ─── Nav definition ───────────────────────────────────────────────────────────
 
@@ -82,6 +91,7 @@ interface Toast {
   id: number;
   text: string;
   undo?: boolean;
+  onUndo?: () => void | Promise<void>;
 }
 
 // ─── Local components ─────────────────────────────────────────────────────────
@@ -397,13 +407,18 @@ function Avatar({
 function CommandPalette({
   onClose,
   onNavigate,
+  onToast,
 }: {
   onClose: () => void;
   onNavigate: (to: string) => void;
+  onToast: (text: string, undo?: () => void) => void;
 }) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const capture = useCapture();
+  const revertRun = useRevertRun();
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -433,6 +448,27 @@ function CommandPalette({
     onNavigate(to);
     onClose();
   }
+
+  async function handleCapture() {
+    if (!query.trim()) return;
+    try {
+      const res = await capture.mutateAsync({ text: query.trim() });
+      invalidateForWrites(qc, res.writes);
+      onClose();
+      const count = res.writes.length;
+      onToast(
+        `Aya created ${count} item${count !== 1 ? "s" : ""}`,
+        async () => {
+          await revertRun.mutateAsync(res.agent_run_id);
+          invalidateForWrites(qc, res.writes);
+        },
+      );
+    } catch {
+      onToast("Aya capture failed");
+    }
+  }
+
+  const isPending = capture.isPending;
 
   return (
     <>
@@ -472,10 +508,10 @@ function CommandPalette({
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Capture anything… or navigate"
           style={{ marginBottom: 12 }}
+          disabled={isPending}
           onKeyDown={(e) => {
             if (e.key === "Enter" && query.trim()) {
-              navigate({ to: "/search", search: { q: query.trim() } } as unknown as Parameters<typeof navigate>[0]);
-              onClose();
+              void handleCapture();
             }
           }}
         />
@@ -488,6 +524,36 @@ function CommandPalette({
             gap: 2,
           }}
         >
+          {/* Primary: capture with Aya */}
+          {query.trim() && (
+            <button
+              onClick={() => void handleCapture()}
+              disabled={isPending}
+              style={{
+                textAlign: "left",
+                background: isPending ? "var(--surface-2)" : "var(--surface-3)",
+                border: "1px solid var(--signal-ghost)",
+                borderRadius: "var(--r-sm)",
+                padding: "8px 12px",
+                cursor: isPending ? "default" : "pointer",
+                fontSize: 13,
+                color: "var(--signal)",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 4,
+                opacity: isPending ? 0.7 : 1,
+              }}
+            >
+              {isPending ? (
+                <Loader2 size={14} strokeWidth={1.6} style={{ animation: "spin 1s linear infinite" }} />
+              ) : (
+                <Sparkles size={14} strokeWidth={1.6} />
+              )}
+              {isPending ? "Capturing…" : `✦ Capture with Aya: “${query}”`}
+            </button>
+          )}
+          {/* Secondary: search */}
           {query.trim() && (
             <button
               onClick={() => {
@@ -496,13 +562,13 @@ function CommandPalette({
               }}
               style={{
                 textAlign: "left",
-                background: "var(--surface-3)",
+                background: "transparent",
                 border: "1px solid var(--line)",
                 borderRadius: "var(--r-sm)",
                 padding: "8px 12px",
                 cursor: "pointer",
                 fontSize: 13,
-                color: "var(--signal)",
+                color: "var(--fg-muted)",
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
@@ -553,8 +619,127 @@ function CommandPalette({
   );
 }
 
+// ─── Chat message types ───────────────────────────────────────────────────────
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  text: string;
+  writes?: AgentWrite[];
+  runId?: string;
+  error?: boolean;
+  reverted?: boolean;
+}
+
+const INTRO_MESSAGE: ChatMessage = {
+  role: "assistant",
+  text: "Hi G — I’m Aya. Tell me what to do, and I’ll act on your data.",
+};
+
+function WritesCard({
+  writes,
+  runId,
+  reverted,
+  onReverted,
+}: {
+  writes: AgentWrite[];
+  runId: string;
+  reverted: boolean;
+  onReverted: () => void;
+}) {
+  const qc = useQueryClient();
+  const revert = useRevertRun();
+
+  async function handleUndo() {
+    await revert.mutateAsync(runId);
+    invalidateForWrites(qc, writes);
+    onReverted();
+  }
+
+  return (
+    <div
+      className="card"
+      style={{
+        marginTop: 6,
+        padding: "8px 10px",
+        background: "var(--surface-2)",
+        border: "1px solid var(--line)",
+        borderRadius: "var(--r-sm)",
+        fontSize: 12,
+        color: "var(--fg-dim)",
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: reverted ? 0 : 8 }}>
+        {writes.map((w) => (
+          <span key={w.id} className="row gap-1" style={{ gap: 5 }}>
+            <span className="spark" style={{ fontSize: 11 }}>✦</span>
+            <span style={{ color: "var(--fg-muted)" }}>
+              {w.action} {w.entity_type.replace("_", " ")}
+            </span>
+          </span>
+        ))}
+      </div>
+      {!reverted ? (
+        <button
+          className="btn ghost sm"
+          onClick={() => void handleUndo()}
+          disabled={revert.isPending}
+          style={{ display: "flex", alignItems: "center", gap: 4 }}
+        >
+          {revert.isPending ? (
+            <Loader2 size={11} strokeWidth={1.6} style={{ animation: "spin 1s linear infinite" }} />
+          ) : (
+            <Undo2 size={11} strokeWidth={1.6} />
+          )}
+          Undo
+        </button>
+      ) : (
+        <span style={{ fontSize: 11, color: "var(--fg-faint)", fontStyle: "italic" }}>
+          Reverted
+        </span>
+      )}
+    </div>
+  );
+}
+
 function AyaPanel({ onClose }: { onClose: () => void }) {
+  const [messages, setMessages] = useState<ChatMessage[]>([INTRO_MESSAGE]);
   const [msg, setMsg] = useState("");
+  const [revertedIds, setRevertedIds] = useState<Set<string>>(new Set());
+  const transcriptRef = useRef<HTMLDivElement>(null);
+  const qc = useQueryClient();
+  const chat = useChat();
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (transcriptRef.current) {
+      transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  async function handleSend() {
+    const text = msg.trim();
+    if (!text || chat.isPending) return;
+    setMsg("");
+    setMessages((prev) => [...prev, { role: "user", text }]);
+    try {
+      const res = await chat.mutateAsync({ message: text });
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          text: res.reply,
+          writes: res.writes.length > 0 ? res.writes : undefined,
+          runId: res.agent_run_id,
+        },
+      ]);
+      invalidateForWrites(qc, res.writes);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: "Something went wrong. Please try again.", error: true },
+      ]);
+    }
+  }
 
   return (
     <div
@@ -583,7 +768,7 @@ function AyaPanel({ onClose }: { onClose: () => void }) {
           Aya
         </span>
         <span className="meta" style={{ color: "var(--fg-faint)", fontSize: 11 }}>
-          idle
+          {chat.isPending ? "thinking…" : "idle"}
         </span>
         <button
           className="iconbtn"
@@ -606,6 +791,7 @@ function AyaPanel({ onClose }: { onClose: () => void }) {
 
       {/* Transcript */}
       <div
+        ref={transcriptRef}
         style={{
           flex: 1,
           overflowY: "auto",
@@ -615,22 +801,75 @@ function AyaPanel({ onClose }: { onClose: () => void }) {
           gap: 12,
         }}
       >
-        <div
-          style={{
-            alignSelf: "flex-start",
-            maxWidth: "88%",
-            background:
-              "linear-gradient(135deg, var(--signal-ghost), oklch(0.80 0.13 215 / 0.06))",
-            border: "1px solid var(--signal-ghost)",
-            borderRadius: "0 var(--r-md) var(--r-md) var(--r-md)",
-            padding: "10px 13px",
-            fontSize: 13,
-            lineHeight: 1.5,
-            color: "var(--fg-muted)",
-          }}
-        >
-          Hi G — I&apos;m Aya. I&apos;ll be able to read and act on your data here soon.
-        </div>
+        {messages.map((m, i) =>
+          m.role === "user" ? (
+            <div
+              key={i}
+              style={{
+                alignSelf: "flex-end",
+                maxWidth: "88%",
+                background: "var(--surface-3)",
+                border: "1px solid var(--line)",
+                borderRadius: "var(--r-md) var(--r-md) 0 var(--r-md)",
+                padding: "9px 13px",
+                fontSize: 13,
+                lineHeight: 1.5,
+                color: "var(--fg)",
+              }}
+            >
+              {m.text}
+            </div>
+          ) : (
+            <div key={i} style={{ alignSelf: "flex-start", maxWidth: "88%" }}>
+              <div
+                style={{
+                  background: m.error
+                    ? "oklch(0.40 0.08 25 / 0.15)"
+                    : "linear-gradient(135deg, var(--signal-ghost), oklch(0.80 0.13 215 / 0.06))",
+                  border: m.error
+                    ? "1px solid oklch(0.55 0.12 25 / 0.4)"
+                    : "1px solid var(--signal-ghost)",
+                  borderRadius: "0 var(--r-md) var(--r-md) var(--r-md)",
+                  padding: "10px 13px",
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  color: "var(--fg-muted)",
+                }}
+              >
+                {m.text}
+              </div>
+              {m.writes && m.runId && (
+                <WritesCard
+                  writes={m.writes}
+                  runId={m.runId}
+                  reverted={revertedIds.has(m.runId)}
+                  onReverted={() =>
+                    setRevertedIds((prev) => new Set([...prev, m.runId!]))
+                  }
+                />
+              )}
+            </div>
+          ),
+        )}
+        {/* Thinking indicator */}
+        {chat.isPending && (
+          <div
+            style={{
+              alignSelf: "flex-start",
+              background:
+                "linear-gradient(135deg, var(--signal-ghost), oklch(0.80 0.13 215 / 0.06))",
+              border: "1px solid var(--signal-ghost)",
+              borderRadius: "0 var(--r-md) var(--r-md) var(--r-md)",
+              padding: "10px 16px",
+            }}
+          >
+            <span className="dots" style={{ color: "var(--signal)" }}>
+              <span />
+              <span />
+              <span />
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Composer */}
@@ -649,15 +888,25 @@ function AyaPanel({ onClose }: { onClose: () => void }) {
           placeholder="Message Aya…"
           value={msg}
           onChange={(e) => setMsg(e.target.value)}
-          disabled
-          style={{ flex: 1, opacity: 0.6 }}
+          disabled={chat.isPending}
+          style={{ flex: 1 }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              void handleSend();
+            }
+          }}
         />
         <button
           className="iconbtn"
-          disabled
+          onClick={() => void handleSend()}
+          disabled={!msg.trim() || chat.isPending}
           title="Send"
           aria-label="Send"
-          style={{ opacity: 0.4, flexShrink: 0 }}
+          style={{
+            opacity: !msg.trim() || chat.isPending ? 0.4 : 1,
+            flexShrink: 0,
+          }}
         >
           <Send size={15} strokeWidth={1.6} />
         </button>
@@ -1084,6 +1333,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         <CommandPalette
           onClose={() => setCaptureOpen(false)}
           onNavigate={() => {}}
+          onToast={(text, onUndo) =>
+            addToast({ text, undo: !!onUndo, onUndo })
+          }
         />
       )}
 
@@ -1125,7 +1377,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             {t.undo ? (
               <button
                 className="btn ghost sm"
-                onClick={() => dismissToast(t.id)}
+                onClick={async () => {
+                  dismissToast(t.id);
+                  if (t.onUndo) await t.onUndo();
+                }}
               >
                 <Undo2 size={12} strokeWidth={1.6} />
                 Undo
