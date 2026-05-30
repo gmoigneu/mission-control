@@ -11,7 +11,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=UserOut)
-async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
+async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):  # noqa: B008
     user = await authenticate_user(db, payload.email, payload.password)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
@@ -25,5 +25,5 @@ async def logout(request: Request) -> None:
 
 
 @router.get("/me", response_model=UserOut)
-async def me(user: AppUser = Depends(get_current_user)) -> AppUser:
+async def me(user: AppUser = Depends(get_current_user)) -> AppUser:  # noqa: B008
     return user

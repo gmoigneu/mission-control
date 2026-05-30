@@ -8,7 +8,8 @@ from app.models.user import AppUser
 
 
 async def get_current_user(
-    request: Request, db: AsyncSession = Depends(get_db)
+    request: Request,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> AppUser:
     user_id = request.session.get("user_id")
     if not user_id:

@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: mc
+          POSTGRES_PASSWORD: mc
+          POSTGRES_DB: mc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mc"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+asyncpg://mc:mc@localhost:5432/mc
+      TEST_DATABASE_URL: postgresql+asyncpg://mc:mc@localhost:5432/mc_test
+      SESSION_SECRET: ci-secret
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Sync deps
+        run: uv sync
+      - name: Create test database
+        run: PGPASSWORD=mc psql -h localhost -U mc -d mc -c "CREATE DATABASE mc_test;" || true
+      - name: Migrate dev database
+        run: uv run alembic upgrade head
+      - name: Lint
+        run: uv run ruff check .
+      - name: Type check
+        run: uv run mypy app
+      - name: Test
+        run: uv run pytest -v
