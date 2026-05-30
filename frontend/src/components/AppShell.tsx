@@ -630,10 +630,17 @@ interface ChatMessage {
   reverted?: boolean;
 }
 
-const INTRO_MESSAGE: ChatMessage = {
-  role: "assistant",
-  text: "Hi G — I’m Aya. Tell me what to do, and I’ll act on your data.",
-};
+function firstName(name: string | null | undefined): string | undefined {
+  return name?.trim().split(/\s+/)[0] || undefined;
+}
+
+function introMessage(name: string | null | undefined): ChatMessage {
+  const greeting = firstName(name) ? `Hi ${firstName(name)}` : "Hi there";
+  return {
+    role: "assistant",
+    text: `${greeting} — I’m Aya. Tell me what to do, and I’ll act on your data.`,
+  };
+}
 
 function WritesCard({
   writes,
@@ -702,7 +709,10 @@ function WritesCard({
 }
 
 function AyaPanel({ onClose }: { onClose: () => void }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([INTRO_MESSAGE]);
+  const me = useMe();
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    introMessage(me.data?.name),
+  ]);
   const [msg, setMsg] = useState("");
   const [revertedIds, setRevertedIds] = useState<Set<string>>(new Set());
   const transcriptRef = useRef<HTMLDivElement>(null);
