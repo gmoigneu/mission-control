@@ -61,6 +61,24 @@ export interface Company {
   updated_at: string;
 }
 
+export type TelosKind = "mission" | "goal" | "problem" | "metric" | "value";
+export interface Telos {
+  id: string;
+  kind: TelosKind;
+  title: string;
+  body: string | null;
+  parent_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface TelosCreate {
+  kind: TelosKind;
+  title: string;
+  body?: string | null;
+  parent_id?: string | null;
+}
+export type TelosUpdate = Partial<TelosCreate>;
+
 export interface Person {
   id: string;
   slug: string;

@@ -14,4 +14,5 @@ from app.models.relationship import Relationship  # noqa: F401
 from app.models.tag import Tag  # noqa: F401
 from app.models.task import Task  # noqa: F401
 from app.models.task_link import TaskLink  # noqa: F401
+from app.models.telos import Telos  # noqa: F401
 from app.models.user import AppUser  # noqa: F401
