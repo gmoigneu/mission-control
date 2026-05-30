@@ -7,6 +7,7 @@ import { projectsRoute } from "./routes/projects";
 import { peopleRoute } from "./routes/people";
 import { tasksRoute } from "./routes/tasks";
 import { companiesRoute } from "./routes/companies";
+import { tonesRoute } from "./routes/tones";
 import { tagsRoute } from "./routes/tags";
 import { relationshipsRoute } from "./routes/relationships";
 import { observationsRoute } from "./routes/observations";
@@ -16,7 +17,7 @@ import { activityRoute } from "./routes/activity";
 import { searchRoute } from "./routes/search";
 import { placeholderRoute } from "./routes/placeholder";
 
-const routeTree = rootRoute.addChildren([indexRoute, loginRoute, contextsRoute, projectsRoute, peopleRoute, tasksRoute, companiesRoute, tagsRoute, relationshipsRoute, observationsRoute, entityTagsRoute, entityLinksRoute, activityRoute, searchRoute, placeholderRoute]);
+const routeTree = rootRoute.addChildren([indexRoute, loginRoute, contextsRoute, projectsRoute, peopleRoute, tasksRoute, companiesRoute, tonesRoute, tagsRoute, relationshipsRoute, observationsRoute, entityTagsRoute, entityLinksRoute, activityRoute, searchRoute, placeholderRoute]);
 
 export const router = createRouter({ routeTree });
 

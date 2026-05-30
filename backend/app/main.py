@@ -22,6 +22,7 @@ from app.api import (
     tags,
     task_links,
     tasks,
+    tones,
 )
 from app.config import settings
 
@@ -68,6 +69,7 @@ def create_app() -> FastAPI:
     app.include_router(relationships.router)
     app.include_router(observations.router)
     app.include_router(tags.router)
+    app.include_router(tones.router)
     app.include_router(entity_tags.router)
     app.include_router(entity_links.router)
     app.include_router(task_links.router)

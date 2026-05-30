@@ -13,7 +13,7 @@ Notes:
 - Neo4j graph rebuild is NOT done here. Trigger it manually via:
       POST /admin/rebuild-graph
 - Vault sections with no matching table (journal, meetings, knowledge, inbox,
-  telos, tone) are silently skipped with a note in the summary.
+  telos) are silently skipped with a note in the summary.
 """
 
 from __future__ import annotations
@@ -858,7 +858,7 @@ async def import_vault(db: AsyncSession, vault_path: Path, *, reindex: bool = Tr
         "00.inbox (no inbox table)",
         "04.knowledge (no knowledge table)",
         "meetings/ sub-folders (no meeting table)",
-        "99.system / telos / tone (no table)",
+        "99.system / telos (no table)",
     ])
 
     print(f"Importing from {vault_path} …")

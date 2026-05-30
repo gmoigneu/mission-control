@@ -27,6 +27,7 @@ from app.services import context as context_svc
 from app.services import observation as observation_svc
 from app.services import person as person_svc
 from app.services import task as task_svc
+from app.services import tone as tone_svc
 
 Handler = Callable[[AsyncSession, dict[str, Any]], Awaitable[dict[str, Any]]]
 
@@ -75,6 +76,21 @@ async def _find_entities(db: AsyncSession, args: dict) -> dict:
 async def _who_do_i_know_at(db: AsyncSession, args: dict) -> dict:  # noqa: ARG001
     rows = await who_at_company(neo4j_runner, args["company"])
     return {"people": rows}
+
+
+async def _list_tones(db: AsyncSession, args: dict) -> dict:  # noqa: ARG001
+    tones = await tone_svc.list_tones(db)
+    return {
+        "tones": [
+            {
+                "slug": t.slug,
+                "name": t.name,
+                "description": t.description,
+                "sample": t.sample,
+            }
+            for t in tones
+        ]
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -193,6 +209,19 @@ TOOLS: list[dict] = [
             "required": ["company"],
         },
         "handler": _who_do_i_know_at,
+    },
+    {
+        "name": "list_tones",
+        "description": (
+            "List the saved writing tones (voices). Use this to find an appropriate tone"
+            " before drafting text, then write in the requested voice using its sample"
+            " and description as a guide."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+        },
+        "handler": _list_tones,
     },
 ]
 
