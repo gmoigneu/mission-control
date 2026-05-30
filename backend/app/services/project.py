@@ -8,13 +8,23 @@ from app.audit.service import record_create, record_delete, record_update
 from app.models.project import Project
 from app.schemas.project import ProjectCreate, ProjectUpdate
 from app.search.index import deindex_subject, index_subject
+from app.services.pagination import apply_window, count_rows
 
 ENTITY = "project"
 
 
-async def list_projects(db: AsyncSession) -> list[Project]:
-    result = await db.execute(select(Project).order_by(Project.created_at))
+async def list_projects(
+    db: AsyncSession, *, limit: int | None = None, offset: int = 0
+) -> list[Project]:
+    stmt = apply_window(
+        select(Project).order_by(Project.created_at), limit=limit, offset=offset
+    )
+    result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def count_projects(db: AsyncSession) -> int:
+    return await count_rows(db, select(Project))
 
 
 async def get_project(db: AsyncSession, project_id: uuid.UUID) -> Project | None:

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { Resource } from "./resource";
+import type { PageQuery, Resource } from "./resource";
 
 export function makeResourceHooks<TOut extends { id: string }, TCreate, TUpdate>(
   key: string,
@@ -8,6 +8,13 @@ export function makeResourceHooks<TOut extends { id: string }, TCreate, TUpdate>
 ) {
   function useList(query?: Record<string, string>) {
     return useQuery({ queryKey: [key, query ?? {}], queryFn: () => res.list(query) });
+  }
+  function usePagedList(query?: PageQuery) {
+    return useQuery({
+      queryKey: [key, "page", query ?? {}],
+      queryFn: () => res.listPage(query),
+      placeholderData: (prev) => prev,
+    });
   }
   function useCreate() {
     const qc = useQueryClient();
@@ -30,5 +37,5 @@ export function makeResourceHooks<TOut extends { id: string }, TCreate, TUpdate>
       onSuccess: () => qc.invalidateQueries({ queryKey: [key] }),
     });
   }
-  return { useList, useCreate, useUpdate, useRemove };
+  return { useList, usePagedList, useCreate, useUpdate, useRemove };
 }

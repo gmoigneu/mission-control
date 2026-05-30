@@ -3,11 +3,18 @@ import { useState } from "react";
 import { AppShell } from "../components/AppShell";
 import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
+import { Pagination } from "../components/Pagination";
 import { RequireAuth } from "../components/RequireAuth";
 import { Button, Card, Field, Input, Select } from "../components/ui";
 import { useCompanies } from "../features/companies/api";
 import { useContexts } from "../features/contexts/api";
-import { useCreatePerson, useDeletePerson, usePeople, useUpdatePerson } from "../features/people/api";
+import {
+  useCreatePerson,
+  useDeletePerson,
+  usePeoplePage,
+  useUpdatePerson,
+} from "../features/people/api";
+import { DEFAULT_PAGE_SIZE } from "../lib/pagination";
 import type { Person } from "../lib/types";
 import { rootRoute } from "./root";
 
@@ -60,7 +67,9 @@ function buildPayload(form: FormState, isEdit: boolean) {
 }
 
 export function PeoplePage() {
-  const { data: people = [] } = usePeople();
+  const [offset, setOffset] = useState(0);
+  const { data: peoplePage } = usePeoplePage({ limit: DEFAULT_PAGE_SIZE, offset });
+  const people = peoplePage?.items ?? [];
   const { data: companies = [] } = useCompanies();
   const { data: contexts = [] } = useContexts();
   const createPerson = useCreatePerson();
@@ -245,6 +254,7 @@ export function PeoplePage() {
           </Card>
 
           <DataTable rows={people} columns={columns} empty="No people yet." />
+          {peoplePage && <Pagination page={peoplePage.page} onChange={setOffset} />}
         </div>
       </AppShell>
     </RequireAuth>

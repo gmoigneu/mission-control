@@ -114,4 +114,78 @@ it("renders the people page and POSTs with name/slug; empty optional FK fields a
     expect("company_id" in body).toBe(false);
     expect("primary_context_id" in body).toBe(false);
   });
+
+  // The list request carries limit/offset paging params.
+  const listCall = calls.find(
+    ([url, init]) =>
+      String(url).includes("/people") &&
+      String(url).includes("limit=") &&
+      (!init?.method || init.method === "GET"),
+  );
+  expect(listCall).toBeDefined();
+});
+
+function person(id: string, name: string) {
+  return {
+    id,
+    slug: id,
+    name,
+    role: null,
+    company_id: null,
+    email: null,
+    linkedin: null,
+    first_met: null,
+    primary_context_id: null,
+    summary: null,
+    archived: false,
+    created_at: "",
+    updated_at: "",
+  };
+}
+
+it("paginates: clicking Next requests the next offset", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    const u = String(url);
+    calls.push([u, init]);
+    if (u.includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
+        status: 200,
+      });
+    }
+    if ((u.includes("/companies") || u.includes("/contexts")) && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify([]), { status: 200 });
+    }
+    if (u.includes("/people") && (!init?.method || init.method === "GET")) {
+      const offset = u.includes("offset=50") ? 50 : 0;
+      const body = offset === 0 ? [person("p1", "Alpha")] : [person("p2", "Beta")];
+      const headers: Record<string, string> = {
+        "X-Total-Count": "51",
+        "X-Limit": "50",
+        "X-Offset": String(offset),
+      };
+      if (offset === 0) headers["X-Next-Offset"] = "50";
+      return new Response(JSON.stringify(body), { status: 200, headers });
+    }
+    return new Response(JSON.stringify([]), { status: 200 });
+  });
+
+  renderPeople(fetchMock);
+
+  await screen.findByRole("heading", { name: "People" });
+  await screen.findByText("Alpha");
+  expect(screen.getByText("1–50 of 51")).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole("button", { name: /next/i }));
+
+  await waitFor(() => {
+    const nextCall = calls.find(
+      ([url, init]) =>
+        String(url).includes("/people") &&
+        String(url).includes("offset=50") &&
+        (!init?.method || init.method === "GET"),
+    );
+    expect(nextCall).toBeDefined();
+  });
+  await screen.findByText("Beta");
 });

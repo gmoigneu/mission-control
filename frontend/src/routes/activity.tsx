@@ -1,8 +1,10 @@
 import { createRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { AppShell } from "../components/AppShell";
 import { DataTable } from "../components/DataTable";
+import { Pagination } from "../components/Pagination";
 import { RequireAuth } from "../components/RequireAuth";
-import { useAudit, useRevert } from "../features/audit/api";
+import { useAuditPage, useRevert } from "../features/audit/api";
 import type { AuditEntry } from "../lib/types";
 import { rootRoute } from "./root";
 
@@ -21,7 +23,9 @@ function UndoButton({ row }: { row: AuditEntry }) {
 }
 
 export function ActivityPage() {
-  const { data: entries = [] } = useAudit();
+  const [offset, setOffset] = useState(0);
+  const { data: auditPage } = useAuditPage(offset);
+  const entries = auditPage?.items ?? [];
 
   const columns = [
     {
@@ -47,6 +51,7 @@ export function ActivityPage() {
         <div className="p-6 space-y-4">
           <h1 className="text-xl font-semibold">Activity</h1>
           <DataTable rows={entries} columns={columns} empty="No activity yet." />
+          {auditPage && <Pagination page={auditPage.page} onChange={setOffset} />}
         </div>
       </AppShell>
     </RequireAuth>

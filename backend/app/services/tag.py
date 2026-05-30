@@ -7,13 +7,21 @@ from app.audit.serialize import model_to_dict
 from app.audit.service import record_create, record_delete, record_update
 from app.models.tag import Tag
 from app.schemas.tag import TagCreate, TagUpdate
+from app.services.pagination import apply_window, count_rows
 
 ENTITY = "tag"
 
 
-async def list_tags(db: AsyncSession) -> list[Tag]:
-    result = await db.execute(select(Tag).order_by(Tag.name))
+async def list_tags(
+    db: AsyncSession, *, limit: int | None = None, offset: int = 0
+) -> list[Tag]:
+    stmt = apply_window(select(Tag).order_by(Tag.name), limit=limit, offset=offset)
+    result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def count_tags(db: AsyncSession) -> int:
+    return await count_rows(db, select(Tag))
 
 
 async def get_tag(db: AsyncSession, tag_id: uuid.UUID) -> Tag | None:

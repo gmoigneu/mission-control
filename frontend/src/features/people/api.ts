@@ -6,6 +6,7 @@ export const peopleResource = resource<Person, PersonCreate, PersonUpdate>("/peo
 
 export const {
   useList: usePeople,
+  usePagedList: usePeoplePage,
   useCreate: useCreatePerson,
   useUpdate: useUpdatePerson,
   useRemove: useDeletePerson,

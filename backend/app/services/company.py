@@ -8,13 +8,23 @@ from app.audit.service import record_create, record_delete, record_update
 from app.models.company import Company
 from app.schemas.company import CompanyCreate, CompanyUpdate
 from app.search.index import deindex_subject, index_subject
+from app.services.pagination import apply_window, count_rows
 
 ENTITY = "company"
 
 
-async def list_companies(db: AsyncSession) -> list[Company]:
-    result = await db.execute(select(Company).order_by(Company.created_at))
+async def list_companies(
+    db: AsyncSession, *, limit: int | None = None, offset: int = 0
+) -> list[Company]:
+    stmt = apply_window(
+        select(Company).order_by(Company.created_at), limit=limit, offset=offset
+    )
+    result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def count_companies(db: AsyncSession) -> int:
+    return await count_rows(db, select(Company))
 
 
 async def get_company(db: AsyncSession, company_id: uuid.UUID) -> Company | None:

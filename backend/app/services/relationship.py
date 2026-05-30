@@ -7,13 +7,23 @@ from app.audit.serialize import model_to_dict
 from app.audit.service import record_create, record_delete, record_update
 from app.models.relationship import Relationship
 from app.schemas.relationship import RelationshipCreate, RelationshipUpdate
+from app.services.pagination import apply_window, count_rows
 
 ENTITY = "relationship"
 
 
-async def list_relationships(db: AsyncSession) -> list[Relationship]:
-    result = await db.execute(select(Relationship).order_by(Relationship.created_at))
+async def list_relationships(
+    db: AsyncSession, *, limit: int | None = None, offset: int = 0
+) -> list[Relationship]:
+    stmt = apply_window(
+        select(Relationship).order_by(Relationship.created_at), limit=limit, offset=offset
+    )
+    result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def count_relationships(db: AsyncSession) -> int:
+    return await count_rows(db, select(Relationship))
 
 
 async def get_relationship(db: AsyncSession, relationship_id: uuid.UUID) -> Relationship | None:

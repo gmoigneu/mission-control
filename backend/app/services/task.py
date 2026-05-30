@@ -8,13 +8,23 @@ from app.audit.service import record_create, record_delete, record_update
 from app.models.task import Task
 from app.schemas.task import TaskCreate, TaskUpdate
 from app.search.index import deindex_subject, index_subject
+from app.services.pagination import apply_window, count_rows
 
 ENTITY = "task"
 
 
-async def list_tasks(db: AsyncSession) -> list[Task]:
-    result = await db.execute(select(Task).order_by(Task.created_at))
+async def list_tasks(
+    db: AsyncSession, *, limit: int | None = None, offset: int = 0
+) -> list[Task]:
+    stmt = apply_window(
+        select(Task).order_by(Task.created_at), limit=limit, offset=offset
+    )
+    result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def count_tasks(db: AsyncSession) -> int:
+    return await count_rows(db, select(Task))
 
 
 async def get_task(db: AsyncSession, task_id: uuid.UUID) -> Task | None:
