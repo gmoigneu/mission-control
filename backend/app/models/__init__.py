@@ -1,6 +1,7 @@
 from app.models.audit import AuditLog  # noqa: F401
 from app.models.company import Company  # noqa: F401
 from app.models.context import Context  # noqa: F401
+from app.models.entity_link import EntityLink  # noqa: F401
 from app.models.entity_tag import EntityTag  # noqa: F401
 from app.models.observation import Observation  # noqa: F401
 from app.models.person import Person  # noqa: F401
