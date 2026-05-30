@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.api import health
+from app.api import auth, health
 from app.config import settings
 
 
@@ -14,6 +14,7 @@ def create_app() -> FastAPI:
         https_only=settings.environment != "development",
     )
     app.include_router(health.router)
+    app.include_router(auth.router)
     return app
 
 
