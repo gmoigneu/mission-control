@@ -354,7 +354,7 @@ Because AI writes are autonomous, **every** mutation is auditable and reversible
 ## 10. AI system
 
 ### 10.1 Shape
-A **single agent** using a direct Anthropic tool-use loop (not LangChain/LangGraph — the spec's original choice was simplified to a hand-rolled loop for full control and zero framework overhead). The agent is **pluggable**: a `mock` rule-based LLM is the default (no API key needed; good for tests and offline use); swap in the `anthropic` provider via `LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY`. The agent has:
+A **single agent** using a direct tool-use loop (not LangChain/LangGraph — the spec's original choice was simplified to a hand-rolled loop for full control and zero framework overhead). The agent is **pluggable**: a `mock` rule-based LLM is the default (no API key needed; good for tests and offline use); swap in `openai_oauth` via `LLM_PROVIDER=openai_oauth` (OpenAI via ChatGPT-subscription OAuth, device-code flow — no API key; token stored in Postgres). The agent has:
 - A **system prompt** = persona (SOUL-equivalent: warm, direct, protective of priorities) + operating rules + current date/context.
 - A **toolset** grouped by domain (below). Tools wrap **domain services**, never raw SQL — so AI writes inherit validation + audit + outbox + embeddings.
 - **Retrieval tools** for semantic and graph queries.
@@ -517,7 +517,7 @@ mission-control/
 `.env` (see `.env.example`):
 - `DATABASE_URL=postgresql+asyncpg://...`
 - `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`
-- `LLM_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`, `LLM_MODEL=claude-...`
+- `LLM_PROVIDER=openai_oauth` (OpenAI via ChatGPT-subscription OAuth, device-code flow; token stored in Postgres — no API key needed), `LLM_MODEL=gpt-5`
 - `EMBEDDINGS_PROVIDER=openai`, `OPENAI_API_KEY`, `EMBEDDINGS_MODEL=text-embedding-3-small`, `EMBEDDINGS_DIM=1536`
 - `STT_PROVIDER=openai`, `STT_MODEL=whisper-1`
 - `SESSION_SECRET`, `INITIAL_USER_EMAIL`, `INITIAL_USER_PASSWORD`
