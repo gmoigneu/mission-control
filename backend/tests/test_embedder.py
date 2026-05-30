@@ -1,6 +1,11 @@
 import math
+import sys
+import types
+
+import pytest
 
 from app.config import settings
+from app.search import embedder
 from app.search.embedder import embed_text, embed_texts
 
 
@@ -49,3 +54,46 @@ async def test_related_texts_more_similar_than_unrelated():
     assert sim_related > sim_unrelated, (
         f"Expected related similarity ({sim_related:.3f}) > unrelated ({sim_unrelated:.3f})"
     )
+
+
+def test_default_provider_is_fake():
+    """The offline default must stay 'fake' so the suite never hits the network."""
+    assert settings.embeddings_provider == "fake"
+
+
+async def test_openai_provider_requires_api_key(monkeypatch):
+    monkeypatch.setattr(embedder.settings, "embeddings_provider", "openai")
+    monkeypatch.setattr(embedder.settings, "openai_api_key", None)
+    with pytest.raises(RuntimeError, match="OPENAI_API_KEY"):
+        await embed_texts(["hello"])
+
+
+async def test_openai_provider_calls_client(monkeypatch):
+    """provider=openai routes through AsyncOpenAI; mocked so the test stays offline."""
+    captured: dict = {}
+
+    class _FakeEmbeddings:
+        async def create(self, *, model, input):
+            captured["model"] = model
+            captured["input"] = input
+            data = [types.SimpleNamespace(embedding=[0.1, 0.2, 0.3]) for _ in input]
+            return types.SimpleNamespace(data=data)
+
+    class _FakeAsyncOpenAI:
+        def __init__(self, *, api_key):
+            captured["api_key"] = api_key
+            self.embeddings = _FakeEmbeddings()
+
+    fake_openai = types.ModuleType("openai")
+    fake_openai.AsyncOpenAI = _FakeAsyncOpenAI
+    monkeypatch.setitem(sys.modules, "openai", fake_openai)
+    monkeypatch.setattr(embedder.settings, "embeddings_provider", "openai")
+    monkeypatch.setattr(embedder.settings, "openai_api_key", "sk-test")
+    monkeypatch.setattr(embedder.settings, "embeddings_model", "text-embedding-3-small")
+
+    vecs = await embed_texts(["a", "b"])
+
+    assert vecs == [[0.1, 0.2, 0.3], [0.1, 0.2, 0.3]]
+    assert captured["api_key"] == "sk-test"
+    assert captured["model"] == "text-embedding-3-small"
+    assert captured["input"] == ["a", "b"]
