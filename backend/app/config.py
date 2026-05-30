@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_user: str = "neo4j"
     neo4j_password: str = "mc-neo4j-pw"
+    llm_provider: str = "mock"
+    anthropic_api_key: str | None = None
+    llm_model: str = "claude-sonnet-4-6"
 
     @model_validator(mode="after")
     def _require_secure_secret_in_prod(self) -> "Settings":

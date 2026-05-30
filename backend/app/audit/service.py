@@ -3,6 +3,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agent.context import agent_run_id_var
 from app.audit.serialize import model_to_dict
 from app.models.audit import AuditLog
 from app.models.outbox import OutboxEvent
@@ -15,6 +16,7 @@ async def record_create(
     entry = AuditLog(
         actor=actor, action="create", entity_type=entity_type, entity_id=obj.id,
         before=None, after=after, surface=surface,
+        agent_run_id=agent_run_id_var.get(),
     )
     db.add(entry)
     db.add(OutboxEvent(aggregate_type=entity_type, aggregate_id=obj.id, op="upsert", payload=after))
@@ -30,6 +32,7 @@ async def record_update(
     entry = AuditLog(
         actor=actor, action="update", entity_type=entity_type, entity_id=obj.id,
         before=before, after=after, surface=surface,
+        agent_run_id=agent_run_id_var.get(),
     )
     db.add(entry)
     db.add(OutboxEvent(aggregate_type=entity_type, aggregate_id=obj.id, op="upsert", payload=after))
@@ -43,6 +46,7 @@ async def record_delete(
     entry = AuditLog(
         actor=actor, action="delete", entity_type=entity_type, entity_id=entity_id,
         before=before, after=None, surface=surface,
+        agent_run_id=agent_run_id_var.get(),
     )
     db.add(entry)
     db.add(
