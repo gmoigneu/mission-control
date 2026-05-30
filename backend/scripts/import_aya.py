@@ -6,13 +6,14 @@ Run:
 
 Import order respects FK constraints:
     contexts → companies → people → projects → tasks → observations → relationships
+    → knowledge (standalone, no FKs)
 
 Notes:
 - Bulk inserts bypass per-row audit/outbox events intentionally (bulk speed).
   Audit coverage can be added later; the data is in Postgres.
 - Neo4j graph rebuild is NOT done here. Trigger it manually via:
       POST /admin/rebuild-graph
-- Vault sections with no matching table (journal, meetings, knowledge, inbox,
+- Vault sections with no matching table (journal, meetings, inbox,
   telos, tone) are silently skipped with a note in the summary.
 """
 
@@ -37,6 +38,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import SessionLocal
 from app.models.company import Company
 from app.models.context import Context
+from app.models.knowledge import Knowledge
 from app.models.observation import Observation
 from app.models.person import Person
 from app.models.project import Project
@@ -143,6 +145,7 @@ class Stats:
     tasks: int = 0
     observations: int = 0
     relationships: int = 0
+    knowledge: int = 0
     errors: list[tuple[str, str]] = field(default_factory=list)
     unresolved_links: list[str] = field(default_factory=list)
     skipped_sections: list[str] = field(default_factory=list)
@@ -156,6 +159,7 @@ class Stats:
         print(f"  tasks         : {self.tasks}")
         print(f"  observations  : {self.observations}")
         print(f"  relationships : {self.relationships}")
+        print(f"  knowledge     : {self.knowledge}")
         if self.unresolved_links:
             print(f"\n  unresolved links ({len(self.unresolved_links)}):")
             for u in self.unresolved_links[:20]:
@@ -239,6 +243,18 @@ async def _upsert_task(db: AsyncSession, slug: str, data: dict) -> Task:
         for k, v in data.items():
             if k != "source":  # preserve our slug marker
                 setattr(obj, k, v)
+    return obj
+
+
+async def _upsert_knowledge(db: AsyncSession, slug: str, data: dict) -> Knowledge:
+    result = await db.execute(select(Knowledge).where(Knowledge.slug == slug))
+    obj = result.scalar_one_or_none()
+    if obj is None:
+        obj = Knowledge(id=uuid.uuid4(), slug=slug, **data)
+        db.add(obj)
+    else:
+        for k, v in data.items():
+            setattr(obj, k, v)
     return obj
 
 
@@ -779,6 +795,43 @@ async def import_relationships(
     await db.commit()
 
 
+async def import_knowledge(db: AsyncSession, vault: Path, stats: Stats) -> None:
+    """Import knowledge notes/documents from 04.knowledge/{raw,wiki}.
+
+    Each markdown file becomes one Knowledge row: slug from frontmatter (or the
+    filename stem), title from frontmatter (or the slug), body = full markdown.
+    """
+    knowledge_dir = vault / "04.knowledge"
+    if not knowledge_dir.exists():
+        return
+
+    seen_slugs: set[str] = set()
+    for sub in ("raw", "wiki"):
+        sub_dir = knowledge_dir / sub
+        if not sub_dir.exists():
+            continue
+        for kfile in sorted(sub_dir.glob("*.md")):
+            try:
+                post = frontmatter.load(str(kfile))
+                slug_val = str(post.get("slug") or "").strip()
+                slug = slug_val or slugify(kfile.stem)
+                if slug in seen_slugs:
+                    # Disambiguate duplicate slugs across raw/ and wiki/
+                    slug = slugify(f"{sub}-{kfile.stem}")
+                seen_slugs.add(slug)
+
+                title = str(post.get("title") or kfile.stem).strip()
+                body = post.content or None
+
+                await _upsert_knowledge(db, slug, {"title": title, "body": body})
+                await db.flush()
+                stats.knowledge += 1
+            except Exception as exc:
+                stats.errors.append((str(kfile), str(exc)))
+
+    await db.commit()
+
+
 # ---------------------------------------------------------------------------
 # Reindex
 # ---------------------------------------------------------------------------
@@ -836,6 +889,13 @@ async def reindex_all(
         except Exception:
             pass
 
+    # Knowledge
+    for obj in (await db.execute(select(Knowledge))).scalars():
+        try:
+            await index_subject(db, "knowledge", obj)
+        except Exception:
+            pass
+
     await db.commit()
     print("Reindex complete.")
 
@@ -856,7 +916,6 @@ async def import_vault(db: AsyncSession, vault_path: Path, *, reindex: bool = Tr
     stats.skipped_sections.extend([
         "01.journal (no journal table)",
         "00.inbox (no inbox table)",
-        "04.knowledge (no knowledge table)",
         "meetings/ sub-folders (no meeting table)",
         "99.system / telos / tone (no table)",
     ])
@@ -883,6 +942,9 @@ async def import_vault(db: AsyncSession, vault_path: Path, *, reindex: bool = Tr
 
     await import_relationships(db, vault_path, stats, person_ids, context_ids)
     print(f"  relationships: {stats.relationships}")
+
+    await import_knowledge(db, vault_path, stats)
+    print(f"  knowledge: {stats.knowledge}")
 
     if reindex:
         await reindex_all(db, stats, context_ids, company_ids, person_ids)

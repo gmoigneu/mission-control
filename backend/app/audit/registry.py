@@ -2,6 +2,7 @@ from app.models.company import Company
 from app.models.context import Context
 from app.models.entity_link import EntityLink
 from app.models.entity_tag import EntityTag
+from app.models.knowledge import Knowledge
 from app.models.observation import Observation
 from app.models.person import Person
 from app.models.project import Project
@@ -16,6 +17,7 @@ ENTITY_MODELS: dict[str, type] = {
     "context": Context,
     "project": Project,
     "company": Company,
+    "knowledge": Knowledge,
     "person": Person,
     "task": Task,
     "relationship": Relationship,

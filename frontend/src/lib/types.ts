@@ -61,6 +61,21 @@ export interface Company {
   updated_at: string;
 }
 
+export interface Knowledge {
+  id: string;
+  slug: string;
+  title: string;
+  body: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface KnowledgeCreate {
+  slug: string;
+  title: string;
+  body?: string | null;
+}
+export type KnowledgeUpdate = Partial<KnowledgeCreate>;
+
 export interface Person {
   id: string;
   slug: string;
