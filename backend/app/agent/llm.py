@@ -1,13 +1,20 @@
 """LLM abstraction — provider-pluggable async complete().
 
 Default provider: ``mock`` (deterministic, no API key required).
-Real provider: ``anthropic`` (requires ``uv add anthropic``,
-  ``ANTHROPIC_API_KEY`` env var and ``LLM_PROVIDER=anthropic``).
+Real provider: ``openai_oauth`` (requires a stored OpenAI OAuth credential and
+  ``LLM_PROVIDER=openai_oauth``).
 """
 from __future__ import annotations
 
+import json as _json
 import re
 from dataclasses import dataclass, field
+
+import httpx
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.agent import openai_auth
+from app.config import settings
 
 
 @dataclass
@@ -55,7 +62,7 @@ def _mock_complete(  # noqa: ARG001
     if last.get("role") == "tool":
         return LLMTurn(text="Done — I've applied the requested changes.", tool_calls=[])
 
-    # Also handle list-of-content-blocks (Anthropic-style tool result role=user).
+    # Also handle list-of-content-blocks (tool result role=user).
     if last.get("role") == "user" and isinstance(last.get("content"), list):
         for block in last["content"]:
             if isinstance(block, dict) and block.get("type") == "tool_result":
@@ -121,47 +128,128 @@ def _mock_complete(  # noqa: ARG001
 
 
 # ---------------------------------------------------------------------------
-# Anthropic LLM
+# OpenAI OAuth LLM (via Codex Responses endpoint)
 # ---------------------------------------------------------------------------
 
-async def _anthropic_complete(
-    messages: list[dict], tools: list[dict], system: str
-) -> LLMTurn:
-    """Real Anthropic implementation — lazy import, no hard dep."""
-    from anthropic import AsyncAnthropic
+_http_singleton: httpx.AsyncClient | None = None
 
-    from app.config import settings
 
-    client = AsyncAnthropic(api_key=settings.openai_api_key)
-    response = await client.messages.create(
-        model=settings.llm_model,
-        max_tokens=4096,
-        system=system,
-        tools=tools,
-        messages=messages,
-    )
+def _http() -> httpx.AsyncClient:
+    global _http_singleton
+    if _http_singleton is None:
+        _http_singleton = httpx.AsyncClient(timeout=120)
+    return _http_singleton
 
-    tool_calls: list[ToolCall] = []
+
+def _to_responses_input(messages: list[dict]) -> list[dict]:
+    """Map our generic messages to Responses API `input` items."""
+    items: list[dict] = []
+    for m in messages:
+        role = m.get("role", "user")
+        if role == "tool":
+            items.append(
+                {
+                    "type": "function_call_output",
+                    "call_id": m.get("tool_call_id", ""),
+                    "output": m.get("content")
+                    if isinstance(m.get("content"), str)
+                    else _json.dumps(m.get("content")),
+                }
+            )
+        else:
+            content = m.get("content")
+            text = content if isinstance(content, str) else _json.dumps(content)
+            items.append({"role": role, "content": [{"type": "input_text", "text": text}]})
+    return items
+
+
+def _to_responses_tools(tools: list[dict]) -> list[dict]:
+    return [
+        {
+            "type": "function",
+            "name": t["name"],
+            "description": t.get("description", ""),
+            "parameters": t.get("input_schema", {"type": "object", "properties": {}}),
+        }
+        for t in tools
+    ]
+
+
+def _assemble_turn(events: list[dict]) -> LLMTurn:
+    """Assemble a Responses SSE event list into an LLMTurn.
+    Text is collected from output_text deltas; tool calls from completed function_call items.
+    NOTE: confirm the exact event `type` strings in the live smoke and adjust if needed."""
     text_parts: list[str] = []
-    for block in response.content:
-        if block.type == "tool_use":
-            tool_calls.append(ToolCall(id=block.id, name=block.name, input=dict(block.input)))
-        elif block.type == "text":
-            text_parts.append(block.text)
+    tool_calls: list[ToolCall] = []
+    fn_args: dict[str, str] = {}
+    fn_meta: dict[str, dict] = {}
+    for ev in events:
+        etype = ev.get("type", "")
+        if etype.endswith("output_text.delta"):
+            text_parts.append(ev.get("delta", ""))
+        elif etype.endswith("output_item.added") or etype.endswith("output_item.done"):
+            item = ev.get("item", {})
+            if item.get("type") == "function_call":
+                cid = item.get("call_id") or item.get("id", "")
+                fn_meta[cid] = item
+                if item.get("arguments"):
+                    fn_args[cid] = item["arguments"]
+        elif etype.endswith("function_call_arguments.delta"):
+            cid = ev.get("item_id", "")
+            fn_args[cid] = fn_args.get(cid, "") + ev.get("delta", "")
+        elif etype.endswith("function_call_arguments.done"):
+            cid = ev.get("item_id", "")
+            if "arguments" in ev:
+                fn_args[cid] = ev["arguments"]
+    for cid, item in fn_meta.items():
+        try:
+            args = _json.loads(fn_args.get(cid, "") or "{}")
+        except _json.JSONDecodeError:
+            args = {}
+        tool_calls.append(ToolCall(id=cid, name=item.get("name", ""), input=args))
+    text = "".join(text_parts).strip()
+    return LLMTurn(text=text or None, tool_calls=tool_calls)
 
-    text = " ".join(text_parts).strip() or None
-    return LLMTurn(text=text, tool_calls=tool_calls)
+
+async def _openai_oauth_complete(
+    db: AsyncSession, messages: list[dict], tools: list[dict], system: str
+) -> LLMTurn:
+    http = _http()
+    access_token, account_id = await openai_auth.ensure_fresh(db, http)
+    body = {
+        "model": settings.llm_model,
+        "instructions": system,
+        "input": _to_responses_input(messages),
+        "tools": _to_responses_tools(tools),
+        "stream": True,
+    }
+    try:
+        events = [
+            ev async for ev in openai_auth.responses_events(http, access_token, account_id, body)
+        ]
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 401:  # refresh once + retry
+            access_token, account_id = await openai_auth.ensure_fresh(db, http, margin=10**9)
+            events = [
+                ev
+                async for ev in openai_auth.responses_events(http, access_token, account_id, body)
+            ]
+        else:
+            raise
+    return _assemble_turn(events)
 
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
-async def complete(messages: list[dict], tools: list[dict], system: str = "") -> LLMTurn:
+async def complete(
+    messages: list[dict], tools: list[dict], system: str = "", db: AsyncSession | None = None
+) -> LLMTurn:
     """Dispatch to the configured LLM provider."""
-    from app.config import settings
-
-    if settings.llm_provider == "anthropic":
-        return await _anthropic_complete(messages, tools, system)
+    if settings.llm_provider == "openai_oauth":
+        if db is None:
+            raise RuntimeError("openai_oauth provider requires a db session")
+        return await _openai_oauth_complete(db, messages, tools, system)
     # Default: mock (also covers provider="mock" explicitly)
     return _mock_complete(messages, tools, system)

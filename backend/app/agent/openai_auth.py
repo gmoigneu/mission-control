@@ -152,3 +152,36 @@ async def ensure_fresh(
             expires_at=ts.expires_at,
         )
     return cred.access_token, cred.account_id
+
+
+def _responses_headers(access_token: str, account_id: str | None) -> dict:
+    return {
+        "Authorization": f"Bearer {access_token}",
+        "chatgpt-account-id": account_id or "",
+        "OpenAI-Beta": "responses=experimental",
+        "originator": settings.openai_originator,
+        "User-Agent": settings.openai_user_agent,
+        "accept": "text/event-stream",
+        "content-type": "application/json",
+    }
+
+
+async def responses_events(
+    http: httpx.AsyncClient, access_token: str, account_id: str | None, body: dict
+):
+    """Yield parsed JSON events from the Responses SSE stream."""
+    headers = _responses_headers(access_token, account_id)
+    async with http.stream(
+        "POST", settings.openai_responses_url, headers=headers, json=body
+    ) as resp:
+        resp.raise_for_status()
+        async for line in resp.aiter_lines():
+            if not line or not line.startswith("data:"):
+                continue
+            data = line[5:].strip()
+            if data == "[DONE]":
+                break
+            try:
+                yield json.loads(data)
+            except json.JSONDecodeError:
+                continue
