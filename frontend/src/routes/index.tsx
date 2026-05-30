@@ -14,6 +14,7 @@ import {
 import { RequireAuth } from "../components/RequireAuth";
 import { useAudit, useRevert } from "../features/audit/api";
 import { useContexts } from "../features/contexts/api";
+import { useJournalEntries } from "../features/journal/api";
 import { useTasks, useUpdateTask } from "../features/tasks/api";
 import { useMe } from "../lib/auth";
 import { rootRoute } from "./root";
@@ -225,6 +226,7 @@ function Dashboard() {
   const { data: tasks = [] } = useTasks();
   const { data: contexts = [] } = useContexts();
   const { data: audit = [] } = useAudit();
+  const { data: journalEntries = [] } = useJournalEntries();
   const updateTask = useUpdateTask();
   const revert = useRevert();
 
@@ -299,11 +301,16 @@ function Dashboard() {
     { name: "Cold shower", streak: 3, cadence: "daily" },
   ];
 
-  const SAMPLE_JOURNAL = [
-    { time: "09:14", text: "Kicked off the sprint planning call. Three blockers surfaced — added to tasks." },
-    { time: "11:32", text: "Deep work block: finished the API schema review. Feeling good about the shape." },
-    { time: "14:07", text: "Short walk. Reset. Back to writing." },
-  ];
+  // Most recent journal entry (today's if present, else latest). The list is
+  // already ordered date-desc by the API.
+  const latestJournal = journalEntries[0] ?? null;
+  const journalLines = latestJournal
+    ? latestJournal.body
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0 && !l.startsWith("#"))
+        .slice(0, 4)
+    : [];
 
   return (
     <RequireAuth>
@@ -451,74 +458,74 @@ function Dashboard() {
                 </div>
               </section>
 
-              {/* Today's journal — placeholder */}
+              {/* Today's journal */}
               <section className="card" style={{ padding: 20 }}>
                 <SectionLabel
                   right={
-                    <span className="row gap-1 meta" style={{ color: "var(--fg-faint)" }}>
-                      <AISpark size={12} title="Coming soon" />
-                      Summarize my day
-                    </span>
+                    <button
+                      className="btn ghost sm"
+                      onClick={() => navigate({ to: "/journal" })}
+                    >
+                      Open journal
+                      <ArrowRight size={13} strokeWidth={1.6} />
+                    </button>
                   }
                 >
-                  Today&apos;s journal
+                  {latestJournal && latestJournal.date === today
+                    ? "Today's journal"
+                    : "Latest journal"}
                 </SectionLabel>
 
-                <div className="col gap-2" style={{ marginBottom: 14 }}>
-                  {SAMPLE_JOURNAL.map((l, i) => (
-                    <div
-                      key={i}
-                      className="row gap-3"
-                      style={{ alignItems: "flex-start" }}
-                    >
+                {latestJournal ? (
+                  <div className="col gap-2" style={{ marginBottom: 4 }}>
+                    {latestJournal.date !== today && (
                       <span
                         className="meta tnum"
-                        style={{
-                          width: 42,
-                          flexShrink: 0,
-                          color: "var(--signal)",
-                          opacity: 0.5,
-                        }}
+                        style={{ color: "var(--signal)", opacity: 0.6 }}
                       >
-                        {l.time}
+                        {latestJournal.date}
                       </span>
+                    )}
+                    {latestJournal.title && (
+                      <span style={{ fontSize: 13.5, fontWeight: 600 }}>
+                        {latestJournal.title}
+                      </span>
+                    )}
+                    {journalLines.map((line, i) => (
                       <span
+                        key={i}
                         style={{
-                          flex: 1,
                           fontSize: 13,
                           color: "var(--fg-dim)",
                           lineHeight: 1.5,
-                          opacity: 0.7,
                         }}
                       >
-                        {l.text}
+                        {line}
                       </span>
-                    </div>
-                  ))}
-                </div>
-
-                <div
-                  className="row gap-2 well"
-                  style={{ padding: "8px 8px 8px 14px", opacity: 0.6 }}
-                >
-                  <span
-                    className="meta tnum"
-                    style={{ color: "var(--signal)" }}
-                  >
-                    now
-                  </span>
-                  <input
-                    className="input"
+                    ))}
+                  </div>
+                ) : (
+                  <button
+                    className="row gap-2 well"
+                    onClick={() => navigate({ to: "/journal" })}
                     style={{
-                      background: "transparent",
+                      padding: "8px 8px 8px 14px",
+                      width: "100%",
+                      textAlign: "left",
+                      cursor: "pointer",
                       border: 0,
-                      padding: "4px 6px",
+                      background: "var(--bg-deep)",
+                      borderRadius: "var(--r-sm)",
                     }}
-                    placeholder="Journal arrives in a later phase…"
-                    disabled
-                    readOnly
-                  />
-                </div>
+                  >
+                    <span className="meta tnum" style={{ color: "var(--signal)" }}>
+                      new
+                    </span>
+                    <span style={{ fontSize: 13, color: "var(--fg-faint)" }}>
+                      No entries yet — write your first journal entry.
+                    </span>
+                  </button>
+                )}
               </section>
 
               {/* Top of mind — context cards */}
