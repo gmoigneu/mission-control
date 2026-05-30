@@ -1,4 +1,5 @@
 from app.models.audit import AuditLog  # noqa: F401
+from app.models.chunk import Chunk  # noqa: F401
 from app.models.company import Company  # noqa: F401
 from app.models.context import Context  # noqa: F401
 from app.models.entity_link import EntityLink  # noqa: F401
@@ -10,4 +11,3 @@ from app.models.relationship import Relationship  # noqa: F401
 from app.models.tag import Tag  # noqa: F401
 from app.models.task import Task  # noqa: F401
 from app.models.user import AppUser  # noqa: F401
-from app.models.chunk import Chunk  # noqa: F401
