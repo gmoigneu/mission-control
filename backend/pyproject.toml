@@ -15,6 +15,7 @@ dependencies = [
     "itsdangerous>=2.2",
     "typer>=0.15",
     "pgvector>=0.3",
+    "neo4j>=5.20",
 ]
 
 [dependency-groups]

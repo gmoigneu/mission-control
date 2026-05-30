@@ -5,6 +5,7 @@ from app.models.context import Context  # noqa: F401
 from app.models.entity_link import EntityLink  # noqa: F401
 from app.models.entity_tag import EntityTag  # noqa: F401
 from app.models.observation import Observation  # noqa: F401
+from app.models.outbox import OutboxEvent  # noqa: F401
 from app.models.person import Person  # noqa: F401
 from app.models.project import Project  # noqa: F401
 from app.models.relationship import Relationship  # noqa: F401

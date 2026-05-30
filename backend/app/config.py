@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     embeddings_provider: str = "fake"
     embeddings_model: str = "text-embedding-3-small"
     openai_api_key: str | None = None
+    neo4j_uri: str = "bolt://localhost:7687"
+    neo4j_user: str = "neo4j"
+    neo4j_password: str = "mc-neo4j-pw"
 
     @model_validator(mode="after")
     def _require_secure_secret_in_prod(self) -> "Settings":
