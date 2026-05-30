@@ -10,6 +10,7 @@ LABELS: dict[str, str] = {
     "company": "Company",
     "person": "Person",
     "task": "Task",
+    "meeting": "Meeting",
 }
 
 # Scalar props to denormalise per entity type (id is always included)
@@ -19,6 +20,7 @@ _NODE_PROPS: dict[str, list[str]] = {
     "company": ["id", "slug", "name", "domain"],
     "person": ["id", "slug", "name", "role", "email"],
     "task": ["id", "title", "status", "priority"],
+    "meeting": ["id", "slug", "title", "at", "location"],
 }
 
 # FK-derived edges: {aggregate_type: [(fk_field, edge_type, target_label), ...]}
@@ -31,6 +33,10 @@ _FK_EDGES: dict[str, list[tuple[str, str, str]]] = {
         ("context_id", "PART_OF", "Context"),
     ],
     "task": [
+        ("context_id", "IN_CONTEXT", "Context"),
+        ("project_id", "FOR_PROJECT", "Project"),
+    ],
+    "meeting": [
         ("context_id", "IN_CONTEXT", "Context"),
         ("project_id", "FOR_PROJECT", "Project"),
     ],
