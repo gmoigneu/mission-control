@@ -20,6 +20,11 @@ dependencies = [
     "httpx>=0.28",
 ]
 
+[project.optional-dependencies]
+# Optional: real semantic embeddings via the OpenAI API (EMBEDDINGS_PROVIDER=openai).
+# Not a default dependency — install at deploy with `uv sync --extra openai`.
+openai = ["openai>=1.55"]
+
 [dependency-groups]
 dev = [
     "pytest>=8.3",

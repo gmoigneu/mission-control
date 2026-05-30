@@ -32,9 +32,33 @@ async def embed_text(text: str) -> list[float]:
 
 
 async def _openai_embed(texts: list[str]) -> list[list[float]]:
-    # Lazy import so the dependency is optional unless provider=openai.
-    from openai import AsyncOpenAI
+    """Real embeddings via the OpenAI API.
+
+    `openai` is an optional dependency, lazy-imported here so the base install
+    (and the offline test suite, which uses provider=fake) stays free of it.
+    Install with `uv sync --extra openai` (or `uv add openai`) to enable.
+
+    The API key is a standard `sk-...` secret-key credential (OPENAI_API_KEY) —
+    this is unrelated to the ChatGPT-subscription Codex OAuth used by the agent.
+    """
+    if not settings.openai_api_key:
+        raise RuntimeError(
+            "OPENAI_API_KEY is required when EMBEDDINGS_PROVIDER=openai. "
+            "Set a standard sk-... key (separate from the agent's ChatGPT OAuth)."
+        )
+
+    try:
+        from openai import AsyncOpenAI
+    except ImportError as exc:  # pragma: no cover - exercised only without the extra
+        raise RuntimeError(
+            "The 'openai' package is required when EMBEDDINGS_PROVIDER=openai. "
+            "Install it with `uv sync --extra openai` (or `uv add openai`)."
+        ) from exc
 
     client = AsyncOpenAI(api_key=settings.openai_api_key)
-    resp = await client.embeddings.create(model=settings.embeddings_model, input=texts)
-    return [d.embedding for d in resp.data]
+    resp = await client.embeddings.create(
+        model=settings.embeddings_model,
+        input=texts,
+        dimensions=settings.embeddings_dim,
+    )
+    return [list(d.embedding) for d in resp.data]
