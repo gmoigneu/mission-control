@@ -17,4 +17,5 @@ class AuditOut(BaseModel):
     after: dict[str, Any] | None
     surface: str
     reverted: bool
+    agent_run_id: uuid.UUID | None
     created_at: datetime

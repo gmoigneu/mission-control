@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,8 +14,19 @@ router = APIRouter(prefix="/audit", tags=["audit"], dependencies=[Depends(get_cu
 
 
 @router.get("", response_model=list[AuditOut])
-async def list_audit(limit: int = 100, db: AsyncSession = Depends(get_db)):  # noqa: B008
-    result = await db.execute(select(AuditLog).order_by(AuditLog.created_at.desc()).limit(limit))
+async def list_audit(  # noqa: B008
+    limit: int = Query(default=100, ge=1, le=1000),
+    entity_type: str | None = None,
+    surface: str | None = None,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+):
+    stmt = select(AuditLog).order_by(AuditLog.created_at.desc())
+    if entity_type is not None:
+        stmt = stmt.where(AuditLog.entity_type == entity_type)
+    if surface is not None:
+        stmt = stmt.where(AuditLog.surface == surface)
+    stmt = stmt.limit(limit)
+    result = await db.execute(stmt)
     return list(result.scalars().all())
 
 

@@ -79,7 +79,9 @@ async def test_revert_twice_conflicts(db):
         assert exc.status_code == 409
 
 
-async def test_revert_create_when_row_already_deleted_is_safe_noop(db):
+async def test_revert_create_when_row_already_deleted_raises_409(db):
+    from fastapi import HTTPException
+
     ctx = Context(slug="gone", name="Gone")
     db.add(ctx)
     await db.flush()
@@ -89,10 +91,11 @@ async def test_revert_create_when_row_already_deleted_is_safe_noop(db):
     await db.delete(ctx)
     await db.flush()
 
-    await revert_audit(db, audit, surface="ui")
-
-    assert audit.reverted is True
-    assert await db.get(Context, ctx.id) is None
+    try:
+        await revert_audit(db, audit, surface="ui")
+        raise AssertionError("expected HTTPException 409")
+    except HTTPException as exc:
+        assert exc.status_code == 409
 
 
 async def test_revert_update_when_row_deleted_raises_404(db):

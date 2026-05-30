@@ -1,23 +1,27 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
+
+ContextCategory = Literal["work", "personal", "side", "other"]
+ContextStatus = Literal["active", "archived"]
 
 
 class ContextCreate(BaseModel):
     slug: str
     name: str
-    category: str = "other"
+    category: ContextCategory = "other"
     description: str | None = None
-    status: str = "active"
+    status: ContextStatus = "active"
 
 
 class ContextUpdate(BaseModel):
     slug: str | None = None
     name: str | None = None
-    category: str | None = None
+    category: ContextCategory | None = None
     description: str | None = None
-    status: str | None = None
+    status: ContextStatus | None = None
 
 
 class ContextOut(BaseModel):

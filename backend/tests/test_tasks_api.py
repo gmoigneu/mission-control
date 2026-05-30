@@ -1,6 +1,13 @@
 from tests.helpers import login
 
 
+async def test_tasks_invalid_status_returns_422(client, db):
+    """I9 — enum validation rejects unknown status values at the boundary."""
+    await login(client, db)
+    r = await client.post("/tasks", json={"title": "Bad Status Task", "status": "potato"})
+    assert r.status_code == 422
+
+
 async def test_tasks_crud_requires_auth(client):
     assert (await client.get("/tasks")).status_code == 401
 

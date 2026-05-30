@@ -1,24 +1,27 @@
 import uuid
 from datetime import date as _date
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
+
+ObservationKind = Literal[
+    "observation", "preference", "fact", "open_loop", "decision", "key_point", "open_question"
+]
 
 
 class ObservationCreate(BaseModel):
     subject_type: str
     subject_id: uuid.UUID
     body: str
-    kind: str = "observation"
+    kind: ObservationKind = "observation"
     date: _date | None = None
     source: str | None = None
 
 
 class ObservationUpdate(BaseModel):
-    subject_type: str | None = None
-    subject_id: uuid.UUID | None = None
     body: str | None = None
-    kind: str | None = None
+    kind: ObservationKind | None = None
     date: _date | None = None
     source: str | None = None
 

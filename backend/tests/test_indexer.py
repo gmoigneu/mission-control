@@ -6,6 +6,27 @@ from app.models.context import Context
 from app.search.index import deindex_subject, index_subject
 
 
+async def test_index_subject_does_not_raise_on_embed_failure(db, monkeypatch):
+    """C2 — a failing embed must not raise; the write path commits normally."""
+    async def boom(_text: str):
+        raise RuntimeError("Simulated embedding provider failure")
+
+    monkeypatch.setattr("app.search.index.embed_text", boom)
+
+    ctx = Context(slug="embed-fail", name="EmbedFail", category="work")
+    db.add(ctx)
+    await db.flush()
+
+    # Should not raise even though embedding fails
+    await index_subject(db, "context", ctx)
+
+    # No chunk was created, but no exception either
+    count = (await db.execute(
+        select(func.count()).where(Chunk.subject_type == "context", Chunk.subject_id == ctx.id)
+    )).scalar_one()
+    assert count == 0
+
+
 async def test_index_subject_creates_one_chunk(db):
     ctx = Context(
         slug="upsun-idx", name="Upsun", category="work", description="platform as a service"

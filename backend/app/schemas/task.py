@@ -1,13 +1,17 @@
 import uuid
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
+
+TaskStatus = Literal["open", "in_progress", "done", "archived"]
+TaskPriority = Literal["low", "normal", "high"]
 
 
 class TaskCreate(BaseModel):
     title: str
-    status: str = "open"
-    priority: str = "normal"
+    status: TaskStatus = "open"
+    priority: TaskPriority = "normal"
     due: date | None = None
     scheduled: date | None = None
     context_id: uuid.UUID | None = None
@@ -15,13 +19,12 @@ class TaskCreate(BaseModel):
     outcome: str | None = None
     body: str | None = None
     source: str | None = None
-    completed_at: datetime | None = None
 
 
 class TaskUpdate(BaseModel):
     title: str | None = None
-    status: str | None = None
-    priority: str | None = None
+    status: TaskStatus | None = None
+    priority: TaskPriority | None = None
     due: date | None = None
     scheduled: date | None = None
     context_id: uuid.UUID | None = None

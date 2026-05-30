@@ -1,14 +1,17 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
+
+ProjectStatus = Literal["active", "on_hold", "complete", "archived"]
 
 
 class ProjectCreate(BaseModel):
     context_id: uuid.UUID
     slug: str
     title: str
-    status: str = "active"
+    status: ProjectStatus = "active"
     purpose: str | None = None
     body: str | None = None
 
@@ -17,7 +20,7 @@ class ProjectUpdate(BaseModel):
     context_id: uuid.UUID | None = None
     slug: str | None = None
     title: str | None = None
-    status: str | None = None
+    status: ProjectStatus | None = None
     purpose: str | None = None
     body: str | None = None
 

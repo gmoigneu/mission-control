@@ -15,6 +15,7 @@ async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depe
     user = await authenticate_user(db, payload.email, payload.password)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    request.session.clear()
     request.session["user_id"] = str(user.id)
     return user
 

@@ -9,17 +9,18 @@ async def semantic_search(
     db: AsyncSession, query: str, types: list[str] | None = None, limit: int = 20
 ) -> list[dict]:
     qvec = await embed_text(query)
+    distance = Chunk.embedding.cosine_distance(qvec).label("distance")
     stmt = select(
         Chunk.subject_type,
         Chunk.subject_id,
         Chunk.content,
-        Chunk.embedding.cosine_distance(qvec).label("distance"),
+        distance,
     )
     if types:
         stmt = stmt.where(Chunk.subject_type.in_(types))
     # Over-fetch candidate chunks so per-subject dedup below still yields up to
     # `limit` distinct subjects even when one subject has several chunks.
-    stmt = stmt.order_by("distance").limit(max(limit * 10, limit))
+    stmt = stmt.order_by(distance).limit(limit * 10)
     rows = (await db.execute(stmt)).all()
     # Best (lowest distance) per subject.
     best: dict[tuple[str, str], dict] = {}
