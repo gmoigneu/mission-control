@@ -10,6 +10,7 @@ import { companiesRoute } from "./routes/companies";
 import { habitsRoute } from "./routes/habits";
 import { meetingsRoute } from "./routes/meetings";
 import { knowledgeRoute } from "./routes/knowledge";
+import { telosRoute } from "./routes/telos";
 import { tagsRoute } from "./routes/tags";
 import { relationshipsRoute } from "./routes/relationships";
 import { observationsRoute } from "./routes/observations";
@@ -28,6 +29,7 @@ const routeTree = rootRoute.addChildren([indexRoute, loginRoute, contextsRoute, 
 const routeTree = rootRoute.addChildren([indexRoute, loginRoute, contextsRoute, projectsRoute, peopleRoute, tasksRoute, companiesRoute, meetingsRoute, tagsRoute, relationshipsRoute, observationsRoute, entityTagsRoute, entityLinksRoute, activityRoute, searchRoute, placeholderRoute]);
 const routeTree = rootRoute.addChildren([indexRoute, loginRoute, contextsRoute, projectsRoute, peopleRoute, tasksRoute, companiesRoute, knowledgeRoute, tagsRoute, relationshipsRoute, observationsRoute, entityTagsRoute, entityLinksRoute, activityRoute, searchRoute, placeholderRoute]);
 const routeTree = rootRoute.addChildren([indexRoute, loginRoute, contextsRoute, projectsRoute, peopleRoute, tasksRoute, companiesRoute, tagsRoute, relationshipsRoute, observationsRoute, inboxRoute, entityTagsRoute, entityLinksRoute, activityRoute, searchRoute, placeholderRoute]);
+const routeTree = rootRoute.addChildren([indexRoute, loginRoute, contextsRoute, projectsRoute, peopleRoute, tasksRoute, companiesRoute, telosRoute, tagsRoute, relationshipsRoute, observationsRoute, entityTagsRoute, entityLinksRoute, activityRoute, searchRoute, placeholderRoute]);
 
 export const router = createRouter({ routeTree });
 

@@ -22,6 +22,7 @@ from app.models.person import Person
 from app.models.project import Project
 from app.models.relationship import Relationship
 from app.models.task import Task
+from app.models.telos import Telos
 
 FIXTURE_VAULT = Path(__file__).parent / "fixtures" / "aya_vault"
 
@@ -77,6 +78,10 @@ async def test_import_fixture_vault_creates_entities(db):
     assert stats.knowledge == 1
     k_count = await _count(db, Knowledge)
     assert k_count >= 1
+    # TELOS: mission + 2 problems + 2 goals + 1 metric + 1 value = 7
+    assert stats.telos == 7
+    telos_count = await _count(db, Telos)
+    assert telos_count == 7
 
 
 @pytest.mark.asyncio
@@ -94,6 +99,7 @@ async def test_import_fixture_vault_idempotent(db):
     obs_before = await _count(db, Observation)
     rel_before = await _count(db, Relationship)
     k_before = await _count(db, Knowledge)
+    telos_before = await _count(db, Telos)
 
     # Second run
     await import_vault(db, FIXTURE_VAULT, reindex=False)
@@ -106,6 +112,7 @@ async def test_import_fixture_vault_idempotent(db):
     assert await _count(db, Observation) == obs_before
     assert await _count(db, Relationship) == rel_before
     assert await _count(db, Knowledge) == k_before
+    assert await _count(db, Telos) == telos_before
 
 
 @pytest.mark.asyncio
@@ -142,6 +149,25 @@ async def test_import_person_fields(db):
     co = co_result.scalar_one_or_none()
     assert co is not None
     assert co.name == "Acme Corp"
+
+
+@pytest.mark.asyncio
+async def test_import_telos_kinds(db):
+    """TELOS doc maps to the expected kinds (mission/problem/goal/metric/value)."""
+    from scripts.import_aya import import_vault
+
+    await import_vault(db, FIXTURE_VAULT, reindex=False)
+
+    rows = (await db.execute(select(Telos))).scalars().all()
+    kinds = sorted({r.kind for r in rows})
+    assert kinds == ["goal", "metric", "mission", "problem", "value"]
+
+    mission = next(r for r in rows if r.kind == "mission")
+    assert mission.title.startswith("Teach developers")
+    assert mission.body is not None
+
+    problems = sorted(r.title for r in rows if r.kind == "problem")
+    assert problems[0].startswith("P1")
 
 
 @pytest.mark.asyncio

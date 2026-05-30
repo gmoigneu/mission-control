@@ -15,6 +15,7 @@ from app.models.project import Project
 from app.models.relationship import Relationship
 from app.models.task import Task
 from app.models.task_link import TaskLink
+from app.models.telos import Telos
 from app.search.index import index_subject
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(get_current_user)])
@@ -26,6 +27,7 @@ _INDEXABLE = [
     ("person", Person),
     ("task", Task),
     ("observation", Observation),
+    ("telos", Telos),
 ]
 
 # Entity types that map to Neo4j nodes, in projection order

@@ -15,6 +15,8 @@ Notes:
       POST /admin/rebuild-graph
 - Vault sections with no matching table (journal, meetings, inbox,
   telos, tone) are silently skipped with a note in the summary.
+- Vault sections with no matching table (journal, meetings, knowledge, inbox,
+  tone) are silently skipped with a note in the summary.
 """
 
 from __future__ import annotations
@@ -45,6 +47,7 @@ from app.models.person import Person
 from app.models.project import Project
 from app.models.relationship import Relationship
 from app.models.task import Task
+from app.models.telos import Telos
 from app.search.index import index_subject
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
@@ -148,6 +151,7 @@ class Stats:
     relationships: int = 0
     journal_entries: int = 0
     knowledge: int = 0
+    telos: int = 0
     errors: list[tuple[str, str]] = field(default_factory=list)
     unresolved_links: list[str] = field(default_factory=list)
     skipped_sections: list[str] = field(default_factory=list)
@@ -163,6 +167,7 @@ class Stats:
         print(f"  relationships : {self.relationships}")
         print(f"  journal       : {self.journal_entries}")
         print(f"  knowledge     : {self.knowledge}")
+        print(f"  telos         : {self.telos}")
         if self.unresolved_links:
             print(f"\n  unresolved links ({len(self.unresolved_links)}):")
             for u in self.unresolved_links[:20]:
@@ -890,6 +895,89 @@ async def import_knowledge(db: AsyncSession, vault: Path, stats: Stats) -> None:
 
 
 # ---------------------------------------------------------------------------
+# TELOS
+# ---------------------------------------------------------------------------
+
+
+# (## heading, telos.kind) — sections imported as one row per bullet, except
+# Mission which is imported as a single row from its prose.
+_TELOS_BULLET_SECTIONS: list[tuple[str, str]] = [
+    ("Problems", "problem"),
+    ("Goals", "goal"),
+    ("Metrics", "metric"),
+    ("Wisdom", "value"),
+]
+
+# Strip a leading bold code like "**P1**" / "**G18**" / "M1" from a bullet.
+_TELOS_CODE_RE = re.compile(r"^\*{0,2}([A-Z]\d+)\*{0,2}\s*")
+# Strip inline tag markers like `[work]` `[gaal]` used in the vault.
+_TELOS_TAG_RE = re.compile(r"`\[[^\]]+\]`\s*")
+
+
+def _parse_telos_bullet(line: str) -> tuple[str, str] | None:
+    """Return (title, body) for a TELOS bullet, or None if not a bullet."""
+    raw = line.strip()
+    if not raw.startswith("-"):
+        return None
+    raw = raw.lstrip("- ").strip()
+    raw = _TELOS_TAG_RE.sub("", raw)
+    code = ""
+    m = _TELOS_CODE_RE.match(raw)
+    if m:
+        code = m.group(1)
+        raw = raw[m.end():].strip()
+    raw = raw.strip("*").strip()
+    if not raw:
+        return None
+    # Title = code + first sentence/segment; body = full text for fidelity.
+    first = re.split(r"(?<=[.!?])\s+", raw, maxsplit=1)[0].strip()
+    title = f"{code} {first}".strip() if code else first
+    return title[:200], raw
+
+
+async def import_telos(db: AsyncSession, vault: Path, stats: Stats) -> None:
+    """Import the TELOS doc (mission / goals / problems / metrics / values)."""
+    telos_file = vault / "99.system" / "configuration" / "TELOS.md"
+    if not telos_file.exists():
+        stats.skipped_sections.append("99.system/configuration/TELOS.md (not found)")
+        return
+
+    try:
+        post = frontmatter.load(str(telos_file))
+    except Exception as exc:
+        stats.errors.append((str(telos_file), str(exc)))
+        return
+
+    body_text = post.content or ""
+
+    # Re-import is idempotent: clear all telos rows, then reinsert.
+    await db.execute(sa_delete(Telos))
+
+    # Mission — a single row from prose.
+    mission = _extract_section(body_text, "Mission")
+    if mission:
+        first = re.split(r"(?<=[.!?])\s+", mission, maxsplit=1)[0].strip()
+        db.add(Telos(id=uuid.uuid4(), kind="mission", title=first[:200], body=mission))
+        stats.telos += 1
+
+    # Bullet-list sections — one row per bullet.
+    for heading, kind in _TELOS_BULLET_SECTIONS:
+        section = _extract_section(body_text, heading)
+        if not section:
+            continue
+        for line in section.splitlines():
+            parsed = _parse_telos_bullet(line)
+            if parsed is None:
+                continue
+            title, item_body = parsed
+            db.add(Telos(id=uuid.uuid4(), kind=kind, title=title, body=item_body))
+            stats.telos += 1
+
+    await db.flush()
+    await db.commit()
+
+
+# ---------------------------------------------------------------------------
 # Reindex
 # ---------------------------------------------------------------------------
 
@@ -957,6 +1045,10 @@ async def reindex_all(
     for obj in (await db.execute(select(Knowledge))).scalars():
         try:
             await index_subject(db, "knowledge", obj)
+    # Telos
+    for obj in (await db.execute(select(Telos))).scalars():
+        try:
+            await index_subject(db, "telos", obj)
         except Exception:
             pass
 
@@ -980,7 +1072,7 @@ async def import_vault(db: AsyncSession, vault_path: Path, *, reindex: bool = Tr
     stats.skipped_sections.extend([
         "00.inbox (no inbox table)",
         "meetings/ sub-folders (no meeting table)",
-        "99.system / telos / tone (no table)",
+        "99.system / tone (no table)",
     ])
 
     print(f"Importing from {vault_path} …")
@@ -1010,6 +1102,8 @@ async def import_vault(db: AsyncSession, vault_path: Path, *, reindex: bool = Tr
     print(f"  journal: {stats.journal_entries}")
     await import_knowledge(db, vault_path, stats)
     print(f"  knowledge: {stats.knowledge}")
+    await import_telos(db, vault_path, stats)
+    print(f"  telos: {stats.telos}")
 
     if reindex:
         await reindex_all(db, stats, context_ids, company_ids, person_ids)

@@ -124,6 +124,23 @@ export interface KnowledgeCreate {
   body?: string | null;
 }
 export type KnowledgeUpdate = Partial<KnowledgeCreate>;
+export type TelosKind = "mission" | "goal" | "problem" | "metric" | "value";
+export interface Telos {
+  id: string;
+  kind: TelosKind;
+  title: string;
+  body: string | null;
+  parent_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface TelosCreate {
+  kind: TelosKind;
+  title: string;
+  body?: string | null;
+  parent_id?: string | null;
+}
+export type TelosUpdate = Partial<TelosCreate>;
 
 export interface Person {
   id: string;
