@@ -13,6 +13,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agent.context import surface_var
 from app.graph.client import neo4j_runner
 from app.graph.query import who_at_company
 from app.schemas.company import CompanyCreate
@@ -35,31 +36,33 @@ Handler = Callable[[AsyncSession, dict[str, Any]], Awaitable[dict[str, Any]]]
 # ---------------------------------------------------------------------------
 
 async def _create_context(db: AsyncSession, args: dict) -> dict:
-    obj = await context_svc.create_context(db, ContextCreate(**args), surface="chat")
+    obj = await context_svc.create_context(db, ContextCreate(**args), surface=surface_var.get())
     await db.flush()
     return {"id": str(obj.id), "slug": obj.slug}
 
 
 async def _create_person(db: AsyncSession, args: dict) -> dict:
-    obj = await person_svc.create_person(db, PersonCreate(**args), surface="chat")
+    obj = await person_svc.create_person(db, PersonCreate(**args), surface=surface_var.get())
     await db.flush()
     return {"id": str(obj.id), "slug": obj.slug}
 
 
 async def _create_company(db: AsyncSession, args: dict) -> dict:
-    obj = await company_svc.create_company(db, CompanyCreate(**args), surface="chat")
+    obj = await company_svc.create_company(db, CompanyCreate(**args), surface=surface_var.get())
     await db.flush()
     return {"id": str(obj.id), "slug": obj.slug}
 
 
 async def _create_task(db: AsyncSession, args: dict) -> dict:
-    obj = await task_svc.create_task(db, TaskCreate(**args), surface="chat")
+    obj = await task_svc.create_task(db, TaskCreate(**args), surface=surface_var.get())
     await db.flush()
     return {"id": str(obj.id), "title": obj.title}
 
 
 async def _add_observation(db: AsyncSession, args: dict) -> dict:
-    obj = await observation_svc.create_observation(db, ObservationCreate(**args), surface="chat")
+    obj = await observation_svc.create_observation(
+        db, ObservationCreate(**args), surface=surface_var.get()
+    )
     await db.flush()
     return {"id": str(obj.id)}
 
