@@ -194,6 +194,14 @@ export interface SearchResult {
   snippet: string;
 }
 
+/** A node returned by the `/graph/query` "neighbors" intent. */
+export interface GraphNode {
+  id: string;
+  label: string;
+  rel: string;
+  label_text: string | null;
+}
+
 export interface EntityLink {
   id: string;
   from_type: string;
