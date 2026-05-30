@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useLogout, useMe } from "../lib/auth";
+import { ayaGreeting } from "../lib/greeting";
 import {
   type AgentWrite,
   invalidateForWrites,
@@ -630,11 +631,6 @@ interface ChatMessage {
   reverted?: boolean;
 }
 
-const INTRO_MESSAGE: ChatMessage = {
-  role: "assistant",
-  text: "Hi G — I’m Aya. Tell me what to do, and I’ll act on your data.",
-};
-
 function WritesCard({
   writes,
   runId,
@@ -702,28 +698,34 @@ function WritesCard({
 }
 
 function AyaPanel({ onClose }: { onClose: () => void }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([INTRO_MESSAGE]);
+  const me = useMe();
+  // The intro greeting is derived from the signed-in user on every render so it
+  // reflects whoever is logged in (and updates once `me` resolves), with a
+  // name-neutral fallback when no user is available.
+  const introMessage: ChatMessage = { role: "assistant", text: ayaGreeting(me.data) };
+  const [conversation, setConversation] = useState<ChatMessage[]>([]);
+  const messages = [introMessage, ...conversation];
   const [msg, setMsg] = useState("");
   const [revertedIds, setRevertedIds] = useState<Set<string>>(new Set());
   const transcriptRef = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
   const chat = useChat();
 
-  // Scroll to bottom when messages change
+  // Scroll to bottom when the transcript content changes.
   useEffect(() => {
     if (transcriptRef.current) {
       transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [conversation, introMessage.text]);
 
   async function handleSend() {
     const text = msg.trim();
     if (!text || chat.isPending) return;
     setMsg("");
-    setMessages((prev) => [...prev, { role: "user", text }]);
+    setConversation((prev) => [...prev, { role: "user", text }]);
     try {
       const res = await chat.mutateAsync({ message: text });
-      setMessages((prev) => [
+      setConversation((prev) => [
         ...prev,
         {
           role: "assistant",
@@ -734,7 +736,7 @@ function AyaPanel({ onClose }: { onClose: () => void }) {
       ]);
       invalidateForWrites(qc, res.writes);
     } catch {
-      setMessages((prev) => [
+      setConversation((prev) => [
         ...prev,
         { role: "assistant", text: "Something went wrong. Please try again.", error: true },
       ]);
