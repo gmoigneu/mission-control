@@ -104,3 +104,86 @@ async def test_ensure_fresh_raises_without_credential(db):
     http = httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(200, json={})))
     with pytest.raises(RuntimeError, match="auth-openai"):
         await ensure_fresh(db, http)
+
+
+async def test_poll_for_token_increments_interval_on_slow_down():
+    """slow_down errors must increase the poll interval by 5 seconds."""
+    calls = {"n": 0}
+    sleeps: list[float] = []
+    access = _jwt(
+        {
+            "https://api.openai.com/auth": {"chatgpt_account_id": "acc_slow"},
+            "exp": int((datetime.now(UTC) + timedelta(hours=1)).timestamp()),
+        }
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return httpx.Response(400, json={"error": "slow_down"})
+        return httpx.Response(200, json={"access_token": access, "refresh_token": "R"})
+
+    async def record_sleep(secs: float) -> None:
+        sleeps.append(secs)
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    dc = openai_auth.DeviceCode("DEV", "ABCD-1234", "uri", interval=5, expires_in=60)
+    ts = await poll_for_token(http, dc, sleep=record_sleep)
+    assert ts.account_id == "acc_slow"
+    # After slow_down the interval must have increased (first sleep should be > initial 5)
+    assert sleeps[0] == 10  # 5 + 5
+
+
+async def test_poll_for_token_raises_on_expired_token():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(400, json={"error": "expired_token"})
+
+    async def no_sleep(_: float) -> None:
+        return None
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    dc = openai_auth.DeviceCode("DEV", "ABCD-1234", "uri", interval=0, expires_in=30)
+    with pytest.raises(RuntimeError, match="expired_token"):
+        await poll_for_token(http, dc, sleep=no_sleep)
+
+
+async def test_poll_for_token_raises_on_access_denied():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(400, json={"error": "access_denied"})
+
+    async def no_sleep(_: float) -> None:
+        return None
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    dc = openai_auth.DeviceCode("DEV", "ABCD-1234", "uri", interval=0, expires_in=30)
+    with pytest.raises(RuntimeError, match="access_denied"):
+        await poll_for_token(http, dc, sleep=no_sleep)
+
+
+async def test_ensure_fresh_no_refresh_when_valid(db):
+    """When the token is still valid, ensure_fresh must NOT call the refresh endpoint."""
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(str(request.url))
+        return httpx.Response(200, json={})
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    valid_access = _jwt(
+        {
+            "https://api.openai.com/auth": {"chatgpt_account_id": "acc_valid"},
+            "exp": int((datetime.now(UTC) + timedelta(hours=2)).timestamp()),
+        }
+    )
+    await upsert_credential(
+        db,
+        "openai",
+        access_token=valid_access,
+        refresh_token="R_valid",
+        account_id="acc_valid",
+        expires_at=datetime.now(UTC) + timedelta(hours=2),
+    )
+    access, account_id = await ensure_fresh(db, http)
+    assert access == valid_access
+    assert account_id == "acc_valid"
+    assert calls == [], "refresh endpoint must not be called when token is still valid"

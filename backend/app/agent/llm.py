@@ -133,6 +133,9 @@ def _mock_complete(  # noqa: ARG001
 
 _http_singleton: httpx.AsyncClient | None = None
 
+# Large margin used to force a token refresh on 401 retry
+_FORCE_REFRESH_MARGIN = 10**9
+
 
 def _http() -> httpx.AsyncClient:
     global _http_singleton
@@ -142,24 +145,90 @@ def _http() -> httpx.AsyncClient:
 
 
 def _to_responses_input(messages: list[dict]) -> list[dict]:
-    """Map our generic messages to Responses API `input` items."""
+    """Map our generic messages to Responses API ``input`` items.
+
+    The agent loop (agent.py) uses two internal shapes:
+
+    Assistant tool-call turn::
+
+        {"role": "assistant", "content": [
+            {"type": "tool_use", "id": <id>, "name": <name>, "input": <dict>}, ...
+        ]}
+
+    Tool-result turn::
+
+        {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": <id>, "content": <str>}, ...
+        ]}
+
+    These are mapped to Responses API ``function_call`` / ``function_call_output``
+    items respectively.  Plain text messages are wrapped in a role/content block.
+    """
     items: list[dict] = []
     for m in messages:
         role = m.get("role", "user")
+        content = m.get("content")
+
+        # --- Legacy role="tool" (not used by agent.py, kept for compatibility) ---
         if role == "tool":
             items.append(
                 {
                     "type": "function_call_output",
                     "call_id": m.get("tool_call_id", ""),
-                    "output": m.get("content")
-                    if isinstance(m.get("content"), str)
-                    else _json.dumps(m.get("content")),
+                    "output": content
+                    if isinstance(content, str)
+                    else _json.dumps(content),
                 }
             )
-        else:
-            content = m.get("content")
-            text = content if isinstance(content, str) else _json.dumps(content)
+            continue
+
+        # --- List-of-content-blocks (assistant tool-calls or user tool-results) ---
+        if isinstance(content, list):
+            # Check what kind of blocks are in the list
+            first = content[0] if content else {}
+            block_type = first.get("type") if isinstance(first, dict) else None
+
+            if block_type == "tool_use":
+                # assistant turn with tool calls → emit one function_call item per call
+                for block in content:
+                    if not isinstance(block, dict):
+                        continue
+                    items.append(
+                        {
+                            "type": "function_call",
+                            "call_id": block.get("id", ""),
+                            "name": block.get("name", ""),
+                            "arguments": _json.dumps(block.get("input") or {}),
+                        }
+                    )
+                continue
+
+            if block_type == "tool_result":
+                # user turn with tool results → emit one function_call_output per result
+                for block in content:
+                    if not isinstance(block, dict):
+                        continue
+                    output = block.get("content", "")
+                    if not isinstance(output, str):
+                        output = _json.dumps(output)
+                    items.append(
+                        {
+                            "type": "function_call_output",
+                            "call_id": block.get("tool_use_id", ""),
+                            "output": output,
+                        }
+                    )
+                continue
+
+            # Other list content — stringify it
+            text = _json.dumps(content)
             items.append({"role": role, "content": [{"type": "input_text", "text": text}]})
+            continue
+
+        # --- Plain text message ---
+        text = content if isinstance(content, str) else _json.dumps(content)
+        items.append({"role": role, "content": [{"type": "input_text", "text": text}]})
+
     return items
 
 
@@ -177,10 +246,18 @@ def _to_responses_tools(tools: list[dict]) -> list[dict]:
 
 def _assemble_turn(events: list[dict]) -> LLMTurn:
     """Assemble a Responses SSE event list into an LLMTurn.
+
     Text is collected from output_text deltas; tool calls from completed function_call items.
-    NOTE: confirm the exact event `type` strings in the live smoke and adjust if needed."""
+
+    Tracking note: ``output_item.added/done`` carries an item with both an ``id`` (the
+    item's stable id used in subsequent delta events as ``item_id``) and a ``call_id``
+    (the function-call id used in the Responses API round-trip).  Delta events reference
+    the item by ``item_id`` == ``id``, so we track args by ``id`` and look up ``call_id``
+    from the stored item when building the final ToolCall.
+    """
     text_parts: list[str] = []
     tool_calls: list[ToolCall] = []
+    # keyed by item id (== item["id"])
     fn_args: dict[str, str] = {}
     fn_meta: dict[str, dict] = {}
     for ev in events:
@@ -190,23 +267,27 @@ def _assemble_turn(events: list[dict]) -> LLMTurn:
         elif etype.endswith("output_item.added") or etype.endswith("output_item.done"):
             item = ev.get("item", {})
             if item.get("type") == "function_call":
-                cid = item.get("call_id") or item.get("id", "")
-                fn_meta[cid] = item
+                # Index by the item's own id (used in delta events as item_id)
+                item_id = item.get("id", "")
+                fn_meta[item_id] = item
                 if item.get("arguments"):
-                    fn_args[cid] = item["arguments"]
+                    fn_args[item_id] = item["arguments"]
         elif etype.endswith("function_call_arguments.delta"):
-            cid = ev.get("item_id", "")
-            fn_args[cid] = fn_args.get(cid, "") + ev.get("delta", "")
+            item_id = ev.get("item_id", "")
+            fn_args[item_id] = fn_args.get(item_id, "") + ev.get("delta", "")
         elif etype.endswith("function_call_arguments.done"):
-            cid = ev.get("item_id", "")
+            item_id = ev.get("item_id", "")
             if "arguments" in ev:
-                fn_args[cid] = ev["arguments"]
-    for cid, item in fn_meta.items():
+                fn_args[item_id] = ev["arguments"]
+    for item_id, item in fn_meta.items():
         try:
-            args = _json.loads(fn_args.get(cid, "") or "{}")
+            args = _json.loads(fn_args.get(item_id, "") or "{}")
         except _json.JSONDecodeError:
             args = {}
-        tool_calls.append(ToolCall(id=cid, name=item.get("name", ""), input=args))
+        # Use call_id for the ToolCall id (what the Responses API returns as the call
+        # identifier), falling back to the item id if call_id is absent.
+        call_id = item.get("call_id") or item_id
+        tool_calls.append(ToolCall(id=call_id, name=item.get("name", ""), input=args))
     text = "".join(text_parts).strip()
     return LLMTurn(text=text or None, tool_calls=tool_calls)
 
@@ -229,7 +310,9 @@ async def _openai_oauth_complete(
         ]
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 401:  # refresh once + retry
-            access_token, account_id = await openai_auth.ensure_fresh(db, http, margin=10**9)
+            access_token, account_id = await openai_auth.ensure_fresh(
+                db, http, margin=_FORCE_REFRESH_MARGIN
+            )
             events = [
                 ev
                 async for ev in openai_auth.responses_events(http, access_token, account_id, body)

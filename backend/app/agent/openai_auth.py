@@ -140,7 +140,12 @@ async def ensure_fresh(
     if cred is None:
         raise RuntimeError("No OpenAI credential. Run: python -m app.cli auth-openai")
     if cred.expires_at is None or cred.expires_at <= datetime.now(UTC) + timedelta(seconds=margin):
-        ts = await refresh(http, cred.refresh_token)
+        try:
+            ts = await refresh(http, cred.refresh_token)
+        except httpx.HTTPStatusError as exc:
+            raise RuntimeError(
+                "OpenAI session expired or revoked; re-run: python -m app.cli auth-openai"
+            ) from exc
         cred = await upsert_credential(
             db,
             "openai",
