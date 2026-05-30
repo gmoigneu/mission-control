@@ -9,6 +9,7 @@ from app.agent.openai_auth import (
     poll_for_authorization,
     request_device_code,
 )
+from app.agent.persona_store import SEED_PERSONA, upsert_persona
 from app.agent.token_store import get_credential, upsert_credential
 from app.db import SessionLocal
 from app.demo_seed import seed_demo
@@ -69,6 +70,19 @@ def seed_demo_cmd(
         summary = ", ".join(f"{n} {k}" for k, n in counts.items())
         typer.echo(f"Seeded demo data ({summary}).")
         typer.echo(f"Login: {email} / {password}")
+
+    asyncio.run(_run())
+
+
+@cli.command("seed-persona")
+def seed_persona_cmd() -> None:
+    """Seed a friendly default SOUL (Aya's name, role, tone, greeting, principles)."""
+
+    async def _run() -> None:
+        async with SessionLocal() as db:
+            persona = await upsert_persona(db, **SEED_PERSONA)
+            await db.commit()
+        typer.echo(f"Seeded persona: {persona.name} — {persona.role}")
 
     asyncio.run(_run())
 

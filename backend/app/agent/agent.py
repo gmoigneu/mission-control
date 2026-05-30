@@ -10,21 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.context import agent_run_id_var, surface_var
 from app.agent.llm import complete
+from app.agent.persona_store import compose_system, get_persona
 from app.agent.tools import TOOL_HANDLERS, tool_specs_for_llm
 from app.models.agent_run import AgentRun
 from app.models.audit import AuditLog
-
-_SYSTEM_BY_SURFACE: dict[str, str] = {
-    "chat": (
-        "You are Aya, G's assistant. "
-        "Read and act on their data using tools. Be concise."
-    ),
-    "capture": (
-        "Parse the user's note into entities and create them with the tools. Be precise."
-    ),
-}
-
-_DEFAULT_SYSTEM = _SYSTEM_BY_SURFACE["chat"]
 
 
 @dataclass
@@ -53,7 +42,11 @@ async def run_agent(
     run_id_token = agent_run_id_var.set(run.id)
     surface_token = surface_var.set(surface)
 
-    system = _SYSTEM_BY_SURFACE.get(surface, _DEFAULT_SYSTEM)
+    # SOUL (identity / voice) loaded from the DB, with the per-surface tool-use
+    # mechanics always appended. Falls back to the built-in default when no
+    # persona is saved or it is disabled, so behaviour is unchanged out of box.
+    persona = await get_persona(db)
+    system = compose_system(persona, surface)
     messages: list[dict] = [{"role": "user", "content": user_input}]
     reply = "I wasn't able to complete that request."
     all_tool_calls: list[dict] = []

@@ -37,7 +37,7 @@ import {
   Undo2,
   Users,
 } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useLogout, useMe } from "../lib/auth";
 import {
   type AgentWrite,
@@ -46,6 +46,7 @@ import {
   useChat,
   useRevertRun,
 } from "../features/agent/api";
+import { usePersona } from "../features/persona/api";
 
 // ─── Nav definition ───────────────────────────────────────────────────────────
 
@@ -630,10 +631,7 @@ interface ChatMessage {
   reverted?: boolean;
 }
 
-const INTRO_MESSAGE: ChatMessage = {
-  role: "assistant",
-  text: "Hi G — I’m Aya. Tell me what to do, and I’ll act on your data.",
-};
+const DEFAULT_GREETING = "Hi G — I’m Aya. Tell me what to do, and I’ll act on your data.";
 
 function WritesCard({
   writes,
@@ -702,12 +700,26 @@ function WritesCard({
 }
 
 function AyaPanel({ onClose }: { onClose: () => void }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([INTRO_MESSAGE]);
+  // Conversation turns only. The opening greeting is derived from the persona
+  // at render time so it stays in sync without a setState-in-effect.
+  const [conversation, setConversation] = useState<ChatMessage[]>([]);
   const [msg, setMsg] = useState("");
   const [revertedIds, setRevertedIds] = useState<Set<string>>(new Set());
   const transcriptRef = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
   const chat = useChat();
+  const { data: persona } = usePersona();
+
+  const ayaName = persona?.name?.trim() || "Aya";
+  const greeting = persona?.greeting?.trim() || DEFAULT_GREETING;
+
+  const messages: ChatMessage[] = useMemo(
+    () =>
+      conversation.length === 0
+        ? [{ role: "assistant", text: greeting }]
+        : conversation,
+    [conversation, greeting],
+  );
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -720,10 +732,16 @@ function AyaPanel({ onClose }: { onClose: () => void }) {
     const text = msg.trim();
     if (!text || chat.isPending) return;
     setMsg("");
-    setMessages((prev) => [...prev, { role: "user", text }]);
+    // Seed the greeting into the conversation on the first turn so it stays
+    // pinned at the top of the transcript.
+    setConversation((prev) =>
+      prev.length === 0
+        ? [{ role: "assistant", text: greeting }, { role: "user", text }]
+        : [...prev, { role: "user", text }],
+    );
     try {
       const res = await chat.mutateAsync({ message: text });
-      setMessages((prev) => [
+      setConversation((prev) => [
         ...prev,
         {
           role: "assistant",
@@ -734,7 +752,7 @@ function AyaPanel({ onClose }: { onClose: () => void }) {
       ]);
       invalidateForWrites(qc, res.writes);
     } catch {
-      setMessages((prev) => [
+      setConversation((prev) => [
         ...prev,
         { role: "assistant", text: "Something went wrong. Please try again.", error: true },
       ]);
@@ -765,7 +783,7 @@ function AyaPanel({ onClose }: { onClose: () => void }) {
           className="serif"
           style={{ fontSize: 15, fontWeight: 460, flex: 1 }}
         >
-          Aya
+          {ayaName}
         </span>
         <span className="meta" style={{ color: "var(--fg-faint)", fontSize: 11 }}>
           {chat.isPending ? "thinking…" : "idle"}

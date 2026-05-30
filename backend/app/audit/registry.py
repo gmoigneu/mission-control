@@ -1,3 +1,4 @@
+from app.models.agent_persona import AgentPersona
 from app.models.company import Company
 from app.models.context import Context
 from app.models.entity_link import EntityLink
@@ -24,4 +25,5 @@ ENTITY_MODELS: dict[str, type] = {
     "entity_tag": EntityTag,
     "entity_link": EntityLink,
     "task_link": TaskLink,
+    "agent_persona": AgentPersona,
 }
