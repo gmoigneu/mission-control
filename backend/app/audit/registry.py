@@ -4,6 +4,7 @@ from app.models.observation import Observation
 from app.models.person import Person
 from app.models.project import Project
 from app.models.relationship import Relationship
+from app.models.tag import Tag
 from app.models.task import Task
 
 # Maps audit_log.entity_type -> the SQLAlchemy model, for generic revert.
@@ -16,4 +17,5 @@ ENTITY_MODELS: dict[str, type] = {
     "task": Task,
     "relationship": Relationship,
     "observation": Observation,
+    "tag": Tag,
 }

@@ -11,6 +11,7 @@ from app.api import (
     people,
     projects,
     relationships,
+    tags,
     tasks,
 )
 from app.config import settings
@@ -33,6 +34,7 @@ def create_app() -> FastAPI:
     app.include_router(tasks.router)
     app.include_router(relationships.router)
     app.include_router(observations.router)
+    app.include_router(tags.router)
     app.include_router(audit.router)
     return app
 
