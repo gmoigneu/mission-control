@@ -9,6 +9,7 @@ from app.agent.openai_auth import (
     poll_for_authorization,
     request_device_code,
 )
+from app.agent.persona_store import upsert_persona
 from app.agent.token_store import get_credential, upsert_credential
 from app.db import SessionLocal
 from app.demo_seed import seed_demo
@@ -69,6 +70,45 @@ def seed_demo_cmd(
         summary = ", ".join(f"{n} {k}" for k, n in counts.items())
         typer.echo(f"Seeded demo data ({summary}).")
         typer.echo(f"Login: {email} / {password}")
+
+    asyncio.run(_run())
+
+
+# A friendly default SOUL used by ``seed-persona`` and ``seed-demo``.
+_FRIENDLY_PERSONA = {
+    "name": "Aya",
+    "role": "your mission-control assistant",
+    "tone": "Warm, direct, and concise. Speak plainly; skip filler.",
+    "greeting": "Hey — I'm Aya. What can I take off your plate?",
+    "principles": (
+        "Act on the user's data with their intent in mind. Prefer doing over "
+        "explaining. Surface what you changed so it can be undone."
+    ),
+    "boundaries": (
+        "Never invent data. When unsure, ask a brief clarifying question "
+        "instead of guessing."
+    ),
+    "instructions": (
+        "You help a single trusted user track and manage their life across "
+        "people, projects, tasks, and notes. Keep replies short and useful."
+    ),
+    "enabled": True,
+}
+
+
+async def _seed_persona(db: AsyncSession) -> None:
+    await upsert_persona(db, **_FRIENDLY_PERSONA)
+
+
+@cli.command("seed-persona")
+def seed_persona() -> None:
+    """Set a friendly default SOUL (Aya's identity/voice)."""
+
+    async def _run() -> None:
+        async with SessionLocal() as db:
+            await _seed_persona(db)
+            await db.commit()
+        typer.echo("Seeded Aya persona (SOUL).")
 
     asyncio.run(_run())
 

@@ -59,3 +59,50 @@ async def test_run_agent_chat_returns_reply(db):
     assert isinstance(result.reply, str)
     assert len(result.reply) > 0
     assert isinstance(result.agent_run_id, uuid.UUID)
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_run_agent_uses_default_persona_when_absent(db, monkeypatch):
+    """With no stored persona, the composed default SOUL reaches complete()."""
+    import app.agent.agent as agent_module
+
+    captured: dict = {}
+    real_complete = agent_module.complete
+
+    async def spy_complete(messages, tools, system, *, db):  # noqa: ANN001
+        captured["system"] = system
+        return await real_complete(messages, tools, system, db=db)
+
+    monkeypatch.setattr(agent_module, "complete", spy_complete)
+
+    await run_agent(db, "chat", "hello")
+    await db.flush()
+
+    assert "You are Aya" in captured["system"]
+    assert "Be concise." in captured["system"]
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_run_agent_uses_db_persona_when_present(db, monkeypatch):
+    """A stored, enabled persona is composed into the system prompt."""
+    import app.agent.agent as agent_module
+    from app.agent.persona_store import upsert_persona
+
+    await upsert_persona(db, name="Nova", role="copilot", tone="playful")
+
+    captured: dict = {}
+    real_complete = agent_module.complete
+
+    async def spy_complete(messages, tools, system, *, db):  # noqa: ANN001
+        captured["system"] = system
+        return await real_complete(messages, tools, system, db=db)
+
+    monkeypatch.setattr(agent_module, "complete", spy_complete)
+
+    await run_agent(db, "chat", "hello")
+    await db.flush()
+
+    assert "You are Nova, copilot." in captured["system"]
+    assert "playful" in captured["system"]
+    # Per-surface mechanics are still appended (not editable).
+    assert "Be concise." in captured["system"]

@@ -37,7 +37,7 @@ import {
   Undo2,
   Users,
 } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useLogout, useMe } from "../lib/auth";
 import {
   type AgentWrite,
@@ -46,6 +46,7 @@ import {
   useChat,
   useRevertRun,
 } from "../features/agent/api";
+import { usePersona } from "../features/persona/api";
 
 // ─── Nav definition ───────────────────────────────────────────────────────────
 
@@ -630,10 +631,21 @@ interface ChatMessage {
   reverted?: boolean;
 }
 
-const INTRO_MESSAGE: ChatMessage = {
-  role: "assistant",
-  text: "Hi G — I’m Aya. Tell me what to do, and I’ll act on your data.",
-};
+// Build the dock's opening line from the persona greeting when set, otherwise
+// a name-neutral fallback (avoids hardcoding a specific user's name — #11).
+function introMessage(
+  greeting: string | null | undefined,
+  name: string | null | undefined,
+): ChatMessage {
+  if (greeting && greeting.trim()) {
+    return { role: "assistant", text: greeting.trim() };
+  }
+  const who = (name && name.trim()) || "Aya";
+  return {
+    role: "assistant",
+    text: `Hi — I’m ${who}. Tell me what to do, and I’ll act on your data.`,
+  };
+}
 
 function WritesCard({
   writes,
@@ -702,12 +714,25 @@ function WritesCard({
 }
 
 function AyaPanel({ onClose }: { onClose: () => void }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([INTRO_MESSAGE]);
+  const persona = usePersona();
+  const intro = useMemo(
+    () => introMessage(persona.data?.greeting, persona.data?.name),
+    [persona.data?.greeting, persona.data?.name],
+  );
+  const [messages, setMessages] = useState<ChatMessage[]>([intro]);
   const [msg, setMsg] = useState("");
   const [revertedIds, setRevertedIds] = useState<Set<string>>(new Set());
   const transcriptRef = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
   const chat = useChat();
+
+  // Once the persona loads, refresh the intro line if it's still the only
+  // message (the user hasn't started a conversation yet).
+  useEffect(() => {
+    setMessages((prev) =>
+      prev.length === 1 && prev[0].role === "assistant" ? [intro] : prev,
+    );
+  }, [intro]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -765,7 +790,7 @@ function AyaPanel({ onClose }: { onClose: () => void }) {
           className="serif"
           style={{ fontSize: 15, fontWeight: 460, flex: 1 }}
         >
-          Aya
+          {persona.data?.name?.trim() || "Aya"}
         </span>
         <span className="meta" style={{ color: "var(--fg-faint)", fontSize: 11 }}>
           {chat.isPending ? "thinking…" : "idle"}

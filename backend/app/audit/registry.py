@@ -1,3 +1,4 @@
+from app.models.agent_persona import AgentPersona
 from app.models.company import Company
 from app.models.context import Context
 from app.models.entity_link import EntityLink
@@ -13,6 +14,7 @@ from app.models.task_link import TaskLink
 # Maps audit_log.entity_type -> the SQLAlchemy model, for generic revert.
 # Extend this as new entities are added.
 ENTITY_MODELS: dict[str, type] = {
+    "agent_persona": AgentPersona,
     "context": Context,
     "project": Project,
     "company": Company,

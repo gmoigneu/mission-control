@@ -16,6 +16,7 @@ from datetime import UTC, date, datetime, timedelta
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agent.persona_store import upsert_persona
 from app.models.audit import AuditLog
 from app.models.company import Company
 from app.models.context import Context
@@ -234,6 +235,28 @@ async def seed_demo(
         await _wipe(db)
 
     db.add(AppUser(email=email, name=name, password_hash=hash_password(password), settings={}))
+
+    # A friendly default SOUL for Aya so the demo has personality out of the box.
+    await upsert_persona(
+        db,
+        name="Aya",
+        role="your mission-control assistant",
+        tone="Warm, direct, and concise. Speak plainly; skip filler.",
+        greeting="Hey — I'm Aya. What can I take off your plate?",
+        principles=(
+            "Act on the user's data with their intent in mind. Prefer doing over "
+            "explaining. Surface what you changed so it can be undone."
+        ),
+        boundaries=(
+            "Never invent data. When unsure, ask a brief clarifying question "
+            "instead of guessing."
+        ),
+        instructions=(
+            "You help a single trusted user track and manage their life across "
+            "people, projects, tasks, and notes. Keep replies short and useful."
+        ),
+        enabled=True,
+    )
 
     contexts: dict[str, Context] = {}
     for slug, nm, category, desc in _CONTEXTS:
