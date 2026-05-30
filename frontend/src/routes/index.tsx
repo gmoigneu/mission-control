@@ -14,9 +14,11 @@ import {
 import { RequireAuth } from "../components/RequireAuth";
 import { useAudit, useRevert } from "../features/audit/api";
 import { useContexts } from "../features/contexts/api";
+import { useHabits, useLogHabit } from "../features/habits/api";
 import { useJournalEntries } from "../features/journal/api";
 import { useTasks, useUpdateTask } from "../features/tasks/api";
 import { useMe } from "../lib/auth";
+import type { Habit } from "../lib/types";
 import { rootRoute } from "./root";
 
 // ─── Local helpers ──────────────────────────────────────────────────────────────
@@ -136,83 +138,50 @@ function CheckBtn({
   );
 }
 
-// ─── Habit row (static sample) ─────────────────────────────────────────────────
+// ─── Habit row ──────────────────────────────────────────────────────────────────
 
-function HabitSampleRow({
-  name,
-  streak,
-  cadence,
+function HabitRow({
+  habit,
+  onToggle,
 }: {
-  name: string;
-  streak: number;
-  cadence: string;
+  habit: Habit;
+  onToggle: (habit: Habit) => void;
 }) {
-  const [st, setSt] = useState<null | "done" | "partial" | "skip">(null);
-  const cycle = () => {
-    setSt((s) =>
-      s === null ? "done" : s === "done" ? "partial" : s === "partial" ? "skip" : null,
-    );
-  };
-  const col =
-    st === "done"
-      ? "var(--st-done)"
-      : st === "partial"
-        ? "var(--st-warn)"
-        : st === "skip"
-          ? "var(--fg-faint)"
-          : "transparent";
+  const done = habit.logged_today;
+  const col = done ? "var(--st-done)" : "transparent";
   return (
     <div className="row gap-3" style={{ alignItems: "center" }}>
       <button
-        onClick={cycle}
-        title="Tap to log"
+        onClick={() => onToggle(habit)}
+        title="Tap to log today"
+        aria-label={`Toggle ${habit.name} for today`}
         style={{
           width: 24,
           height: 24,
           borderRadius: 7,
           cursor: "pointer",
           flexShrink: 0,
-          border: `1px solid ${st ? col : "var(--line-bright)"}`,
-          background:
-            st === "done"
-              ? col
-              : st
-                ? `color-mix(in oklch, ${col} 25%, transparent)`
-                : "transparent",
+          border: `1px solid ${done ? col : "var(--line-bright)"}`,
+          background: done ? col : "transparent",
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          color: st === "done" ? "var(--signal-ink)" : col,
+          color: done ? "var(--signal-ink)" : "var(--fg-dim)",
         }}
       >
-        {st === "done" && <Check size={13} strokeWidth={2.4} />}
-        {st === "partial" && (
-          <span style={{ width: 8, height: 8, borderRadius: 9, background: col }} />
-        )}
-        {st === "skip" && (
-          <span
-            style={{
-              fontSize: 12,
-              fontFamily: "var(--mono)",
-              lineHeight: 1,
-              color: col,
-            }}
-          >
-            ×
-          </span>
-        )}
+        {done && <Check size={13} strokeWidth={2.4} />}
       </button>
-      <span style={{ flex: 1, fontSize: 13 }}>{name}</span>
+      <span style={{ flex: 1, fontSize: 13 }}>{habit.name}</span>
       <span
         className="row gap-1 meta"
         title="Current streak"
-        style={{ color: streak > 0 ? "var(--st-warn)" : "var(--fg-faint)" }}
+        style={{ color: habit.streak > 0 ? "var(--st-warn)" : "var(--fg-faint)" }}
       >
         <Flame size={12} />
-        {streak}
+        {habit.streak}
       </span>
       <span className="meta" style={{ width: 52, textAlign: "right" }}>
-        {cadence}
+        {habit.cadence}
       </span>
     </div>
   );
@@ -227,7 +196,9 @@ function Dashboard() {
   const { data: contexts = [] } = useContexts();
   const { data: audit = [] } = useAudit();
   const { data: journalEntries = [] } = useJournalEntries();
+  const { data: habits = [] } = useHabits({ active: "true" });
   const updateTask = useUpdateTask();
+  const logHabit = useLogHabit();
   const revert = useRevert();
 
   const [mood, setMood] = useState(3);
@@ -293,13 +264,9 @@ function Dashboard() {
 
   const recentActivity = audit.slice(0, 5);
 
-  const SAMPLE_HABITS = [
-    { name: "Morning pages", streak: 12, cadence: "daily" },
-    { name: "Workout", streak: 4, cadence: "daily" },
-    { name: "Read 20 min", streak: 7, cadence: "daily" },
-    { name: "Weekly review", streak: 2, cadence: "weekly" },
-    { name: "Cold shower", streak: 3, cadence: "daily" },
-  ];
+  function toggleHabit(habit: Habit) {
+    logHabit.mutate({ id: habit.id, data: { date: today, done: !habit.logged_today } });
+  }
 
   // Most recent journal entry (today's if present, else latest). The list is
   // already ordered date-desc by the API.
@@ -634,7 +601,7 @@ function Dashboard() {
             {/* ══ RIGHT ═════════════════════════════════════════════════ */}
             <div className="col gap-4" style={{ minWidth: 0 }}>
 
-              {/* Habits today — static sample */}
+              {/* Habits today */}
               <section className="card" style={{ padding: 20 }}>
                 <SectionLabel
                   right={
@@ -652,28 +619,38 @@ function Dashboard() {
                   Habits · today
                 </SectionLabel>
 
-                <div className="col gap-2">
-                  {SAMPLE_HABITS.map((h) => (
-                    <HabitSampleRow
-                      key={h.name}
-                      name={h.name}
-                      streak={h.streak}
-                      cadence={h.cadence}
-                    />
-                  ))}
-                </div>
-
-                <div
-                  className="meta"
-                  style={{
-                    marginTop: 12,
-                    color: "var(--fg-faint)",
-                    fontSize: 11,
-                    fontStyle: "italic",
-                  }}
-                >
-                  Sample data — habit tracking lands in a later phase.
-                </div>
+                {habits.length === 0 ? (
+                  <p
+                    className="meta"
+                    style={{ color: "var(--fg-faint)", fontSize: 12, marginTop: 4 }}
+                  >
+                    No habits yet — add one on the{" "}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate({ to: "/habits" } as Parameters<typeof navigate>[0])
+                      }
+                      style={{
+                        border: 0,
+                        background: "transparent",
+                        cursor: "pointer",
+                        padding: 0,
+                        color: "var(--signal)",
+                        textDecoration: "underline",
+                        font: "inherit",
+                      }}
+                    >
+                      Habits grid
+                    </button>
+                    .
+                  </p>
+                ) : (
+                  <div className="col gap-2">
+                    {habits.map((h) => (
+                      <HabitRow key={h.id} habit={h} onToggle={toggleHabit} />
+                    ))}
+                  </div>
+                )}
               </section>
 
               {/* Recent Aya activity */}
