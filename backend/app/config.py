@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     session_secret: str = "dev-insecure-change-me"
     initial_user_email: str | None = None
     initial_user_password: str | None = None
+    embeddings_dim: int = 1536
+    embeddings_provider: str = "fake"
+    embeddings_model: str = "text-embedding-3-small"
+    openai_api_key: str | None = None
 
 
 settings = Settings()

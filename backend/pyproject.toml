@@ -14,6 +14,7 @@ dependencies = [
     "argon2-cffi>=23.1",
     "itsdangerous>=2.2",
     "typer>=0.15",
+    "pgvector>=0.3",
 ]
 
 [dependency-groups]
