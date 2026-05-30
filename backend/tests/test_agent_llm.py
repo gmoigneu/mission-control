@@ -36,6 +36,14 @@ def test_mock_create_task_todo():
     assert turn.tool_calls[0].name == "create_task"
 
 
+def test_mock_create_task_preserves_title_casing():
+    turn = _mock_complete([_user("create a task to Prepare the Q3 Board Update")], [], "")
+    assert len(turn.tool_calls) == 1
+    tc = turn.tool_calls[0]
+    assert tc.name == "create_task"
+    assert tc.input["title"] == "Prepare the Q3 Board Update"
+
+
 # ---------------------------------------------------------------------------
 # who_do_i_know_at
 # ---------------------------------------------------------------------------

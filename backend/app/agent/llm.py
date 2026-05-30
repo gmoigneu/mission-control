@@ -95,7 +95,11 @@ def _mock_complete(  # noqa: ARG001
         r"(?:create(?: a)? task(?: to)?|task to|todo:?|remind me to)\s+(.+)", lower
     )
     if m2:
-        title = m2.group(1).strip().rstrip(".")
+        # Match on lowercased text for robustness, but slice the original
+        # (stripped) text so the task title preserves its source casing.
+        # ``lower`` is ``text.lower().strip()``, so index against the stripped
+        # original to keep match offsets aligned.
+        title = text.strip()[m2.start(1):m2.end(1)].strip().rstrip(".")
         return _tool("create_task", {"title": title})
 
     # ---- met / add / new person ----
