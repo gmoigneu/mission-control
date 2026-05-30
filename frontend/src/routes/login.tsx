@@ -1,6 +1,7 @@
 import { createRoute, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
-import { useLogin } from "../lib/auth";
+import { useLogin, usePasskeyLogin } from "../lib/auth";
+import { isWebAuthnSupported } from "../lib/webauthn";
 import { rootRoute } from "./root";
 
 // ─── Logo mark (reused from AppShell) ─────────────────────────────────────────
@@ -48,12 +49,18 @@ function Logo() {
 export function LoginPage() {
   const navigate = useNavigate();
   const login = useLogin();
+  const passkeyLogin = usePasskeyLogin();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const passkeySupported = isWebAuthnSupported();
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     login.mutate({ email, password }, { onSuccess: () => navigate({ to: "/" }) });
+  }
+
+  function onPasskey() {
+    passkeyLogin.mutate(undefined, { onSuccess: () => navigate({ to: "/" }) });
   }
 
   return (
@@ -165,6 +172,43 @@ export function LoginPage() {
           >
             {login.isPending ? "Signing in…" : "Sign in"}
           </button>
+
+          {/* Passkey sign-in */}
+          {passkeySupported && (
+            <>
+              <div
+                className="row"
+                style={{ alignItems: "center", gap: 10, margin: "2px 0" }}
+              >
+                <span className="hr" style={{ flex: 1, height: 1 }} />
+                <span className="meta" style={{ color: "var(--fg-faint)", fontSize: 11 }}>
+                  or
+                </span>
+                <span className="hr" style={{ flex: 1, height: 1 }} />
+              </div>
+              <button
+                type="button"
+                className="btn"
+                onClick={onPasskey}
+                disabled={passkeyLogin.isPending}
+                style={{ width: "100%", justifyContent: "center" }}
+              >
+                {passkeyLogin.isPending ? "Waiting for passkey…" : "Sign in with passkey"}
+              </button>
+              {passkeyLogin.isError && (
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 12.5,
+                    color: "var(--st-danger)",
+                    fontFamily: "var(--mono)",
+                  }}
+                >
+                  Passkey sign-in failed — try again or use your password.
+                </p>
+              )}
+            </>
+          )}
         </form>
 
         {/* Footer note */}

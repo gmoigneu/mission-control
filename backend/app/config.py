@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     session_secret: str = _INSECURE_DEFAULT
     initial_user_email: str | None = None
     initial_user_password: str | None = None
+    # WebAuthn / passkeys. rp_id is the registrable domain (no scheme/port);
+    # rp_origin is the full origin the browser reports. Defaults target local dev.
+    webauthn_rp_id: str = "localhost"
+    webauthn_rp_name: str = "Mission Control"
+    webauthn_rp_origin: str = "http://localhost:5173"
     embeddings_dim: int = 1536
     embeddings_provider: str = "fake"
     embeddings_model: str = "text-embedding-3-small"

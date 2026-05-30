@@ -49,6 +49,9 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       INITIAL_USER_EMAIL: ${INITIAL_USER_EMAIL:-}
       INITIAL_USER_PASSWORD: ${INITIAL_USER_PASSWORD:-}
+      WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID:-localhost}
+      WEBAUTHN_RP_NAME: ${WEBAUTHN_RP_NAME:-Mission Control}
+      WEBAUTHN_RP_ORIGIN: ${WEBAUTHN_RP_ORIGIN:-http://localhost:5173}
     depends_on:
       postgres:
         condition: service_healthy
