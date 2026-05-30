@@ -121,6 +121,17 @@
 html { color-scheme: dark; }
 html[data-theme="light"] { color-scheme: light; }
 
+/* Visible keyboard focus ring across interactive controls (a11y).
+   Uses the Console "signal" token; only shows for keyboard focus. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+:where(a, button, input, select, textarea, summary, [tabindex]):focus:not(:focus-visible) {
+  outline: none;
+}
+
 html, body, #root { height: 100%; }
 body {
   margin: 0;

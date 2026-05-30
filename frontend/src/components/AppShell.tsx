@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useLogout, useMe } from "../lib/auth";
+import { useFocusTrap } from "../lib/useFocusTrap";
 import {
   type AgentWrite,
   invalidateForWrites,
@@ -414,23 +415,14 @@ function CommandPalette({
   onToast: (text: string, undo?: () => void) => void;
 }) {
   const [query, setQuery] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const qc = useQueryClient();
   const capture = useCapture();
   const revertRun = useRevertRun();
 
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose]);
+  // Trap focus within the palette: focus the input on open, cycle Tab,
+  // close on Escape, and restore focus to the trigger on close.
+  const modalRef = useFocusTrap<HTMLDivElement>(true, onClose);
 
   const navEntries = NAV.filter(
     (n): n is Extract<NavEntry, { divider?: false }> => !n.divider,
@@ -485,7 +477,11 @@ function CommandPalette({
       />
       {/* Modal */}
       <div
+        ref={modalRef}
         className="card rise"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
         style={{
           position: "fixed",
           top: "20%",
@@ -502,7 +498,6 @@ function CommandPalette({
         }}
       >
         <input
-          ref={inputRef}
           className="input"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
