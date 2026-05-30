@@ -32,8 +32,22 @@ async def embed_text(text: str) -> list[float]:
 
 
 async def _openai_embed(texts: list[str]) -> list[list[float]]:
-    # Lazy import so the dependency is optional unless provider=openai.
-    from openai import AsyncOpenAI
+    # Lazy import so the dependency only loads when provider=openai; this keeps
+    # the default ("fake") path import-free and the test suite fully offline.
+    try:
+        from openai import AsyncOpenAI
+    except ImportError as exc:  # pragma: no cover - depends on optional install
+        raise RuntimeError(
+            "EMBEDDINGS_PROVIDER=openai requires the 'openai' package. "
+            "Install it with: uv add openai"
+        ) from exc
+
+    if not settings.openai_api_key:
+        raise RuntimeError(
+            "EMBEDDINGS_PROVIDER=openai requires OPENAI_API_KEY to be set. "
+            "Use a standard 'sk-' embeddings key (the Codex/ChatGPT-subscription "
+            "OAuth credential is chat-only and cannot create embeddings)."
+        )
 
     client = AsyncOpenAI(api_key=settings.openai_api_key)
     resp = await client.embeddings.create(model=settings.embeddings_model, input=texts)

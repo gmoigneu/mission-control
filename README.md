@@ -119,11 +119,18 @@ curl -X POST http://localhost:8000/admin/rebuild-graph
 
 The importer is idempotent (upsert by slug); it is safe to re-run. It imports people, observations, tasks, companies, contexts, projects, and more. Unresolved links and unparsed files are reported at the end without failing the whole run.
 
-Real OpenAI embeddings (instead of the no-op stub) require:
+Semantic search defaults to a deterministic offline embedder (`EMBEDDINGS_PROVIDER=fake`) so the app runs and tests stay fully offline. To use real OpenAI embeddings instead, set in `.env`:
 
 ```bash
-uv add openai
-# OPENAI_API_KEY=sk-... and EMBEDDINGS_PROVIDER=openai in .env
+EMBEDDINGS_PROVIDER=openai
+OPENAI_API_KEY=sk-...   # a standard embeddings key — NOT the Codex/ChatGPT-subscription OAuth credential, which is chat-only
+# EMBEDDINGS_MODEL defaults to text-embedding-3-small (EMBEDDINGS_DIM=1536)
+```
+
+The `openai` package ships with the backend, so no extra install is needed. After switching the provider, rebuild the search index so existing rows are re-embedded:
+
+```bash
+curl -X POST http://localhost:8000/admin/reindex
 ```
 
 ## Deploy
