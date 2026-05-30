@@ -7,7 +7,7 @@ from app.audit.serialize import model_to_dict
 from app.audit.service import record_create, record_delete, record_update
 from app.models.task import Task
 from app.schemas.task import TaskCreate, TaskUpdate
-from app.search.index import deindex_subject, index_subject
+from app.search.index import enqueue_deindex, enqueue_index
 
 ENTITY = "task"
 
