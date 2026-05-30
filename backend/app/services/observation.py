@@ -7,6 +7,7 @@ from app.audit.serialize import model_to_dict
 from app.audit.service import record_create, record_delete, record_update
 from app.models.observation import Observation
 from app.schemas.observation import ObservationCreate, ObservationUpdate
+from app.search.index import deindex_subject, index_subject
 
 ENTITY = "observation"
 
@@ -36,6 +37,7 @@ async def create_observation(
     db.add(obj)
     await db.flush()
     await record_create(db, ENTITY, obj, surface=surface)
+    await index_subject(db, ENTITY, obj)
     return obj
 
 
@@ -47,6 +49,7 @@ async def update_observation(
         setattr(obj, key, value)
     await db.flush()
     await record_update(db, ENTITY, obj, before, surface=surface)
+    await index_subject(db, ENTITY, obj)
     return obj
 
 
@@ -58,3 +61,4 @@ async def delete_observation(
     await db.delete(obj)
     await db.flush()
     await record_delete(db, ENTITY, before, entity_id, surface=surface)
+    await deindex_subject(db, ENTITY, entity_id)

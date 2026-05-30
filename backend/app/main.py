@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.api import (
+    admin,
     audit,
     auth,
     companies,
@@ -13,6 +14,7 @@ from app.api import (
     people,
     projects,
     relationships,
+    search,
     tags,
     tasks,
 )
@@ -40,6 +42,8 @@ def create_app() -> FastAPI:
     app.include_router(entity_tags.router)
     app.include_router(entity_links.router)
     app.include_router(audit.router)
+    app.include_router(admin.router)
+    app.include_router(search.router)
     return app
 
 
