@@ -100,6 +100,10 @@ export interface Meeting {
   context_id: string | null;
   project_id: string | null;
   location: string | null;
+export interface Knowledge {
+  id: string;
+  slug: string;
+  title: string;
   body: string | null;
   created_at: string;
   updated_at: string;
@@ -114,6 +118,12 @@ export interface MeetingCreate {
   body?: string | null;
 }
 export type MeetingUpdate = Partial<MeetingCreate>;
+export interface KnowledgeCreate {
+  slug: string;
+  title: string;
+  body?: string | null;
+}
+export type KnowledgeUpdate = Partial<KnowledgeCreate>;
 
 export interface Person {
   id: string;

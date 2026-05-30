@@ -16,6 +16,7 @@ from sqlalchemy import func, select
 
 from app.models.company import Company
 from app.models.context import Context
+from app.models.knowledge import Knowledge
 from app.models.observation import Observation
 from app.models.person import Person
 from app.models.project import Project
@@ -72,6 +73,11 @@ async def test_import_fixture_vault_creates_entities(db):
     rel_count = await _count(db, Relationship)
     assert rel_count >= 1
 
+    # One knowledge note (04.knowledge/raw/sample-note.md)
+    assert stats.knowledge == 1
+    k_count = await _count(db, Knowledge)
+    assert k_count >= 1
+
 
 @pytest.mark.asyncio
 async def test_import_fixture_vault_idempotent(db):
@@ -87,6 +93,7 @@ async def test_import_fixture_vault_idempotent(db):
     t_before = await _count(db, Task)
     obs_before = await _count(db, Observation)
     rel_before = await _count(db, Relationship)
+    k_before = await _count(db, Knowledge)
 
     # Second run
     await import_vault(db, FIXTURE_VAULT, reindex=False)
@@ -98,6 +105,7 @@ async def test_import_fixture_vault_idempotent(db):
     assert await _count(db, Task) == t_before
     assert await _count(db, Observation) == obs_before
     assert await _count(db, Relationship) == rel_before
+    assert await _count(db, Knowledge) == k_before
 
 
 @pytest.mark.asyncio
@@ -157,3 +165,18 @@ async def test_import_relationship_alice_to_bob(db):
     rel = rel_r.scalar_one_or_none()
     assert rel is not None
     assert rel.type == "colleague"
+
+
+@pytest.mark.asyncio
+async def test_import_knowledge_fields(db):
+    """Knowledge row has expected slug, title, and body from the markdown file."""
+    from scripts.import_aya import import_vault
+
+    await import_vault(db, FIXTURE_VAULT, reindex=False)
+
+    result = await db.execute(select(Knowledge).where(Knowledge.slug == "sample-note"))
+    note = result.scalar_one_or_none()
+    assert note is not None
+    assert note.title == "Sample Knowledge Note"
+    assert note.body is not None
+    assert "sample knowledge note" in note.body.lower()
