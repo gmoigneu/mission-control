@@ -16,6 +16,7 @@ from app.models.tag import Tag
 from app.models.task import Task
 from app.models.task_link import TaskLink
 from app.models.telos import Telos
+from app.models.tone import Tone
 
 # Maps audit_log.entity_type -> the SQLAlchemy model, for generic revert.
 # Extend this as new entities are added.
@@ -39,4 +40,5 @@ ENTITY_MODELS: dict[str, type] = {
     "habit": Habit,
     "habit_log": HabitLog,
     "telos": Telos,
+    "tone": Tone,
 }

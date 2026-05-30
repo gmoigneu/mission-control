@@ -29,6 +29,7 @@ from app.api import (
     task_links,
     tasks,
     telos,
+    tones,
 )
 from app.config import settings
 
@@ -81,6 +82,7 @@ def create_app() -> FastAPI:
     app.include_router(habits.router)
     app.include_router(inbox.router)
     app.include_router(tags.router)
+    app.include_router(tones.router)
     app.include_router(entity_tags.router)
     app.include_router(entity_links.router)
     app.include_router(task_links.router)

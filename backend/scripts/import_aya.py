@@ -13,10 +13,8 @@ Notes:
   Audit coverage can be added later; the data is in Postgres.
 - Neo4j graph rebuild is NOT done here. Trigger it manually via:
       POST /admin/rebuild-graph
-- Vault sections with no matching table (journal, meetings, inbox,
-  telos, tone) are silently skipped with a note in the summary.
-- Vault sections with no matching table (journal, meetings, knowledge, inbox,
-  tone) are silently skipped with a note in the summary.
+- Vault sections with no matching importer (meetings, inbox, tones, reviews)
+  are silently skipped with a note in the summary.
 """
 
 from __future__ import annotations
@@ -1045,6 +1043,9 @@ async def reindex_all(
     for obj in (await db.execute(select(Knowledge))).scalars():
         try:
             await index_subject(db, "knowledge", obj)
+        except Exception:
+            pass
+
     # Telos
     for obj in (await db.execute(select(Telos))).scalars():
         try:
@@ -1073,6 +1074,7 @@ async def import_vault(db: AsyncSession, vault_path: Path, *, reindex: bool = Tr
         "00.inbox (no inbox table)",
         "meetings/ sub-folders (no meeting table)",
         "99.system / tone (no table)",
+        "99.system / telos (no table)",
     ])
 
     print(f"Importing from {vault_path} …")

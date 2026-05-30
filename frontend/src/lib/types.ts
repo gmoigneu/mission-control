@@ -141,6 +141,15 @@ export interface TelosCreate {
   parent_id?: string | null;
 }
 export type TelosUpdate = Partial<TelosCreate>;
+export interface Tone {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  sample: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface Person {
   id: string;
