@@ -1,8 +1,14 @@
 # mission-control — Specification
 
-> Status: **Design approved, not yet implemented.**
+> Status: **P0–P6 core implemented; see `docs/REVIEW-2026-05-30.md` and `README.md` for details.**
 > Audience: an engineer (or another Claude instance) implementing this from scratch.
 > Source of this design: distilled from the existing `aya` markdown vault (`~/brain/aya`), whose entities define the data model.
+
+### Implementation status (2026-05-30)
+
+**Done:** P0.1 backend foundations, P0.2 frontend shell, P0.3 deploy infra (Dockerfiles + Caddy + compose `deploy` profile), P1 all 10 entities + audit/undo + CRUD pages + `task_link`, P3 semantic search (pgvector), P4 Neo4j graph (outbox → projector → Neo4j, `/graph/query`, `/admin/rebuild-graph`, worker), P5 AI agent (`agent_run`, pluggable LLM with `mock` default + `anthropic` provider, `/agent/chat` + `/agent/capture`, whole-run undo, Aya dock + ⌘K), P6 aya importer (`scripts/import_aya.py`, ran live on `~/brain/aya`).
+
+**Not yet built:** journal/meetings/knowledge/inbox/TELOS/tones/reviews entities (P2-ish), passkeys, list pagination, full per-page Console restyle, some a11y items.
 
 ---
 
@@ -151,7 +157,7 @@ The app is the human interface; the AI is a second interface over the *same* dom
 ## 6. Data model — Postgres
 
 Conventions:
-- Primary keys: `id uuid` (UUIDv7-style, time-sortable) unless noted.
+- Primary keys: `id uuid` (UUIDv4 — pragmatic choice; UUIDv7 time-sortability deferred) unless noted.
 - Timestamps: `created_at timestamptz not null default now()`, `updated_at timestamptz not null default now()` (touch on update).
 - Human-friendly unique `slug text` where entities are referenced by name.
 - Single-user: no `user_id` scattered across tables (one tenant). Only `app_user` exists for auth.
@@ -319,10 +325,10 @@ Postgres remains canonical. Neo4j is a **derived projection** kept in sync via t
 ## 8. Search & embeddings — pgvector
 
 - Indexable entities: `person`, `project`, `task`, `journal_entry`, `meeting`, `knowledge_source`, `knowledge_note`, `observation`, `inbox_item`.
-- On every create/update, the domain service enqueues an embedding job (via `outbox_event` of type `embed` or a dedicated jobs table). The worker:
+- On every create/update, the domain service indexes the entity synchronously (inline, no separate job queue). Currently: single-chunk per entity (full text blob, no chunking). The implementation:
   1. Renders the entity to a canonical text blob (title + key fields + body).
-  2. Chunks it (e.g. ~800 tokens, overlap) when long.
-  3. Embeds each chunk and upserts `chunk` rows (delete stale chunks for the subject first).
+  2. Embeds as a single chunk and upserts `chunk` rows (delete stale chunks for the subject first).
+  > Note: chunking and async worker-based embedding are deferred; add when needed for large entities.
 - Search: `semantic_search(query, types?, limit)` embeds the query and runs cosine ANN over `chunk`, returning subjects with scores; the API hydrates full entities.
 - Hybrid option: combine pgvector ANN with Postgres full-text (`tsvector`) for keyword recall; rank-fuse. (Start with vector-only; add FTS if recall is weak.)
 - Vector index: HNSW (`vector_cosine_ops`) preferred for quality at this scale.
@@ -348,7 +354,7 @@ Because AI writes are autonomous, **every** mutation is auditable and reversible
 ## 10. AI system
 
 ### 10.1 Shape
-A **single LangChain agent** (tool-calling; LangGraph optional for control flow) with:
+A **single agent** using a direct Anthropic tool-use loop (not LangChain/LangGraph — the spec's original choice was simplified to a hand-rolled loop for full control and zero framework overhead). The agent is **pluggable**: a `mock` rule-based LLM is the default (no API key needed; good for tests and offline use); swap in the `anthropic` provider via `LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY`. The agent has:
 - A **system prompt** = persona (SOUL-equivalent: warm, direct, protective of priorities) + operating rules + current date/context.
 - A **toolset** grouped by domain (below). Tools wrap **domain services**, never raw SQL — so AI writes inherit validation + audit + outbox + embeddings.
 - **Retrieval tools** for semantic and graph queries.
@@ -383,7 +389,13 @@ Autonomous: the agent commits without per-write confirmation. Safety comes from 
 
 ## 11. HTTP API
 
-REST/JSON under `/api`. Conventions: cursor or offset pagination, filtering by `context`, `project`, `tag`, `status`, date ranges; consistent envelopes; Pydantic schemas; OpenAPI auto-docs.
+REST/JSON. Conventions: cursor or offset pagination, filtering by `context`, `project`, `tag`, `status`, date ranges; consistent envelopes; Pydantic schemas; OpenAPI auto-docs.
+
+**API prefix note:** The FastAPI backend serves all routes at the root (e.g. `/contexts`, `/agent/chat`). The `/api` prefix is added and stripped by the clients, not by the server:
+- **Dev:** Vite dev proxy rewrites `^/api` → `/` before forwarding to `localhost:8000`.
+- **Prod:** Caddy `handle_path /api/*` strips the prefix before proxying to the api container.
+
+This means the OpenAPI docs at `http://localhost:8000/docs` show paths *without* `/api`.
 
 **CRUD resources** (standard `GET list`, `POST create`, `GET /{id}`, `PATCH /{id}`, `DELETE /{id}`):
 `/contexts`, `/projects`, `/people`, `/companies`, `/relationships`, `/tasks`, `/journal` (keyed by date), `/reviews`, `/habits`, `/habit-logs`, `/metrics`, `/meetings`, `/knowledge/sources`, `/knowledge/notes`, `/inbox`, `/telos`, `/goals`, `/tones`, `/observations`, `/tags`, `/links`, `/attachments`.

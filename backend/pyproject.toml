@@ -1,7 +1,7 @@
 [project]
 name = "mission-control-backend"
 version = "0.1.0"
-description = "mission-control backend (FastAPI + SQLAlchemy + LangChain)"
+description = "mission-control backend (FastAPI + SQLAlchemy + pgvector + Neo4j + AI agent)"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",
