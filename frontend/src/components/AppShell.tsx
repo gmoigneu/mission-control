@@ -4,6 +4,8 @@ import { useLogout, useMe } from "../lib/auth";
 
 const NAV = [
   { to: "/", label: "Dashboard" },
+  { to: "/contexts", label: "Contexts" },
+  { to: "/projects", label: "Projects" },
   { to: "/people", label: "People" },
   { to: "/tasks", label: "Tasks" },
   { to: "/journal", label: "Journal" },
