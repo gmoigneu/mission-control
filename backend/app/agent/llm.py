@@ -1,13 +1,20 @@
 """LLM abstraction — provider-pluggable async complete().
 
 Default provider: ``mock`` (deterministic, no API key required).
-Real provider: ``anthropic`` (requires ``uv add anthropic``,
-  ``ANTHROPIC_API_KEY`` env var and ``LLM_PROVIDER=anthropic``).
+Real provider: ``openai_oauth`` (requires a stored OpenAI OAuth credential and
+  ``LLM_PROVIDER=openai_oauth``).
 """
 from __future__ import annotations
 
+import json as _json
 import re
 from dataclasses import dataclass, field
+
+import httpx
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.agent import openai_auth
+from app.config import settings
 
 
 @dataclass
@@ -55,7 +62,7 @@ def _mock_complete(  # noqa: ARG001
     if last.get("role") == "tool":
         return LLMTurn(text="Done — I've applied the requested changes.", tool_calls=[])
 
-    # Also handle list-of-content-blocks (Anthropic-style tool result role=user).
+    # Also handle list-of-content-blocks (tool result role=user).
     if last.get("role") == "user" and isinstance(last.get("content"), list):
         for block in last["content"]:
             if isinstance(block, dict) and block.get("type") == "tool_result":
@@ -121,47 +128,215 @@ def _mock_complete(  # noqa: ARG001
 
 
 # ---------------------------------------------------------------------------
-# Anthropic LLM
+# OpenAI OAuth LLM (via Codex Responses endpoint)
 # ---------------------------------------------------------------------------
 
-async def _anthropic_complete(
-    messages: list[dict], tools: list[dict], system: str
-) -> LLMTurn:
-    """Real Anthropic implementation — lazy import, no hard dep."""
-    from anthropic import AsyncAnthropic
+_http_singleton: httpx.AsyncClient | None = None
 
-    from app.config import settings
+# Large margin used to force a token refresh on 401 retry
+_FORCE_REFRESH_MARGIN = 10**9
 
-    client = AsyncAnthropic(api_key=settings.anthropic_api_key)
-    response = await client.messages.create(
-        model=settings.llm_model,
-        max_tokens=4096,
-        system=system,
-        tools=tools,
-        messages=messages,
-    )
 
-    tool_calls: list[ToolCall] = []
+def _http() -> httpx.AsyncClient:
+    global _http_singleton
+    if _http_singleton is None:
+        _http_singleton = httpx.AsyncClient(timeout=120)
+    return _http_singleton
+
+
+def _to_responses_input(messages: list[dict]) -> list[dict]:
+    """Map our generic messages to Responses API ``input`` items.
+
+    The agent loop (agent.py) uses two internal shapes:
+
+    Assistant tool-call turn::
+
+        {"role": "assistant", "content": [
+            {"type": "tool_use", "id": <id>, "name": <name>, "input": <dict>}, ...
+        ]}
+
+    Tool-result turn::
+
+        {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": <id>, "content": <str>}, ...
+        ]}
+
+    These are mapped to Responses API ``function_call`` / ``function_call_output``
+    items respectively.  Plain text messages are wrapped in a role/content block.
+    """
+    items: list[dict] = []
+    for m in messages:
+        role = m.get("role", "user")
+        content = m.get("content")
+
+        # --- Legacy role="tool" (not used by agent.py, kept for compatibility) ---
+        if role == "tool":
+            items.append(
+                {
+                    "type": "function_call_output",
+                    "call_id": m.get("tool_call_id", ""),
+                    "output": content
+                    if isinstance(content, str)
+                    else _json.dumps(content),
+                }
+            )
+            continue
+
+        # --- List-of-content-blocks (assistant tool-calls or user tool-results) ---
+        if isinstance(content, list):
+            # Check what kind of blocks are in the list
+            first = content[0] if content else {}
+            block_type = first.get("type") if isinstance(first, dict) else None
+
+            if block_type == "tool_use":
+                # assistant turn with tool calls → emit one function_call item per call
+                for block in content:
+                    if not isinstance(block, dict):
+                        continue
+                    items.append(
+                        {
+                            "type": "function_call",
+                            "call_id": block.get("id", ""),
+                            "name": block.get("name", ""),
+                            "arguments": _json.dumps(block.get("input") or {}),
+                        }
+                    )
+                continue
+
+            if block_type == "tool_result":
+                # user turn with tool results → emit one function_call_output per result
+                for block in content:
+                    if not isinstance(block, dict):
+                        continue
+                    output = block.get("content", "")
+                    if not isinstance(output, str):
+                        output = _json.dumps(output)
+                    items.append(
+                        {
+                            "type": "function_call_output",
+                            "call_id": block.get("tool_use_id", ""),
+                            "output": output,
+                        }
+                    )
+                continue
+
+            # Other list content — stringify it
+            text = _json.dumps(content)
+            items.append({"role": role, "content": [{"type": "input_text", "text": text}]})
+            continue
+
+        # --- Plain text message ---
+        text = content if isinstance(content, str) else _json.dumps(content)
+        items.append({"role": role, "content": [{"type": "input_text", "text": text}]})
+
+    return items
+
+
+def _to_responses_tools(tools: list[dict]) -> list[dict]:
+    return [
+        {
+            "type": "function",
+            "name": t["name"],
+            "description": t.get("description", ""),
+            "parameters": t.get("input_schema", {"type": "object", "properties": {}}),
+        }
+        for t in tools
+    ]
+
+
+def _assemble_turn(events: list[dict]) -> LLMTurn:
+    """Assemble a Responses SSE event list into an LLMTurn.
+
+    Text is collected from output_text deltas; tool calls from completed function_call items.
+
+    Tracking note: ``output_item.added/done`` carries an item with both an ``id`` (the
+    item's stable id used in subsequent delta events as ``item_id``) and a ``call_id``
+    (the function-call id used in the Responses API round-trip).  Delta events reference
+    the item by ``item_id`` == ``id``, so we track args by ``id`` and look up ``call_id``
+    from the stored item when building the final ToolCall.
+    """
     text_parts: list[str] = []
-    for block in response.content:
-        if block.type == "tool_use":
-            tool_calls.append(ToolCall(id=block.id, name=block.name, input=dict(block.input)))
-        elif block.type == "text":
-            text_parts.append(block.text)
+    tool_calls: list[ToolCall] = []
+    # keyed by item id (== item["id"])
+    fn_args: dict[str, str] = {}
+    fn_meta: dict[str, dict] = {}
+    for ev in events:
+        etype = ev.get("type", "")
+        if etype.endswith("output_text.delta"):
+            text_parts.append(ev.get("delta", ""))
+        elif etype.endswith("output_item.added") or etype.endswith("output_item.done"):
+            item = ev.get("item", {})
+            if item.get("type") == "function_call":
+                # Index by the item's own id (used in delta events as item_id)
+                item_id = item.get("id", "")
+                fn_meta[item_id] = item
+                if item.get("arguments"):
+                    fn_args[item_id] = item["arguments"]
+        elif etype.endswith("function_call_arguments.delta"):
+            item_id = ev.get("item_id", "")
+            fn_args[item_id] = fn_args.get(item_id, "") + ev.get("delta", "")
+        elif etype.endswith("function_call_arguments.done"):
+            item_id = ev.get("item_id", "")
+            if "arguments" in ev:
+                fn_args[item_id] = ev["arguments"]
+    for item_id, item in fn_meta.items():
+        try:
+            args = _json.loads(fn_args.get(item_id, "") or "{}")
+        except _json.JSONDecodeError:
+            args = {}
+        # Use call_id for the ToolCall id (what the Responses API returns as the call
+        # identifier), falling back to the item id if call_id is absent.
+        call_id = item.get("call_id") or item_id
+        tool_calls.append(ToolCall(id=call_id, name=item.get("name", ""), input=args))
+    text = "".join(text_parts).strip()
+    return LLMTurn(text=text or None, tool_calls=tool_calls)
 
-    text = " ".join(text_parts).strip() or None
-    return LLMTurn(text=text, tool_calls=tool_calls)
+
+async def _openai_oauth_complete(
+    db: AsyncSession, messages: list[dict], tools: list[dict], system: str
+) -> LLMTurn:
+    http = _http()
+    access_token, account_id = await openai_auth.ensure_fresh(db, http)
+    body = {
+        "model": settings.llm_model,
+        "instructions": system,
+        "input": _to_responses_input(messages),
+        "tools": _to_responses_tools(tools),
+        "stream": True,
+        # The Codex/ChatGPT-subscription Responses endpoint rejects any request
+        # that doesn't explicitly opt out of server-side response storage
+        # (400 "Store must be set to false").
+        "store": False,
+    }
+    try:
+        events = [
+            ev async for ev in openai_auth.responses_events(http, access_token, account_id, body)
+        ]
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 401:  # refresh once + retry
+            access_token, account_id = await openai_auth.ensure_fresh(
+                db, http, margin=_FORCE_REFRESH_MARGIN
+            )
+            events = [
+                ev
+                async for ev in openai_auth.responses_events(http, access_token, account_id, body)
+            ]
+        else:
+            raise
+    return _assemble_turn(events)
 
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
-async def complete(messages: list[dict], tools: list[dict], system: str = "") -> LLMTurn:
+async def complete(
+    messages: list[dict], tools: list[dict], system: str = "", db: AsyncSession | None = None
+) -> LLMTurn:
     """Dispatch to the configured LLM provider."""
-    from app.config import settings
-
-    if settings.llm_provider == "anthropic":
-        return await _anthropic_complete(messages, tools, system)
+    if settings.llm_provider == "openai_oauth":
+        if db is None:
+            raise RuntimeError("openai_oauth provider requires a db session")
+        return await _openai_oauth_complete(db, messages, tools, system)
     # Default: mock (also covers provider="mock" explicitly)
     return _mock_complete(messages, tools, system)

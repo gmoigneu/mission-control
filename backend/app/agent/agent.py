@@ -60,7 +60,7 @@ async def run_agent(
 
     try:
         for _ in range(max_steps):
-            turn = await complete(messages, tool_specs_for_llm(), system)
+            turn = await complete(messages, tool_specs_for_llm(), system, db=db)
 
             if turn.tool_calls:
                 # Record the assistant message with tool calls

@@ -21,8 +21,20 @@ class Settings(BaseSettings):
     neo4j_user: str = "neo4j"
     neo4j_password: str = "mc-neo4j-pw"
     llm_provider: str = "mock"
-    anthropic_api_key: str | None = None
-    llm_model: str = "claude-sonnet-4-6"
+    # Confirmed live against the ChatGPT-subscription Responses endpoint: the
+    # "prolite"/Go plan exposes base models (gpt-5.5, gpt-5.2) but rejects every
+    # Codex-specific variant (gpt-5*-codex) with a 400.
+    llm_model: str = "gpt-5.5"
+    openai_oauth_client_id: str = "app_EMoamEEZ73f0CkXaXp7hrann"
+    openai_auth_base_url: str = "https://auth.openai.com"
+    openai_token_url: str = "https://auth.openai.com/oauth/token"
+    openai_device_usercode_url: str = "https://auth.openai.com/api/accounts/deviceauth/usercode"
+    openai_device_token_url: str = "https://auth.openai.com/api/accounts/deviceauth/token"
+    openai_device_verification_uri: str = "https://auth.openai.com/codex/device"
+    openai_device_redirect_uri: str = "https://auth.openai.com/deviceauth/callback"
+    openai_responses_url: str = "https://chatgpt.com/backend-api/codex/responses"
+    openai_originator: str = "codex_cli_rs"  # confirm in the live smoke
+    openai_user_agent: str = "mission-control-agent/0.1"  # confirm in the live smoke
 
     @model_validator(mode="after")
     def _require_secure_secret_in_prod(self) -> "Settings":
