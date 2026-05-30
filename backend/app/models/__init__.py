@@ -5,6 +5,8 @@ from app.models.company import Company  # noqa: F401
 from app.models.context import Context  # noqa: F401
 from app.models.entity_link import EntityLink  # noqa: F401
 from app.models.entity_tag import EntityTag  # noqa: F401
+from app.models.journal_entry import JournalEntry  # noqa: F401
+from app.models.journal_log import JournalLog  # noqa: F401
 from app.models.oauth_credential import OAuthCredential  # noqa: F401
 from app.models.observation import Observation  # noqa: F401
 from app.models.outbox import OutboxEvent  # noqa: F401

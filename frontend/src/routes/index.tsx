@@ -3,7 +3,6 @@ import { ArrowRight, Check, Flame } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "../components/AppShell";
 import {
-  AISpark,
   ContextChip,
   PriorityDot,
   SectionLabel,
@@ -14,6 +13,7 @@ import {
 import { RequireAuth } from "../components/RequireAuth";
 import { useAudit, useRevert } from "../features/audit/api";
 import { useContexts } from "../features/contexts/api";
+import { useJournalEntries, useJournalLogs } from "../features/journal/api";
 import { useTasks, useUpdateTask } from "../features/tasks/api";
 import { useMe } from "../lib/auth";
 import { rootRoute } from "./root";
@@ -451,74 +451,93 @@ function Dashboard() {
                 </div>
               </section>
 
-              {/* Today's journal — placeholder */}
+              {/* Today's journal */}
               <section className="card" style={{ padding: 20 }}>
                 <SectionLabel
                   right={
-                    <span className="row gap-1 meta" style={{ color: "var(--fg-faint)" }}>
-                      <AISpark size={12} title="Coming soon" />
-                      Summarize my day
-                    </span>
+                    <button
+                      className="btn ghost sm"
+                      onClick={() => navigate({ to: "/journal" })}
+                    >
+                      Journal
+                      <ArrowRight size={13} />
+                    </button>
                   }
                 >
                   Today&apos;s journal
                 </SectionLabel>
 
-                <div className="col gap-2" style={{ marginBottom: 14 }}>
-                  {SAMPLE_JOURNAL.map((l, i) => (
-                    <div
-                      key={i}
-                      className="row gap-3"
-                      style={{ alignItems: "flex-start" }}
-                    >
-                      <span
-                        className="meta tnum"
-                        style={{
-                          width: 42,
-                          flexShrink: 0,
-                          color: "var(--signal)",
-                          opacity: 0.5,
-                        }}
+                {!todayJournal ? (
+                  <div
+                    className="meta"
+                    style={{
+                      padding: "20px 4px",
+                      color: "var(--fg-faint)",
+                      textAlign: "center",
+                    }}
+                  >
+                    No journal entry for today yet.
+                    <div style={{ marginTop: 10 }}>
+                      <button
+                        className="btn sm"
+                        onClick={() => navigate({ to: "/journal" })}
                       >
-                        {l.time}
-                      </span>
-                      <span
+                        Start today&apos;s entry
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {todayJournal.summary && (
+                      <p
                         style={{
-                          flex: 1,
                           fontSize: 13,
                           color: "var(--fg-dim)",
                           lineHeight: 1.5,
-                          opacity: 0.7,
+                          marginBottom: 14,
                         }}
                       >
-                        {l.text}
-                      </span>
+                        {todayJournal.summary}
+                      </p>
+                    )}
+                    <div className="col gap-2">
+                      {todayJournalLogs.length === 0 && (
+                        <span className="meta" style={{ color: "var(--fg-faint)" }}>
+                          No log lines yet.
+                        </span>
+                      )}
+                      {todayJournalLogs.map((l) => (
+                        <div
+                          key={l.id}
+                          className="row gap-3"
+                          style={{ alignItems: "flex-start" }}
+                        >
+                          <span
+                            className="meta tnum"
+                            style={{
+                              width: 42,
+                              flexShrink: 0,
+                              color: "var(--signal)",
+                              opacity: 0.5,
+                            }}
+                          >
+                            {l.at.slice(11, 16)}
+                          </span>
+                          <span
+                            style={{
+                              flex: 1,
+                              fontSize: 13,
+                              color: "var(--fg-dim)",
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            {l.text}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-
-                <div
-                  className="row gap-2 well"
-                  style={{ padding: "8px 8px 8px 14px", opacity: 0.6 }}
-                >
-                  <span
-                    className="meta tnum"
-                    style={{ color: "var(--signal)" }}
-                  >
-                    now
-                  </span>
-                  <input
-                    className="input"
-                    style={{
-                      background: "transparent",
-                      border: 0,
-                      padding: "4px 6px",
-                    }}
-                    placeholder="Journal arrives in a later phase…"
-                    disabled
-                    readOnly
-                  />
-                </div>
+                  </>
+                )}
               </section>
 
               {/* Top of mind — context cards */}
