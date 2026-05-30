@@ -6,6 +6,8 @@ from app.audit.service import record_create, record_delete
 from app.models.entity_link import EntityLink
 from app.models.entity_tag import EntityTag
 from app.models.tag import Tag
+from app.models.task import Task
+from app.models.task_link import TaskLink
 
 
 async def test_revert_create_deletes_entity_tag(db):
@@ -43,3 +45,22 @@ async def test_revert_delete_reinserts_entity_link(db):
     assert restored is not None
     assert restored.from_type == "context"
     assert restored.kind == "related"
+
+
+async def test_revert_create_deletes_task_link(db):
+    task_a = Task(title="Revert Task A")
+    task_b = Task(title="Revert Task B")
+    db.add(task_a)
+    db.add(task_b)
+    await db.flush()
+
+    tl = TaskLink(from_task_id=task_a.id, to_task_id=task_b.id, kind="blocks")
+    db.add(tl)
+    await db.flush()
+    audit = await record_create(db, "task_link", tl, surface="ui")
+    await db.flush()
+
+    await revert_audit(db, audit, surface="ui")
+
+    assert await db.get(TaskLink, tl.id) is None
+    assert audit.reverted is True

@@ -8,6 +8,7 @@ from app.models.project import Project
 from app.models.relationship import Relationship
 from app.models.tag import Tag
 from app.models.task import Task
+from app.models.task_link import TaskLink
 
 # Maps audit_log.entity_type -> the SQLAlchemy model, for generic revert.
 # Extend this as new entities are added.
@@ -22,4 +23,5 @@ ENTITY_MODELS: dict[str, type] = {
     "tag": Tag,
     "entity_tag": EntityTag,
     "entity_link": EntityLink,
+    "task_link": TaskLink,
 }
