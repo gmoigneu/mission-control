@@ -1,0 +1,7 @@
+# Append-only registries / route trees: union-merge so parallel entries from
+# multiple feature branches both survive instead of conflicting line-for-line.
+backend/app/models/__init__.py   merge=union
+backend/app/main.py              merge=union
+backend/app/audit/registry.py    merge=union
+frontend/src/router.tsx          merge=union
+frontend/src/lib/types.ts        merge=union
