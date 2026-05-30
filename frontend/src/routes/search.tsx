@@ -43,8 +43,15 @@ export function SearchPage() {
   return (
     <RequireAuth>
       <AppShell>
-        <div className="p-6 space-y-6">
-          <h1 className="text-xl font-semibold">Search</h1>
+        <div
+          style={{
+            padding: "24px 32px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 24,
+          }}
+        >
+          <h1 className="title">Search</h1>
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
