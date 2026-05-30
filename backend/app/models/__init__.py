@@ -11,6 +11,7 @@ from app.models.outbox import OutboxEvent  # noqa: F401
 from app.models.person import Person  # noqa: F401
 from app.models.project import Project  # noqa: F401
 from app.models.relationship import Relationship  # noqa: F401
+from app.models.review import Review  # noqa: F401
 from app.models.tag import Tag  # noqa: F401
 from app.models.task import Task  # noqa: F401
 from app.models.task_link import TaskLink  # noqa: F401
