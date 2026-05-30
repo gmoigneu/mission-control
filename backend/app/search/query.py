@@ -17,7 +17,9 @@ async def semantic_search(
     )
     if types:
         stmt = stmt.where(Chunk.subject_type.in_(types))
-    stmt = stmt.order_by("distance").limit(limit)
+    # Over-fetch candidate chunks so per-subject dedup below still yields up to
+    # `limit` distinct subjects even when one subject has several chunks.
+    stmt = stmt.order_by("distance").limit(max(limit * 10, limit))
     rows = (await db.execute(stmt)).all()
     # Best (lowest distance) per subject.
     best: dict[tuple[str, str], dict] = {}
@@ -31,4 +33,5 @@ async def semantic_search(
                 "score": score,
                 "snippet": r.content[:200],
             }
-    return sorted(best.values(), key=lambda x: x["score"], reverse=True)
+    ranked = sorted(best.values(), key=lambda x: x["score"], reverse=True)
+    return ranked[:limit]
