@@ -4,10 +4,11 @@ import { indexRoute } from "./routes/index";
 import { loginRoute } from "./routes/login";
 import { contextsRoute } from "./routes/contexts";
 import { projectsRoute } from "./routes/projects";
+import { peopleRoute } from "./routes/people";
 import { activityRoute } from "./routes/activity";
 import { placeholderRoute } from "./routes/placeholder";
 
-const routeTree = rootRoute.addChildren([indexRoute, loginRoute, contextsRoute, projectsRoute, activityRoute, placeholderRoute]);
+const routeTree = rootRoute.addChildren([indexRoute, loginRoute, contextsRoute, projectsRoute, peopleRoute, activityRoute, placeholderRoute]);
 
 export const router = createRouter({ routeTree });
 
