@@ -7,6 +7,7 @@ from app.models.observation import Observation
 from app.models.person import Person
 from app.models.project import Project
 from app.models.relationship import Relationship
+from app.models.review import Review
 from app.models.tag import Tag
 from app.models.task import Task
 from app.models.task_link import TaskLink
@@ -21,6 +22,7 @@ ENTITY_MODELS: dict[str, type] = {
     "task": Task,
     "relationship": Relationship,
     "observation": Observation,
+    "review": Review,
     "tag": Tag,
     "entity_tag": EntityTag,
     "entity_link": EntityLink,

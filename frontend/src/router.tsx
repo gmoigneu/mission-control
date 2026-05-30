@@ -11,6 +11,7 @@ import { tagsRoute } from "./routes/tags";
 import { relationshipsRoute } from "./routes/relationships";
 import { observationsRoute } from "./routes/observations";
 import { journalRoute } from "./routes/journal";
+import { reviewsRoute } from "./routes/reviews";
 import { entityTagsRoute } from "./routes/entity-tags";
 import { entityLinksRoute } from "./routes/entity-links";
 import { activityRoute } from "./routes/activity";
@@ -18,6 +19,7 @@ import { searchRoute } from "./routes/search";
 import { placeholderRoute } from "./routes/placeholder";
 
 const routeTree = rootRoute.addChildren([indexRoute, loginRoute, contextsRoute, projectsRoute, peopleRoute, tasksRoute, companiesRoute, tagsRoute, relationshipsRoute, observationsRoute, journalRoute, entityTagsRoute, entityLinksRoute, activityRoute, searchRoute, placeholderRoute]);
+const routeTree = rootRoute.addChildren([indexRoute, loginRoute, contextsRoute, projectsRoute, peopleRoute, tasksRoute, companiesRoute, tagsRoute, relationshipsRoute, observationsRoute, reviewsRoute, entityTagsRoute, entityLinksRoute, activityRoute, searchRoute, placeholderRoute]);
 
 export const router = createRouter({ routeTree });
 

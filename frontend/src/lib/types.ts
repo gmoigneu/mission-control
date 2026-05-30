@@ -194,6 +194,24 @@ export interface JournalEntryCreate {
   source?: string | null;
 }
 export type JournalEntryUpdate = Partial<JournalEntryCreate>;
+export interface Review {
+  id: string;
+  period: string;
+  date: string;
+  title: string;
+  body: string | null;
+  highlights: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface ReviewCreate {
+  period?: string;
+  date: string;
+  title: string;
+  body?: string | null;
+  highlights?: string | null;
+}
+export type ReviewUpdate = Partial<ReviewCreate>;
 
 export interface EntityTag {
   id: string;
