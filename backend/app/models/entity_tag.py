@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, Index, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -12,6 +12,7 @@ class EntityTag(Base):
     __tablename__ = "entity_tag"
     __table_args__ = (
         UniqueConstraint("tag_id", "subject_type", "subject_id", name="uq_entity_tag"),
+        Index("ix_entity_tag_subject", "subject_type", "subject_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
