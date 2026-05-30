@@ -303,6 +303,10 @@ async def _openai_oauth_complete(
         "input": _to_responses_input(messages),
         "tools": _to_responses_tools(tools),
         "stream": True,
+        # The Codex/ChatGPT-subscription Responses endpoint rejects any request
+        # that doesn't explicitly opt out of server-side response storage
+        # (400 "Store must be set to false").
+        "store": False,
     }
     try:
         events = [

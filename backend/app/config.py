@@ -21,7 +21,10 @@ class Settings(BaseSettings):
     neo4j_user: str = "neo4j"
     neo4j_password: str = "mc-neo4j-pw"
     llm_provider: str = "mock"
-    llm_model: str = "gpt-5"  # a ChatGPT/Codex model id; confirm in the live smoke
+    # Confirmed live against the ChatGPT-subscription Responses endpoint: the
+    # "prolite"/Go plan exposes base models (gpt-5.5, gpt-5.2) but rejects every
+    # Codex-specific variant (gpt-5*-codex) with a 400.
+    llm_model: str = "gpt-5.5"
     openai_oauth_client_id: str = "app_EMoamEEZ73f0CkXaXp7hrann"
     openai_auth_base_url: str = "https://auth.openai.com"
     openai_token_url: str = "https://auth.openai.com/oauth/token"

@@ -1,6 +1,8 @@
 # OpenAI-only agent via ChatGPT-subscription OAuth (device code) — Design
 
 > Status: approved (2026-05-30). Replaces the Anthropic agent provider with an OpenAI provider that bills model calls to G's ChatGPT subscription via the Codex "Sign in with ChatGPT" OAuth flow.
+>
+> **Live-confirmed (2026-05-30):** device-code auth, token refresh, model inference, and multi-turn tool-calling all verified end-to-end against the real subscription endpoint. Two facts that had to be tuned live: **(1)** the request body must include `"store": false` — the endpoint returns `400 "Store must be set to false"` otherwise; **(2)** G's account reports `chatgpt_plan_type: "prolite"` (ChatGPT Go tier), which exposes base models (`gpt-5.5`, `gpt-5.2`) but **rejects every Codex-specific variant** (`gpt-5*-codex`, `codex-mini-*`) with a 400 `"model is not supported when using Codex with a ChatGPT account"`. `llm_model` is therefore set to `gpt-5.5`.
 
 ## 1. Goal
 
