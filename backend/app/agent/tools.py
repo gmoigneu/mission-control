@@ -18,12 +18,14 @@ from app.graph.client import neo4j_runner
 from app.graph.query import who_at_company
 from app.schemas.company import CompanyCreate
 from app.schemas.context import ContextCreate
+from app.schemas.inbox_item import InboxItemCreate
 from app.schemas.observation import ObservationCreate
 from app.schemas.person import PersonCreate
 from app.schemas.task import TaskCreate
 from app.search.query import semantic_search
 from app.services import company as company_svc
 from app.services import context as context_svc
+from app.services import inbox_item as inbox_item_svc
 from app.services import observation as observation_svc
 from app.services import person as person_svc
 from app.services import task as task_svc
@@ -62,6 +64,14 @@ async def _create_task(db: AsyncSession, args: dict) -> dict:
 async def _add_observation(db: AsyncSession, args: dict) -> dict:
     obj = await observation_svc.create_observation(
         db, ObservationCreate(**args), surface=surface_var.get()
+    )
+    await db.flush()
+    return {"id": str(obj.id)}
+
+
+async def _capture_to_inbox(db: AsyncSession, args: dict) -> dict:
+    obj = await inbox_item_svc.create_inbox_item(
+        db, InboxItemCreate(**args), surface=surface_var.get()
     )
     await db.flush()
     return {"id": str(obj.id)}
@@ -166,6 +176,22 @@ TOOLS: list[dict] = [
             "required": ["subject_type", "subject_id", "body"],
         },
         "handler": _add_observation,
+    },
+    {
+        "name": "capture_to_inbox",
+        "description": (
+            "Drop a raw note into the inbox for later triage. Use this as a fallback when"
+            " the note can't be confidently routed to a specific entity."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "body": {"type": "string", "description": "The raw captured note"},
+                "source": {"type": "string", "description": "Where the note came from"},
+            },
+            "required": ["body"],
+        },
+        "handler": _capture_to_inbox,
     },
     {
         "name": "find_entities",

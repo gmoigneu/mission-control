@@ -14,6 +14,7 @@ from app.api import (
     entity_tags,
     graph,
     health,
+    inbox,
     observations,
     people,
     projects,
@@ -67,6 +68,7 @@ def create_app() -> FastAPI:
     app.include_router(tasks.router)
     app.include_router(relationships.router)
     app.include_router(observations.router)
+    app.include_router(inbox.router)
     app.include_router(tags.router)
     app.include_router(entity_tags.router)
     app.include_router(entity_links.router)

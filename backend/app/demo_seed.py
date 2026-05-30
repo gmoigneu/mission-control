@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.audit import AuditLog
 from app.models.company import Company
 from app.models.context import Context
+from app.models.inbox_item import InboxItem
 from app.models.observation import Observation
 from app.models.person import Person
 from app.models.project import Project
@@ -40,6 +41,7 @@ _WIPE_TABLES = [
     "task_link",
     "relationship",
     "observation",
+    "inbox_item",
     "task",
     "project",
     "person",
@@ -206,6 +208,14 @@ _OBSERVATIONS = [
      "Component API frozen for 1.0. Only docs + a11y left."),
 ]
 
+# (body, status, source) — raw captures awaiting triage
+_INBOX_ITEMS = [
+    ("Look into the new Postgres 17 logical replication features for the data room.",
+     "open", "capture"),
+    ("Maya mentioned a podcast on pricing — find and listen.", "open", "capture"),
+    ("Renew the domain before it lapses next month.", "processed", "capture"),
+]
+
 # (from_slug, to_slug, type, context_slug|None)
 _RELATIONSHIPS = [
     ("maya-chen", "priya-nair", "colleague", "work"),
@@ -298,6 +308,9 @@ async def seed_demo(
         observations.append(obs)
         db.add(obs)
 
+    for body, status, source in _INBOX_ITEMS:
+        db.add(InboxItem(body=body, status=status, source=source))
+
     for from_slug, to_slug, rel_type, ctx in _RELATIONSHIPS:
         db.add(
             Relationship(
@@ -342,6 +355,7 @@ async def seed_demo(
         "projects": len(_PROJECTS),
         "tasks": len(_TASKS),
         "observations": len(_OBSERVATIONS),
+        "inbox_items": len(_INBOX_ITEMS),
         "relationships": len(_RELATIONSHIPS),
         "activity": len(feed),
     }

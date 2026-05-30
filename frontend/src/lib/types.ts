@@ -174,6 +174,21 @@ export interface ObservationCreate {
 }
 export type ObservationUpdate = Partial<ObservationCreate>;
 
+export interface InboxItem {
+  id: string;
+  body: string;
+  status: string;
+  source: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface InboxItemCreate {
+  body: string;
+  status?: string;
+  source?: string | null;
+}
+export type InboxItemUpdate = Partial<InboxItemCreate>;
+
 export interface EntityTag {
   id: string;
   tag_id: string;
