@@ -1,3 +1,4 @@
+from app.models.company import Company
 from app.models.context import Context
 from app.models.project import Project
 
@@ -6,4 +7,5 @@ from app.models.project import Project
 ENTITY_MODELS: dict[str, type] = {
     "context": Context,
     "project": Project,
+    "company": Company,
 }
