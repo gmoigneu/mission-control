@@ -11,6 +11,7 @@ from app.api import (
     contexts,
     entity_links,
     entity_tags,
+    graph,
     health,
     observations,
     people,
@@ -71,6 +72,7 @@ def create_app() -> FastAPI:
     app.include_router(audit.router)
     app.include_router(admin.router)
     app.include_router(search.router)
+    app.include_router(graph.router)
     return app
 
 
