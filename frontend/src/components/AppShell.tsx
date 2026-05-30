@@ -957,6 +957,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       <nav
         className={"leftnav " + (mobileNav ? "mobile-open" : "")}
         style={{
+          gridColumn: 1,
+          gridRow: 2,
           borderRight: "1px solid var(--line-soft)",
           background: "var(--surface-1)",
           overflowY: "auto",
@@ -1022,7 +1024,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* ===== Docked Aya ===== */}
       {showDock && (
-        <aside className="aya-dock desktop-only" style={{ overflow: "hidden" }}>
+        <aside
+          className="aya-dock desktop-only"
+          style={{ overflow: "hidden", gridColumn: 3, gridRow: 2 }}
+        >
           <AyaPanel onClose={() => setAyaOpen(false)} />
         </aside>
       )}
