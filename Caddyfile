@@ -1,0 +1,23 @@
+# Development / local: plain HTTP on port 80.
+# For production with automatic TLS, replace `:80` with your domain:
+#   your.domain {
+#       ...
+#   }
+
+:80 {
+    # Strip /api prefix and proxy to the backend.
+    # handle_path consumes the matched prefix before forwarding, so the
+    # backend receives /contexts, /sessions, etc. (not /api/contexts).
+    handle_path /api/* {
+        reverse_proxy api:8000
+    }
+
+    # Serve the built SPA for everything else.
+    # try_files provides the HTML5 history-mode fallback needed for
+    # client-side routing.
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
+}
