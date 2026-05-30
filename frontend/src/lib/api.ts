@@ -7,8 +7,13 @@ export class ApiError extends Error {
   }
 }
 
+// All backend calls go through the `/api` prefix, which the dev server (and the
+// production reverse proxy) forwards to the FastAPI backend. This keeps the SPA's
+// client routes (e.g. `/contexts`) from colliding with API paths of the same name.
+const API_BASE = "/api";
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
     credentials: "same-origin",
