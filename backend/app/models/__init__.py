@@ -7,6 +7,7 @@ from app.models.entity_link import EntityLink  # noqa: F401
 from app.models.entity_tag import EntityTag  # noqa: F401
 from app.models.journal_entry import JournalEntry  # noqa: F401
 from app.models.habit import Habit, HabitLog  # noqa: F401
+from app.models.meeting import Meeting  # noqa: F401
 from app.models.oauth_credential import OAuthCredential  # noqa: F401
 from app.models.observation import Observation  # noqa: F401
 from app.models.outbox import OutboxEvent  # noqa: F401

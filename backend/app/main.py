@@ -16,6 +16,7 @@ from app.api import (
     habits,
     health,
     journal_entries,
+    meetings,
     observations,
     people,
     projects,
@@ -67,6 +68,7 @@ def create_app() -> FastAPI:
     app.include_router(projects.router)
     app.include_router(companies.router)
     app.include_router(people.router)
+    app.include_router(meetings.router)
     app.include_router(tasks.router)
     app.include_router(relationships.router)
     app.include_router(observations.router)

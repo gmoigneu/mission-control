@@ -8,6 +8,7 @@ import { peopleRoute } from "./routes/people";
 import { tasksRoute } from "./routes/tasks";
 import { companiesRoute } from "./routes/companies";
 import { habitsRoute } from "./routes/habits";
+import { meetingsRoute } from "./routes/meetings";
 import { tagsRoute } from "./routes/tags";
 import { relationshipsRoute } from "./routes/relationships";
 import { observationsRoute } from "./routes/observations";
@@ -22,6 +23,7 @@ import { placeholderRoute } from "./routes/placeholder";
 const routeTree = rootRoute.addChildren([indexRoute, loginRoute, contextsRoute, projectsRoute, peopleRoute, tasksRoute, companiesRoute, tagsRoute, relationshipsRoute, observationsRoute, journalRoute, entityTagsRoute, entityLinksRoute, activityRoute, searchRoute, placeholderRoute]);
 const routeTree = rootRoute.addChildren([indexRoute, loginRoute, contextsRoute, projectsRoute, peopleRoute, tasksRoute, companiesRoute, tagsRoute, relationshipsRoute, observationsRoute, reviewsRoute, entityTagsRoute, entityLinksRoute, activityRoute, searchRoute, placeholderRoute]);
 const routeTree = rootRoute.addChildren([indexRoute, loginRoute, contextsRoute, projectsRoute, peopleRoute, tasksRoute, companiesRoute, habitsRoute, tagsRoute, relationshipsRoute, observationsRoute, entityTagsRoute, entityLinksRoute, activityRoute, searchRoute, placeholderRoute]);
+const routeTree = rootRoute.addChildren([indexRoute, loginRoute, contextsRoute, projectsRoute, peopleRoute, tasksRoute, companiesRoute, meetingsRoute, tagsRoute, relationshipsRoute, observationsRoute, entityTagsRoute, entityLinksRoute, activityRoute, searchRoute, placeholderRoute]);
 
 export const router = createRouter({ routeTree });
 

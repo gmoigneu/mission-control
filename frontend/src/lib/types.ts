@@ -92,6 +92,28 @@ export interface HabitLogCreate {
   date: string;
   done?: boolean;
 }
+export interface Meeting {
+  id: string;
+  slug: string;
+  title: string;
+  at: string;
+  context_id: string | null;
+  project_id: string | null;
+  location: string | null;
+  body: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface MeetingCreate {
+  slug: string;
+  title: string;
+  at: string;
+  context_id?: string | null;
+  project_id?: string | null;
+  location?: string | null;
+  body?: string | null;
+}
+export type MeetingUpdate = Partial<MeetingCreate>;
 
 export interface Person {
   id: string;
