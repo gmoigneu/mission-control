@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.api import auth, contexts, health
+from app.api import audit, auth, contexts, health
 from app.config import settings
 
 
@@ -16,6 +16,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(auth.router)
     app.include_router(contexts.router)
+    app.include_router(audit.router)
     return app
 
 

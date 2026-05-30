@@ -1,10 +1,9 @@
-import uuid
 
 from sqlalchemy import func, select
 
 from app.audit.revert import revert_audit
-from app.audit.service import record_create, record_delete, record_update
 from app.audit.serialize import model_to_dict
+from app.audit.service import record_create, record_delete, record_update
 from app.models.audit import AuditLog
 from app.models.context import Context
 

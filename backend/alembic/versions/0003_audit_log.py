@@ -4,8 +4,9 @@ Revision ID: 0003
 Revises: 0002
 """
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "0003"
 down_revision = "0002"
@@ -26,7 +27,9 @@ def upgrade() -> None:
         sa.Column("surface", sa.String(), nullable=False),
         sa.Column("agent_run_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("reverted", sa.Boolean(), nullable=False, server_default=sa.text("false")),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
     )
     op.create_index("ix_audit_log_entity_type", "audit_log", ["entity_type"])
     op.create_index("ix_audit_log_entity_id", "audit_log", ["entity_id"])

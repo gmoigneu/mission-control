@@ -19,7 +19,8 @@ async def record_create(
 
 
 async def record_update(
-    db: AsyncSession, entity_type: str, obj: Any, before: dict, *, actor: str = "user", surface: str = "api"
+    db: AsyncSession, entity_type: str, obj: Any, before: dict, *,
+    actor: str = "user", surface: str = "api"
 ) -> AuditLog:
     await db.refresh(obj)
     entry = AuditLog(

@@ -4,8 +4,9 @@ Revision ID: 0004
 Revises: 0003
 """
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "0004"
 down_revision = "0003"
@@ -22,8 +23,12 @@ def upgrade() -> None:
         sa.Column("category", sa.String(), nullable=False, server_default="other"),
         sa.Column("description", sa.String(), nullable=True),
         sa.Column("status", sa.String(), nullable=False, server_default="active"),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
     )
     op.create_index("ix_context_slug", "context", ["slug"], unique=True)
 

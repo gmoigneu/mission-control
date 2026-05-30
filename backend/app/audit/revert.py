@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,16 +22,20 @@ async def revert_audit(
         )
 
     if audit.action == "create":
-        obj = await db.get(model, audit.entity_id)
+        obj: Any = await db.get(model, audit.entity_id)
         if obj is not None:
             before = model_to_dict(obj)
             await db.delete(obj)
             await db.flush()
-            await record_delete(db, audit.entity_type, before, audit.entity_id, actor=actor, surface=surface)
+            await record_delete(
+                db, audit.entity_type, before, audit.entity_id, actor=actor, surface=surface
+            )
     elif audit.action == "update":
         obj = await db.get(model, audit.entity_id)
         if obj is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entity no longer exists")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Entity no longer exists"
+            )
         before = model_to_dict(obj)
         for key, value in (audit.before or {}).items():
             setattr(obj, key, coerce_value(model, key, value))

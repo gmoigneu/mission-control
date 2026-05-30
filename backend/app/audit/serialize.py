@@ -3,12 +3,14 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import inspect
+from sqlalchemy import Column, inspect
 
 
 def model_to_dict(obj: Any) -> dict[str, Any]:
     """JSON-serializable snapshot of a mapped object's columns."""
-    return {attr.key: _jsonable(getattr(obj, attr.key)) for attr in inspect(obj).mapper.column_attrs}
+    return {
+        attr.key: _jsonable(getattr(obj, attr.key)) for attr in inspect(obj).mapper.column_attrs
+    }
 
 
 def _jsonable(value: Any) -> Any:
@@ -25,7 +27,7 @@ def coerce_value(model: type, key: str, value: Any) -> Any:
     """Convert a JSON value back to the python type of the model column."""
     if value is None:
         return None
-    column = inspect(model).columns[key]
+    column: Column[Any] = inspect(model).columns[key]
     try:
         pytype = column.type.python_type
     except NotImplementedError:
