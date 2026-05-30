@@ -11,6 +11,7 @@ from app.agent.openai_auth import (
 )
 from app.agent.token_store import get_credential, upsert_credential
 from app.db import SessionLocal
+from app.demo_seed import seed_demo
 from app.models.user import AppUser
 from app.security import hash_password
 from app.services.auth import get_user_by_email
@@ -48,6 +49,28 @@ def seed_user(
     """Create or update the single application user."""
     asyncio.run(_run_seed(email, password, name))
     typer.echo(f"Seeded user {email}")
+
+
+@cli.command("seed-demo")
+def seed_demo_cmd(
+    email: str = typer.Option("demo@missioncontrol.app", help="Demo user email"),
+    password: str = typer.Option("demo12345", help="Demo user password"),
+    name: str = typer.Option("Alex Rivera", help="Demo user display name"),
+    reset: bool = typer.Option(
+        True, "--reset/--no-reset", help="Wipe domain tables first (preserves OpenAI auth)"
+    ),
+) -> None:
+    """Seed a fictional demo dataset (safe to screenshot/share); resets by default."""
+
+    async def _run() -> None:
+        async with SessionLocal() as db:
+            counts = await seed_demo(db, email=email, password=password, name=name, reset=reset)
+            await db.commit()
+        summary = ", ".join(f"{n} {k}" for k, n in counts.items())
+        typer.echo(f"Seeded demo data ({summary}).")
+        typer.echo(f"Login: {email} / {password}")
+
+    asyncio.run(_run())
 
 
 async def _auth_openai(http: httpx.AsyncClient, db: AsyncSession) -> None:

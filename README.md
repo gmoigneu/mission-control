@@ -2,6 +2,10 @@
 
 A single-user, self-hosted web app to track and manage life across all devices — the successor to the `aya` markdown vault. Postgres-canonical data, a Neo4j graph projection, pgvector search, and an AI agent that queries and mutates the same data.
 
+![Mission Control dashboard](docs/screenshots/dashboard.png)
+
+> The screenshot above and the `seed-demo` fixtures use an entirely fictional persona — no real personal data.
+
 - **Full specification:** [`SPEC.md`](SPEC.md)
 - **Architecture review:** [`docs/REVIEW-2026-05-30.md`](docs/REVIEW-2026-05-30.md)
 - **Implementation plans:** [`docs/superpowers/plans/`](docs/superpowers/plans/)
@@ -16,11 +20,11 @@ A single-user, self-hosted web app to track and manage life across all devices �
 | P1 | All 10 domain entities + audit/undo + full CRUD pages + `task_link` | done |
 | P3 | Semantic search — pgvector, synchronous inline indexing, `/search` endpoint + global search UI | done |
 | P4 | Neo4j graph — outbox → projector → Neo4j, `/graph/query`, `/admin/rebuild-graph`, worker | done |
-| P5 | AI agent — `agent_run`, pluggable LLM (`mock` default + `anthropic` provider), `/agent/chat` + `/agent/capture`, whole-run undo, Aya dock + ⌘K wired | done |
+| P5 | AI agent — `agent_run`, pluggable LLM (`mock` default + OpenAI provider billed to a ChatGPT subscription via Codex device-code OAuth), `/agent/chat` + `/agent/capture`, whole-run undo, Aya dock + ⌘K wired | done |
 | P6 | Aya importer — `scripts/import_aya.py`, ran live (~298 people, 343 observations, 27 tasks, 8 companies, 5 contexts, 2 projects) | done |
 | P2+ | Journal/meetings/knowledge/inbox/TELOS/tones/reviews entities, passkeys, list pagination, per-page Console restyle, some a11y items | not yet built |
 
-Backend: ~132 tests. Frontend: ~26 tests. Alembic head: `0017`.
+Backend: 153 tests. Frontend: ~26 tests. Alembic head: `0018`.
 
 ## Stack
 
@@ -29,7 +33,7 @@ Backend: ~132 tests. Frontend: ~26 tests. Alembic head: `0017`.
 | Frontend | React + TypeScript, Vite, TanStack Router/Query, Tailwind v4, Vitest |
 | Backend | Python 3.12, FastAPI, SQLAlchemy 2.0 async, Alembic |
 | Data | PostgreSQL 16 + pgvector, Neo4j 5 |
-| AI | Direct Anthropic tool-use loop (`mock` by default; swap in `anthropic` provider via env) |
+| AI | OpenAI Responses tool-use loop billed to a ChatGPT subscription via Codex device-code OAuth (`mock` by default; `openai_oauth` provider via env) |
 | Tooling | uv, ruff, mypy, pnpm/npm, GitHub Actions |
 
 ## Prerequisites
@@ -50,6 +54,8 @@ cd backend
 uv sync
 uv run alembic upgrade head
 uv run python -m app.cli seed-user --email you@example.com --password changeme --name You
+# …or load a ready-made fictional demo dataset (safe to screenshot/share):
+#   uv run python -m app.cli seed-demo          # login: demo@missioncontrol.app / demo12345
 uv run uvicorn app.main:app --port 8000        # http://localhost:8000  (/health, /auth/*)
 
 # 3. Graph worker (in another terminal — drains outbox events into Neo4j)
@@ -66,21 +72,22 @@ Open http://localhost:5173, sign in with the seeded credentials, and you land on
 
 ## Run the AI agent
 
-The agent uses a deterministic `mock` LLM by default — no API key required, works out of the box.
+The agent uses a deterministic `mock` LLM by default — no auth required, works out of the box.
 
-To enable the real Anthropic Claude agent:
+To bill model calls to your **ChatGPT subscription** (OpenAI "Sign in with ChatGPT" / Codex device-code OAuth — no per-token API key):
 
 ```bash
-# Install the Anthropic SDK (it is an optional dependency)
-cd backend && uv add anthropic
+cd backend
 
-# Set environment variables (add to .env or export in your shell)
-ANTHROPIC_API_KEY=sk-ant-...
-LLM_PROVIDER=anthropic
-LLM_MODEL=claude-3-5-haiku-20241022   # or any claude-* model
+# 1. Authenticate once — prints a URL + code; approve in your browser
+uv run python -m app.cli auth-openai
+uv run python -m app.cli auth-status            # verify the stored credential
 
-uv run uvicorn app.main:app --port 8000
+# 2. Run the API with the OpenAI provider
+LLM_PROVIDER=openai_oauth LLM_MODEL=gpt-5.5 uv run uvicorn app.main:app --port 8000
 ```
+
+The token is stored in Postgres (`oauth_credential`) and refreshed automatically. Which models you can call depends on your ChatGPT plan — base models such as `gpt-5.5` work on paid plans, while Codex-specific models (`gpt-5*-codex`) require Plus/Pro. This reuses Codex's OAuth client and the private `chatgpt.com/backend-api/codex` endpoint; it is **unofficial** and outside OpenAI's supported use — see [`docs/superpowers/specs/2026-05-30-openai-oauth-agent-design.md`](docs/superpowers/specs/2026-05-30-openai-oauth-agent-design.md) for the full design and risks.
 
 The agent is accessible via the Aya dock at the bottom of the UI, the ⌘K quick-capture bar, and directly via `POST /agent/chat` and `POST /agent/capture`.
 
@@ -152,3 +159,7 @@ frontend/   Vite SPA: routes/, components/, lib/ (api client + auth hooks)
 docs/       SPEC + architecture review + implementation plans
 docker-compose.yml   Postgres + pgvector + Neo4j; deploy profile adds api/worker/frontend/caddy
 ```
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE).
