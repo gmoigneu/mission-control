@@ -15,6 +15,8 @@ async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depe
     user = await authenticate_user(db, payload.email, payload.password)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    # Prevent session fixation: drop any pre-auth session contents so a session
+    # id/cookie established before login cannot be replayed with elevated rights.
     request.session.clear()
     request.session["user_id"] = str(user.id)
     return user
@@ -22,6 +24,7 @@ async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depe
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(request: Request) -> None:
+    # Clear the session so the post-logout cookie can no longer authenticate.
     request.session.clear()
 
 
