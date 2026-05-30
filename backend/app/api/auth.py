@@ -1,3 +1,5 @@
+import secrets
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,7 +17,11 @@ async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depe
     user = await authenticate_user(db, payload.email, payload.password)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    # Defend against session fixation: drop any pre-auth session state and mint a
+    # fresh random session identifier so a session id observed before login cannot
+    # be reused once the user is authenticated.
     request.session.clear()
+    request.session["sid"] = secrets.token_urlsafe(32)
     request.session["user_id"] = str(user.id)
     return user
 
