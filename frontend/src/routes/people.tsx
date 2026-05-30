@@ -7,7 +7,13 @@ import { RequireAuth } from "../components/RequireAuth";
 import { Button, Card, Field, Input, Select } from "../components/ui";
 import { useCompanies } from "../features/companies/api";
 import { useContexts } from "../features/contexts/api";
-import { useCreatePerson, useDeletePerson, usePeople, useUpdatePerson } from "../features/people/api";
+import {
+  PEOPLE_PAGE_SIZE,
+  useCreatePerson,
+  useDeletePerson,
+  usePeoplePage,
+  useUpdatePerson,
+} from "../features/people/api";
 import type { Person } from "../lib/types";
 import { rootRoute } from "./root";
 
@@ -60,7 +66,14 @@ function buildPayload(form: FormState, isEdit: boolean) {
 }
 
 export function PeoplePage() {
-  const { data: people = [] } = usePeople();
+  const [offset, setOffset] = useState(0);
+  const { data: peoplePage } = usePeoplePage({ limit: PEOPLE_PAGE_SIZE, offset });
+  const people = peoplePage?.data ?? [];
+  const total = peoplePage?.total ?? 0;
+  const hasPrev = offset > 0;
+  const hasNext = offset + PEOPLE_PAGE_SIZE < total;
+  const rangeEnd = total === 0 ? 0 : Math.min(offset + people.length, total);
+  const rangeStart = total === 0 ? 0 : offset + 1;
   const { data: companies = [] } = useCompanies();
   const { data: contexts = [] } = useContexts();
   const createPerson = useCreatePerson();
@@ -245,6 +258,29 @@ export function PeoplePage() {
           </Card>
 
           <DataTable rows={people} columns={columns} empty="No people yet." />
+          <div className="flex items-center justify-between text-sm text-gray-500">
+            <span>
+              {rangeStart}–{rangeEnd} of {total}
+            </span>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                disabled={!hasPrev}
+                onClick={() => setOffset((o) => Math.max(0, o - PEOPLE_PAGE_SIZE))}
+                className="bg-gray-400 hover:bg-gray-500 disabled:opacity-40"
+              >
+                Previous
+              </Button>
+              <Button
+                type="button"
+                disabled={!hasNext}
+                onClick={() => setOffset((o) => o + PEOPLE_PAGE_SIZE)}
+                className="bg-gray-400 hover:bg-gray-500 disabled:opacity-40"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </div>
       </AppShell>
     </RequireAuth>

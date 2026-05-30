@@ -1,7 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { apiFetch } from "../../lib/api";
+import { apiFetch, apiFetchPage } from "../../lib/api";
+import type { Page } from "../../lib/api";
 import type { AuditEntry } from "../../lib/types";
+
+export const AUDIT_PAGE_SIZE = 50;
 
 /** Maps backend entity_type singular → frontend query key (plural). */
 export const ENTITY_TYPE_TO_KEY: Record<string, string> = {
@@ -17,8 +20,15 @@ export const ENTITY_TYPE_TO_KEY: Record<string, string> = {
   entity_link: "entity-links",
 };
 
-export function useAudit() {
-  return useQuery({ queryKey: ["audit"], queryFn: () => apiFetch<AuditEntry[]>("/audit") });
+export function useAudit(
+  { limit = AUDIT_PAGE_SIZE, offset = 0 }: { limit?: number; offset?: number } = {},
+) {
+  return useQuery({
+    queryKey: ["audit", { limit, offset }],
+    queryFn: () =>
+      apiFetchPage<AuditEntry[]>(`/audit?limit=${limit}&offset=${offset}`),
+    placeholderData: (prev: Page<AuditEntry[]> | undefined) => prev,
+  });
 }
 
 export function useRevert() {

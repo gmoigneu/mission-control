@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
@@ -12,8 +12,14 @@ router = APIRouter(prefix="/people", tags=["people"], dependencies=[Depends(get_
 
 
 @router.get("", response_model=list[PersonOut])
-async def list_people(db: AsyncSession = Depends(get_db)):  # noqa: B008
-    return await svc.list_people(db)
+async def list_people(  # noqa: B008
+    response: Response,
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+):
+    response.headers["X-Total-Count"] = str(await svc.count_people(db))
+    return await svc.list_people(db, limit=limit, offset=offset)
 
 
 @router.post("", response_model=PersonOut, status_code=status.HTTP_201_CREATED)

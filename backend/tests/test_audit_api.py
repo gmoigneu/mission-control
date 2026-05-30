@@ -22,6 +22,41 @@ async def test_audit_limit_bound(client, db):
     assert r.status_code == 422
 
 
+async def test_audit_negative_offset_rejected(client, db):
+    """#15 — offset must be >= 0."""
+    await login(client, db)
+    r = await client.get("/audit?offset=-1")
+    assert r.status_code == 422
+
+
+async def test_audit_limit_offset_pagination(client, db):
+    """#15 — limit/offset paginate and X-Total-Count reports the total."""
+    await login(client, db)
+
+    # Each create writes one audit row; make several.
+    for i in range(5):
+        created = await client.post(
+            "/contexts", json={"slug": f"audit-page-{i}", "name": f"AuditPage{i}"}
+        )
+        assert created.status_code == 201
+
+    full = await client.get("/audit?entity_type=context&limit=1000")
+    assert full.status_code == 200
+    total = int(full.headers["X-Total-Count"])
+    assert total >= 5
+    ids = [row["id"] for row in full.json()]
+
+    page1 = await client.get("/audit?entity_type=context&limit=2&offset=0")
+    assert page1.status_code == 200
+    assert len(page1.json()) == 2
+    assert int(page1.headers["X-Total-Count"]) == total
+    assert [row["id"] for row in page1.json()] == ids[:2]
+
+    page2 = await client.get("/audit?entity_type=context&limit=2&offset=2")
+    assert page2.status_code == 200
+    assert [row["id"] for row in page2.json()] == ids[2:4]
+
+
 async def test_create_then_revert_via_api(client, db):
     await login(client, db)
 

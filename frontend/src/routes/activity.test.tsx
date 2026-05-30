@@ -92,3 +92,41 @@ it("renders audit entries and POSTs to revert when Undo is clicked", async () =>
     expect(revertCall).toBeDefined();
   });
 });
+
+it("requests the next page with an offset when Next is clicked", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    calls.push([String(url), init]);
+    if (String(url).includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
+        status: 200,
+      });
+    }
+    if (String(url).includes("/audit") && (!init?.method || init.method === "GET")) {
+      // Report a total larger than the page so the Next control is enabled.
+      return new Response(JSON.stringify([AUDIT_ENTRY]), {
+        status: 200,
+        headers: { "X-Total-Count": "75" },
+      });
+    }
+    return new Response(JSON.stringify({}), { status: 200 });
+  });
+
+  renderActivity(fetchMock);
+
+  await screen.findByRole("heading", { name: "Activity" });
+  await screen.findByText("create");
+
+  // First page requests offset=0
+  await waitFor(() => {
+    expect(calls.some(([url]) => String(url).includes("offset=0"))).toBe(true);
+  });
+
+  const nextBtn = screen.getByRole("button", { name: /next/i });
+  await userEvent.click(nextBtn);
+
+  // Clicking Next fetches the second page (offset=50, matching the page size).
+  await waitFor(() => {
+    expect(calls.some(([url]) => String(url).includes("offset=50"))).toBe(true);
+  });
+});

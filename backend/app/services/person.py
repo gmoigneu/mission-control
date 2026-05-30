@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit.serialize import model_to_dict
@@ -12,9 +12,16 @@ from app.search.index import deindex_subject, index_subject
 ENTITY = "person"
 
 
-async def list_people(db: AsyncSession) -> list[Person]:
-    result = await db.execute(select(Person).order_by(Person.created_at))
+async def list_people(
+    db: AsyncSession, *, limit: int = 50, offset: int = 0
+) -> list[Person]:
+    stmt = select(Person).order_by(Person.created_at).limit(limit).offset(offset)
+    result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def count_people(db: AsyncSession) -> int:
+    return await db.scalar(select(func.count()).select_from(Person)) or 0
 
 
 async def get_person(db: AsyncSession, person_id: uuid.UUID) -> Person | None:
