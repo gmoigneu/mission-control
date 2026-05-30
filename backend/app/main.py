@@ -22,6 +22,7 @@ from app.api import (
     tags,
     task_links,
     tasks,
+    webauthn,
 )
 from app.config import settings
 
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(auth.router)
+    app.include_router(webauthn.router)
     app.include_router(agent.router)
     app.include_router(contexts.router)
     app.include_router(projects.router)
