@@ -7,13 +7,23 @@ from app.audit.serialize import model_to_dict
 from app.audit.service import record_create, record_delete, record_update
 from app.models.context import Context
 from app.schemas.context import ContextCreate, ContextUpdate
+from app.services.pagination import apply_window, count_rows
 
 ENTITY = "context"
 
 
-async def list_contexts(db: AsyncSession) -> list[Context]:
-    result = await db.execute(select(Context).order_by(Context.created_at))
+async def list_contexts(
+    db: AsyncSession, *, limit: int | None = None, offset: int = 0
+) -> list[Context]:
+    stmt = apply_window(
+        select(Context).order_by(Context.created_at), limit=limit, offset=offset
+    )
+    result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def count_contexts(db: AsyncSession) -> int:
+    return await count_rows(db, select(Context))
 
 
 async def get_context(db: AsyncSession, context_id: uuid.UUID) -> Context | None:

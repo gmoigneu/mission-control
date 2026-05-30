@@ -7,22 +7,43 @@ from app.audit.serialize import model_to_dict
 from app.audit.service import record_create, record_delete, record_update
 from app.models.observation import Observation
 from app.schemas.observation import ObservationCreate, ObservationUpdate
+from app.services.pagination import apply_window, count_rows
 
 ENTITY = "observation"
+
+
+def _observations_query(
+    subject_type: str | None,
+    subject_id: uuid.UUID | None,
+):
+    stmt = select(Observation)
+    if subject_type is not None:
+        stmt = stmt.where(Observation.subject_type == subject_type)
+    if subject_id is not None:
+        stmt = stmt.where(Observation.subject_id == subject_id)
+    return stmt
 
 
 async def list_observations(
     db: AsyncSession,
     subject_type: str | None = None,
     subject_id: uuid.UUID | None = None,
+    *,
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[Observation]:
-    stmt = select(Observation)
-    if subject_type is not None:
-        stmt = stmt.where(Observation.subject_type == subject_type)
-    if subject_id is not None:
-        stmt = stmt.where(Observation.subject_id == subject_id)
-    result = await db.execute(stmt.order_by(Observation.created_at))
+    stmt = _observations_query(subject_type, subject_id).order_by(Observation.created_at)
+    stmt = apply_window(stmt, limit=limit, offset=offset)
+    result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def count_observations(
+    db: AsyncSession,
+    subject_type: str | None = None,
+    subject_id: uuid.UUID | None = None,
+) -> int:
+    return await count_rows(db, _observations_query(subject_type, subject_id))
 
 
 async def get_observation(db: AsyncSession, observation_id: uuid.UUID) -> Observation | None:

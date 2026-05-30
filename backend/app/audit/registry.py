@@ -3,11 +3,11 @@ from app.models.company import Company
 from app.models.context import Context
 from app.models.entity_link import EntityLink
 from app.models.entity_tag import EntityTag
-from app.models.journal_entry import JournalEntry
 from app.models.habit import Habit, HabitLog
-from app.models.meeting import Meeting
-from app.models.knowledge import Knowledge
 from app.models.inbox_item import InboxItem
+from app.models.journal_entry import JournalEntry
+from app.models.knowledge import Knowledge
+from app.models.meeting import Meeting
 from app.models.observation import Observation
 from app.models.person import Person
 from app.models.project import Project

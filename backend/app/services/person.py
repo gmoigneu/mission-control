@@ -7,13 +7,23 @@ from app.audit.serialize import model_to_dict
 from app.audit.service import record_create, record_delete, record_update
 from app.models.person import Person
 from app.schemas.person import PersonCreate, PersonUpdate
+from app.services.pagination import apply_window, count_rows
 
 ENTITY = "person"
 
 
-async def list_people(db: AsyncSession) -> list[Person]:
-    result = await db.execute(select(Person).order_by(Person.created_at))
+async def list_people(
+    db: AsyncSession, *, limit: int | None = None, offset: int = 0
+) -> list[Person]:
+    stmt = apply_window(
+        select(Person).order_by(Person.created_at), limit=limit, offset=offset
+    )
+    result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def count_people(db: AsyncSession) -> int:
+    return await count_rows(db, select(Person))
 
 
 async def get_person(db: AsyncSession, person_id: uuid.UUID) -> Person | None:

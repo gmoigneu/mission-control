@@ -1,8 +1,9 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.pagination import Page, page_params, set_pagination_headers
 from app.db import get_db
 from app.deps import get_current_user
 from app.schemas.observation import ObservationCreate, ObservationOut, ObservationUpdate
@@ -15,11 +16,23 @@ router = APIRouter(
 
 @router.get("", response_model=list[ObservationOut])
 async def list_observations(  # noqa: B008
+    response: Response,
     subject_type: str | None = None,
     subject_id: uuid.UUID | None = None,
+    page: Page = Depends(page_params),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    return await svc.list_observations(db, subject_type=subject_type, subject_id=subject_id)
+    total = await svc.count_observations(
+        db, subject_type=subject_type, subject_id=subject_id
+    )
+    set_pagination_headers(response, total=total, page=page)
+    return await svc.list_observations(
+        db,
+        subject_type=subject_type,
+        subject_id=subject_id,
+        limit=page.limit,
+        offset=page.offset,
+    )
 
 
 @router.post("", response_model=ObservationOut, status_code=status.HTTP_201_CREATED)
