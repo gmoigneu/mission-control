@@ -122,7 +122,18 @@ export function PeoplePage() {
   const companyMap = Object.fromEntries(companies.map((c) => [c.id, c.name]));
 
   const columns = [
-    { header: "Name", cell: (row: Person) => row.name },
+    {
+      header: "Name",
+      cell: (row: Person) => (
+        <Link
+          to="/people/$slug"
+          params={{ slug: row.slug }}
+          className="underline hover:text-gray-600"
+        >
+          {row.name}
+        </Link>
+      ),
+    },
     { header: "Slug", cell: (row: Person) => row.slug },
     { header: "Role", cell: (row: Person) => row.role ?? "" },
     { header: "Company", cell: (row: Person) => (row.company_id ? (companyMap[row.company_id] ?? row.company_id) : "") },
