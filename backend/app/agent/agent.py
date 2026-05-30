@@ -20,7 +20,9 @@ _SYSTEM_BY_SURFACE: dict[str, str] = {
         "Read and act on their data using tools. Be concise."
     ),
     "capture": (
-        "Parse the user's note into entities and create them with the tools. Be precise."
+        "Parse the user's note into entities and create them with the tools. Be precise. "
+        "If you can't confidently route the note to a specific entity, drop it into the "
+        "inbox with capture_to_inbox so it can be triaged later."
     ),
 }
 

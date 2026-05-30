@@ -18,6 +18,7 @@ from app.api import (
     journal_entries,
     meetings,
     knowledge,
+    inbox,
     observations,
     people,
     projects,
@@ -77,6 +78,7 @@ def create_app() -> FastAPI:
     app.include_router(journal_entries.router)
     app.include_router(reviews.router)
     app.include_router(habits.router)
+    app.include_router(inbox.router)
     app.include_router(tags.router)
     app.include_router(entity_tags.router)
     app.include_router(entity_links.router)

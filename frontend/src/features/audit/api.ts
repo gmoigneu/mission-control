@@ -13,6 +13,7 @@ export const ENTITY_TYPE_TO_KEY: Record<string, string> = {
   tag: "tags",
   relationship: "relationships",
   observation: "observations",
+  inbox_item: "inbox",
   entity_tag: "entity-tags",
   entity_link: "entity-links",
 };

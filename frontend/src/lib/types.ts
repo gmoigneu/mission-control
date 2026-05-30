@@ -245,6 +245,10 @@ export interface JournalEntry {
   body: string;
   mood: number | null;
   energy: number | null;
+export interface InboxItem {
+  id: string;
+  body: string;
+  status: string;
   source: string | null;
   created_at: string;
   updated_at: string;
@@ -276,6 +280,12 @@ export interface ReviewCreate {
   highlights?: string | null;
 }
 export type ReviewUpdate = Partial<ReviewCreate>;
+export interface InboxItemCreate {
+  body: string;
+  status?: string;
+  source?: string | null;
+}
+export type InboxItemUpdate = Partial<InboxItemCreate>;
 
 export interface EntityTag {
   id: string;

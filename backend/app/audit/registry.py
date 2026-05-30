@@ -6,6 +6,7 @@ from app.models.journal_entry import JournalEntry
 from app.models.habit import Habit, HabitLog
 from app.models.meeting import Meeting
 from app.models.knowledge import Knowledge
+from app.models.inbox_item import InboxItem
 from app.models.observation import Observation
 from app.models.person import Person
 from app.models.project import Project
@@ -28,6 +29,7 @@ ENTITY_MODELS: dict[str, type] = {
     "relationship": Relationship,
     "observation": Observation,
     "review": Review,
+    "inbox_item": InboxItem,
     "tag": Tag,
     "entity_tag": EntityTag,
     "entity_link": EntityLink,
