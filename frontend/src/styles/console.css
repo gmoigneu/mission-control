@@ -265,6 +265,7 @@ a:hover { color: var(--signal-bright); }
   color: var(--fg-dim); cursor: pointer; transition: all var(--dur) var(--ease);
 }
 .iconbtn:hover { background: var(--surface-3); color: var(--fg); }
+.iconbtn:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
 
 /* chips & badges */
 .chip {
@@ -323,6 +324,31 @@ a:hover { color: var(--signal-bright); }
    --------------------------------------------------------------------- */
 .shell { position: relative; z-index: 1; }
 .topbar { grid-row: 1; }
+
+/* ---------------------------------------------------------------------
+   FOCUS VISIBILITY (WCAG 2.4.7)
+   Keyboard focus must be visible on every interactive control. Inputs
+   keep their own glow ring; everything else gets a signal outline.
+   Pointer focus (:focus without :focus-visible) stays quiet.
+   --------------------------------------------------------------------- */
+.nav-item:focus-visible,
+.navrail-toggle:focus-visible,
+.avatar-btn:focus-visible,
+.capture-trigger:focus-visible,
+.bottom-fab:focus-visible,
+.bottomnav button:focus-visible,
+[role="dialog"] button:focus-visible,
+[role="dialog"] [role="option"]:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+.avatar-btn:focus-visible { border-radius: var(--r-pill); }
+a:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
 
 .nav-item { transition: background var(--dur) var(--ease), color var(--dur) var(--ease); }
 .nav-item:hover { background: var(--surface-2) !important; color: var(--fg) !important; }

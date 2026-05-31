@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useLogout, useMe } from "../lib/auth";
+import { useFocusTrap } from "../lib/useFocusTrap";
 import {
   type AgentWrite,
   invalidateForWrites,
@@ -321,6 +322,14 @@ function SettingsPopover({
   setNavOpen: (v: boolean) => void;
   close: () => void;
 }) {
+  const ref = useFocusTrap<HTMLDivElement>(true);
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") close();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [close]);
   return (
     <>
       <div
@@ -328,6 +337,10 @@ function SettingsPopover({
         style={{ position: "fixed", inset: 0, zIndex: 41 }}
       />
       <div
+        ref={ref}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Display settings"
         className="card rise"
         style={{
           position: "absolute",
@@ -407,6 +420,90 @@ function Avatar({
   );
 }
 
+function AvatarMenu({
+  email,
+  onClose,
+  onLogout,
+}: {
+  email: string;
+  onClose: () => void;
+  onLogout: () => void;
+}) {
+  const ref = useFocusTrap<HTMLDivElement>(true);
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+  return (
+    <>
+      <div
+        onClick={onClose}
+        style={{ position: "fixed", inset: 0, zIndex: 41 }}
+      />
+      <div
+        ref={ref}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Account menu"
+        className="card rise"
+        style={{
+          position: "absolute",
+          top: 36,
+          right: 0,
+          width: 220,
+          padding: "8px 0",
+          zIndex: 42,
+          boxShadow: "var(--shadow-pop)",
+          background: "var(--surface-1)",
+        }}
+      >
+        <div
+          style={{
+            padding: "8px 14px 10px",
+            borderBottom: "1px solid var(--line-soft)",
+            marginBottom: 4,
+            fontSize: 12,
+            color: "var(--fg-dim)",
+            fontFamily: "var(--mono)",
+          }}
+        >
+          {email}
+        </div>
+        <button
+          onClick={onLogout}
+          style={{
+            display: "block",
+            width: "100%",
+            textAlign: "left",
+            background: "transparent",
+            border: 0,
+            padding: "7px 14px",
+            fontSize: 13,
+            cursor: "pointer",
+            color: "var(--fg-muted)",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background =
+              "var(--surface-3)";
+            (e.currentTarget as HTMLButtonElement).style.color = "var(--fg)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background =
+              "transparent";
+            (e.currentTarget as HTMLButtonElement).style.color =
+              "var(--fg-muted)";
+          }}
+        >
+          Log out
+        </button>
+      </div>
+    </>
+  );
+}
+
 function CommandPalette({
   onClose,
   onNavigate,
@@ -417,7 +514,9 @@ function CommandPalette({
   onToast: (text: string, undo?: () => void) => void;
 }) {
   const [query, setQuery] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useFocusTrap<HTMLDivElement>(true);
   const navigate = useNavigate();
   const qc = useQueryClient();
   const capture = useCapture();
@@ -452,6 +551,14 @@ function CommandPalette({
     onClose();
   }
 
+  function handleSearch() {
+    navigate({
+      to: "/search",
+      search: { q: query.trim() },
+    } as unknown as Parameters<typeof navigate>[0]);
+    onClose();
+  }
+
   async function handleCapture() {
     if (!query.trim()) return;
     try {
@@ -473,6 +580,49 @@ function CommandPalette({
 
   const isPending = capture.isPending;
 
+  // Ordered list of selectable actions so ArrowUp/Down + Enter can drive the
+  // palette from the keyboard. The input keeps DOM focus; selection is visual
+  // and exposed via aria-activedescendant for assistive tech.
+  const actions = useMemo(() => {
+    const list: { id: string; run: () => void }[] = [];
+    if (query.trim()) {
+      list.push({ id: "cmdk-action-capture", run: () => void handleCapture() });
+      list.push({ id: "cmdk-action-search", run: handleSearch });
+    }
+    for (const entry of filtered) {
+      list.push({ id: `cmdk-nav-${entry.key}`, run: () => handleAction(entry.to) });
+    }
+    return list;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, filtered]);
+
+  // Clamp the highlighted index to the current result set at render time — the
+  // set shrinks/grows as the query changes, and we never want a stale index
+  // pointing past the end.
+  const selectedIndex =
+    actions.length === 0 ? 0 : Math.min(activeIndex, actions.length - 1);
+
+  function handleInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (actions.length > 0) {
+        setActiveIndex((selectedIndex + 1) % actions.length);
+      }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (actions.length > 0) {
+        setActiveIndex((selectedIndex - 1 + actions.length) % actions.length);
+      }
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const action = actions[selectedIndex];
+      if (action) action.run();
+      else if (query.trim()) void handleCapture();
+    }
+  }
+
+  const activeId = actions[selectedIndex]?.id;
+
   return (
     <>
       {/* Backdrop */}
@@ -488,6 +638,10 @@ function CommandPalette({
       />
       {/* Modal */}
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
         className="card rise"
         style={{
           position: "fixed",
@@ -512,13 +666,17 @@ function CommandPalette({
           placeholder="Capture anything… or navigate"
           style={{ marginBottom: 12 }}
           disabled={isPending}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && query.trim()) {
-              void handleCapture();
-            }
-          }}
+          role="combobox"
+          aria-expanded={actions.length > 0}
+          aria-controls="cmdk-listbox"
+          aria-activedescendant={activeId}
+          aria-autocomplete="list"
+          onKeyDown={handleInputKeyDown}
         />
         <div
+          id="cmdk-listbox"
+          role="listbox"
+          aria-label="Results"
           style={{
             overflowY: "auto",
             flex: 1,
@@ -530,11 +688,19 @@ function CommandPalette({
           {/* Primary: capture with Aya */}
           {query.trim() && (
             <button
+              id="cmdk-action-capture"
+              role="option"
+              aria-selected={activeId === "cmdk-action-capture"}
               onClick={() => void handleCapture()}
+              onMouseMove={() => setActiveIndex(0)}
               disabled={isPending}
               style={{
                 textAlign: "left",
-                background: isPending ? "var(--surface-2)" : "var(--surface-3)",
+                background: isPending
+                  ? "var(--surface-2)"
+                  : activeId === "cmdk-action-capture"
+                    ? "var(--surface-4)"
+                    : "var(--surface-3)",
                 border: "1px solid var(--signal-ghost)",
                 borderRadius: "var(--r-sm)",
                 padding: "8px 12px",
@@ -559,13 +725,17 @@ function CommandPalette({
           {/* Secondary: search */}
           {query.trim() && (
             <button
-              onClick={() => {
-                navigate({ to: "/search", search: { q: query.trim() } } as unknown as Parameters<typeof navigate>[0]);
-                onClose();
-              }}
+              id="cmdk-action-search"
+              role="option"
+              aria-selected={activeId === "cmdk-action-search"}
+              onClick={handleSearch}
+              onMouseMove={() => setActiveIndex(1)}
               style={{
                 textAlign: "left",
-                background: "transparent",
+                background:
+                  activeId === "cmdk-action-search"
+                    ? "var(--surface-3)"
+                    : "transparent",
                 border: "1px solid var(--line)",
                 borderRadius: "var(--r-sm)",
                 padding: "8px 12px",
@@ -582,40 +752,39 @@ function CommandPalette({
               Search for &ldquo;{query}&rdquo;
             </button>
           )}
-          {filtered.map((entry) => (
-            <button
-              key={entry.key}
-              onClick={() => handleAction(entry.to)}
-              style={{
-                textAlign: "left",
-                background: "transparent",
-                border: 0,
-                borderRadius: "var(--r-sm)",
-                padding: "7px 10px",
-                cursor: "pointer",
-                fontSize: 13,
-                color: "var(--fg-muted)",
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                transition: "background var(--dur) var(--ease), color var(--dur) var(--ease)",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background =
-                  "var(--surface-3)";
-                (e.currentTarget as HTMLButtonElement).style.color = "var(--fg)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background =
-                  "transparent";
-                (e.currentTarget as HTMLButtonElement).style.color =
-                  "var(--fg-muted)";
-              }}
-            >
-              <entry.Icon size={15} strokeWidth={1.6} />
-              {entry.label}
-            </button>
-          ))}
+          {filtered.map((entry, i) => {
+            const optionId = `cmdk-nav-${entry.key}`;
+            const navOffset = query.trim() ? 2 : 0;
+            const selected = activeId === optionId;
+            return (
+              <button
+                key={entry.key}
+                id={optionId}
+                role="option"
+                aria-selected={selected}
+                onClick={() => handleAction(entry.to)}
+                onMouseMove={() => setActiveIndex(navOffset + i)}
+                style={{
+                  textAlign: "left",
+                  background: selected ? "var(--surface-3)" : "transparent",
+                  border: 0,
+                  borderRadius: "var(--r-sm)",
+                  padding: "7px 10px",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  color: selected ? "var(--fg)" : "var(--fg-muted)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  transition:
+                    "background var(--dur) var(--ease), color var(--dur) var(--ease)",
+                }}
+              >
+                <entry.Icon size={15} strokeWidth={1.6} />
+                {entry.label}
+              </button>
+            );
+          })}
         </div>
       </div>
     </>
@@ -1150,69 +1319,14 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Avatar initials={userInitial} size={30} />
             </button>
             {avatarMenuOpen && (
-              <>
-                <div
-                  onClick={() => setAvatarMenuOpen(false)}
-                  style={{ position: "fixed", inset: 0, zIndex: 41 }}
-                />
-                <div
-                  className="card rise"
-                  style={{
-                    position: "absolute",
-                    top: 36,
-                    right: 0,
-                    width: 220,
-                    padding: "8px 0",
-                    zIndex: 42,
-                    boxShadow: "var(--shadow-pop)",
-                    background: "var(--surface-1)",
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: "8px 14px 10px",
-                      borderBottom: "1px solid var(--line-soft)",
-                      marginBottom: 4,
-                      fontSize: 12,
-                      color: "var(--fg-dim)",
-                      fontFamily: "var(--mono)",
-                    }}
-                  >
-                    {me.data?.email ?? ""}
-                  </div>
-                  <button
-                    onClick={() => {
-                      setAvatarMenuOpen(false);
-                      logout.mutate();
-                    }}
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      textAlign: "left",
-                      background: "transparent",
-                      border: 0,
-                      padding: "7px 14px",
-                      fontSize: 13,
-                      cursor: "pointer",
-                      color: "var(--fg-muted)",
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLButtonElement).style.background =
-                        "var(--surface-3)";
-                      (e.currentTarget as HTMLButtonElement).style.color =
-                        "var(--fg)";
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLButtonElement).style.background =
-                        "transparent";
-                      (e.currentTarget as HTMLButtonElement).style.color =
-                        "var(--fg-muted)";
-                    }}
-                  >
-                    Log out
-                  </button>
-                </div>
-              </>
+              <AvatarMenu
+                email={me.data?.email ?? ""}
+                onClose={() => setAvatarMenuOpen(false)}
+                onLogout={() => {
+                  setAvatarMenuOpen(false);
+                  logout.mutate();
+                }}
+              />
             )}
           </div>
         </div>
