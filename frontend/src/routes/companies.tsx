@@ -82,7 +82,7 @@ export function CompaniesPage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            className="text-xs text-gray-500 hover:text-gray-900"
+            className="btn ghost sm"
             onClick={() => handleEdit(row)}
           >
             Edit
@@ -96,11 +96,18 @@ export function CompaniesPage() {
   return (
     <RequireAuth>
       <AppShell>
-        <div className="p-6 space-y-6">
+        <div
+          style={{
+            padding: "24px 32px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 24,
+          }}
+        >
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold">Companies</h1>
-            <p className="text-sm text-gray-400">
-              <Link to="/activity" className="underline hover:text-gray-600">
+            <h1 className="title">Companies</h1>
+            <p className="meta">
+              <Link to="/activity" className="underline">
                 Manage from the Activity page to undo changes.
               </Link>
             </p>
@@ -145,7 +152,7 @@ export function CompaniesPage() {
               <div className="col-span-2 flex gap-2">
                 <Button type="submit">{editingId ? "Save" : "Add"}</Button>
                 {editingId && (
-                  <Button type="button" onClick={handleCancel} className="bg-gray-400 hover:bg-gray-500">
+                  <Button type="button" onClick={handleCancel} className="ghost">
                     Cancel
                   </Button>
                 )}

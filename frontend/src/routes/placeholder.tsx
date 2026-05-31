@@ -11,9 +11,18 @@ export const placeholderRoute = createRoute({
     return (
       <RequireAuth>
         <AppShell>
-          <div className="p-8">
-            <h1 className="text-2xl font-semibold capitalize">{section}</h1>
-            <p className="mt-2 text-gray-500">Coming soon</p>
+          <div
+            style={{
+              padding: "24px 32px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            <h1 className="title" style={{ textTransform: "capitalize" }}>
+              {section}
+            </h1>
+            <p className="meta">Coming soon</p>
           </div>
         </AppShell>
       </RequireAuth>

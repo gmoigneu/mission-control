@@ -64,11 +64,18 @@ export function EntityTagsPage() {
   return (
     <RequireAuth>
       <AppShell>
-        <div className="p-6 space-y-6">
+        <div
+          style={{
+            padding: "24px 32px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 24,
+          }}
+        >
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold">Entity Tags</h1>
-            <p className="text-sm text-gray-400">
-              <Link to="/activity" className="underline hover:text-gray-600">
+            <h1 className="title">Entity Tags</h1>
+            <p className="meta">
+              <Link to="/activity" className="underline">
                 Manage from the Activity page to undo changes.
               </Link>
             </p>

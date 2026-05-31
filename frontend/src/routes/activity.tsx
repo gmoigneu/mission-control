@@ -14,7 +14,7 @@ function UndoButton({ row }: { row: AuditEntry }) {
     <button
       type="button"
       disabled={row.reverted}
-      className="text-xs text-gray-500 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
+      className="btn ghost sm disabled:cursor-not-allowed disabled:opacity-40"
       onClick={() => revert.mutate(row.id)}
     >
       Undo
@@ -48,8 +48,15 @@ export function ActivityPage() {
   return (
     <RequireAuth>
       <AppShell>
-        <div className="p-6 space-y-4">
-          <h1 className="text-xl font-semibold">Activity</h1>
+        <div
+          style={{
+            padding: "24px 32px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+          }}
+        >
+          <h1 className="title">Activity</h1>
           <DataTable rows={entries} columns={columns} empty="No activity yet." />
           {auditPage && <Pagination page={auditPage.page} onChange={setOffset} />}
         </div>
