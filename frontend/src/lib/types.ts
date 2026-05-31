@@ -100,6 +100,10 @@ export interface Meeting {
   context_id: string | null;
   project_id: string | null;
   location: string | null;
+  body: string | null;
+  created_at: string;
+  updated_at: string;
+}
 export interface Knowledge {
   id: string;
   slug: string;
@@ -271,6 +275,10 @@ export interface JournalEntry {
   body: string;
   mood: number | null;
   energy: number | null;
+  source: string | null;
+  created_at: string;
+  updated_at: string;
+}
 export interface InboxItem {
   id: string;
   body: string;
