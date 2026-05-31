@@ -9,7 +9,7 @@ from sqlalchemy.dialects import postgresql  # noqa: F401
 from alembic import op
 
 revision = "0028"
-down_revision = "0018"
+down_revision = "0027"
 branch_labels = None
 depends_on = None
 
