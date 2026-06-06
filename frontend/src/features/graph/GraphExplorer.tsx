@@ -77,7 +77,7 @@ export function GraphExplorer() {
     const term = search.trim().toLowerCase();
     if (!cy || !term) return;
     const match = cy
-      .nodes()
+      .nodes(":visible")
       .filter((n) => String(n.data("name") ?? "").toLowerCase().includes(term));
     if (match.length > 0) {
       cy.animate({ center: { eles: match[0] }, zoom: 1.5 }, { duration: 300 });
@@ -106,7 +106,7 @@ export function GraphExplorer() {
 
       {snapshot.data?.truncated && (
         <div role="status">
-          Showing the first {elements.length} nodes — filter by context to narrow the view.
+          Showing the first {snapshot.data.nodes.length} nodes — filter by context to narrow the view.
         </div>
       )}
       {snapshot.isLoading && <div role="status">Loading graph…</div>}
