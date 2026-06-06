@@ -56,7 +56,7 @@ export function GraphExplorer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elements]);
 
-  // Re-run layout when the selection changes.
+  // Re-run layout when the layout selection changes.
   useEffect(() => {
     cyRef.current?.layout(LAYOUTS[layout]).run();
   }, [layout]);
