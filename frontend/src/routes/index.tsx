@@ -9,7 +9,7 @@ import {
   SectionLabel,
   dueChip,
   fmtDate,
-  tintColor,
+  contextTint,
 } from "../components/console";
 import { RequireAuth } from "../components/RequireAuth";
 import { useAudit, useRevert } from "../features/audit/api";
@@ -241,16 +241,6 @@ function Dashboard() {
     }
   }
 
-  // Context tint: map category → tint key
-  function ctxTint(category: string): string {
-    const map: Record<string, string> = {
-      work: "work",
-      personal: "personal",
-      side: "side",
-    };
-    return map[category] ?? "other";
-  }
-
   // Open task count per context
   function openTaskCount(ctxId: string): number {
     return activeTasks.filter((t) => t.context_id === ctxId).length;
@@ -414,7 +404,7 @@ function Dashboard() {
                         </span>
                         <PriorityDot priority={t.priority} />
                         {ctx && (
-                          <ContextChip tint={ctxTint(ctx.category)}>
+                          <ContextChip tint={contextTint(ctx)}>
                             {ctx.name}
                           </ContextChip>
                         )}
@@ -532,7 +522,7 @@ function Dashboard() {
                     }}
                   >
                     {contexts.map((c) => {
-                      const tint = ctxTint(c.category);
+                      const tint = contextTint(c);
                       const count = openTaskCount(c.id);
                       return (
                         <button
@@ -560,7 +550,7 @@ function Dashboard() {
                               fontSize: 30,
                               marginTop: 12,
                               lineHeight: 1,
-                              color: tintColor(tint),
+                              color: tint,
                             }}
                           >
                             {count}
