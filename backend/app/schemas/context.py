@@ -6,6 +6,10 @@ from pydantic import BaseModel, ConfigDict
 
 ContextCategory = Literal["work", "personal", "side", "other"]
 ContextStatus = Literal["active", "archived"]
+ContextColor = Literal[
+    "slate", "red", "orange", "amber", "green", "teal",
+    "cyan", "blue", "indigo", "violet", "magenta", "pink",
+]
 
 
 class ContextCreate(BaseModel):
@@ -14,6 +18,7 @@ class ContextCreate(BaseModel):
     category: ContextCategory = "other"
     description: str | None = None
     status: ContextStatus = "active"
+    color: ContextColor | None = None
 
 
 class ContextUpdate(BaseModel):
@@ -22,6 +27,7 @@ class ContextUpdate(BaseModel):
     category: ContextCategory | None = None
     description: str | None = None
     status: ContextStatus | None = None
+    color: ContextColor | None = None
 
 
 class ContextOut(BaseModel):
@@ -33,5 +39,6 @@ class ContextOut(BaseModel):
     category: str
     description: str | None
     status: str
+    color: str | None
     created_at: datetime
     updated_at: datetime
