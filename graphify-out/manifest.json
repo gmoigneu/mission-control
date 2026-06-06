@@ -1,0 +1,1852 @@
+{
+  "/Users/nls/projects/mission-control/backend/alembic/env.py": {
+    "mtime": 1780112849.961623,
+    "ast_hash": "d778fd5f73a3f43c48b8a35f1a97bf85",
+    "semantic_hash": "d778fd5f73a3f43c48b8a35f1a97bf85"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0001_enable_pgvector.py": {
+    "mtime": 1780112849.9620504,
+    "ast_hash": "e5784a1eb4ee56872e0222dc3dc81a19",
+    "semantic_hash": "e5784a1eb4ee56872e0222dc3dc81a19"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0002_app_user.py": {
+    "mtime": 1780112849.9622924,
+    "ast_hash": "6f8e36918e0f3ba3ffdf317a769d35e6",
+    "semantic_hash": "6f8e36918e0f3ba3ffdf317a769d35e6"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0003_audit_log.py": {
+    "mtime": 1780112849.9626842,
+    "ast_hash": "a3265e955f8909c574c1aee17c208ff6",
+    "semantic_hash": "a3265e955f8909c574c1aee17c208ff6"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0004_context.py": {
+    "mtime": 1780112849.9629114,
+    "ast_hash": "22205b97ad51e66d8271c46177a37b5c",
+    "semantic_hash": "22205b97ad51e66d8271c46177a37b5c"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0005_project.py": {
+    "mtime": 1780112849.9633658,
+    "ast_hash": "c1a82667a9149cda89e2c949fffa8599",
+    "semantic_hash": "c1a82667a9149cda89e2c949fffa8599"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0006_company.py": {
+    "mtime": 1780112849.9635754,
+    "ast_hash": "03aa0352a568d33f39f4083a157089e0",
+    "semantic_hash": "03aa0352a568d33f39f4083a157089e0"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0007_person.py": {
+    "mtime": 1780112849.9637916,
+    "ast_hash": "eac0f200364d8174e52512045f8bdb77",
+    "semantic_hash": "eac0f200364d8174e52512045f8bdb77"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0008_task.py": {
+    "mtime": 1780112849.9640415,
+    "ast_hash": "976acbdc71a8d1c666b891403ee8fb0f",
+    "semantic_hash": "976acbdc71a8d1c666b891403ee8fb0f"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0009_relationship.py": {
+    "mtime": 1780112849.9642706,
+    "ast_hash": "159bd2d772e9236ea6d0419ddff0876e",
+    "semantic_hash": "159bd2d772e9236ea6d0419ddff0876e"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0010_observation.py": {
+    "mtime": 1780112849.9645064,
+    "ast_hash": "63c2d2b90f5cae265c18a1879bc4b00a",
+    "semantic_hash": "63c2d2b90f5cae265c18a1879bc4b00a"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0011_tag.py": {
+    "mtime": 1780112849.9647152,
+    "ast_hash": "a5b9baaf4ada29603d56795a68eb7e10",
+    "semantic_hash": "a5b9baaf4ada29603d56795a68eb7e10"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0012_entity_tag.py": {
+    "mtime": 1780112849.9649475,
+    "ast_hash": "e1cb9e9fc5f50e42c41e4494b16e0e4c",
+    "semantic_hash": "e1cb9e9fc5f50e42c41e4494b16e0e4c"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0013_entity_link.py": {
+    "mtime": 1780112849.9652057,
+    "ast_hash": "3e944fea607f874ff333f224e86ead62",
+    "semantic_hash": "3e944fea607f874ff333f224e86ead62"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0014_chunk.py": {
+    "mtime": 1780116831.2536829,
+    "ast_hash": "b0abbf2f39438289778e942b5fe7da46",
+    "semantic_hash": "b0abbf2f39438289778e942b5fe7da46"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0015_task_link.py": {
+    "mtime": 1780123068.9227343,
+    "ast_hash": "9ab5022cbd9a131be472904e31db6fb3",
+    "semantic_hash": "9ab5022cbd9a131be472904e31db6fb3"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0016_outbox_event.py": {
+    "mtime": 1780123068.9229848,
+    "ast_hash": "ecaa3a826cad62988409517cb350f82e",
+    "semantic_hash": "ecaa3a826cad62988409517cb350f82e"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0017_agent_run.py": {
+    "mtime": 1780123068.923191,
+    "ast_hash": "df5831cf4c1ce2ca6daae9ab62c3b134",
+    "semantic_hash": "df5831cf4c1ce2ca6daae9ab62c3b134"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0019_journal_entry.py": {
+    "mtime": 1780184425.1379604,
+    "ast_hash": "58cca1f158e151bd852d970b50fcd9f5",
+    "semantic_hash": "58cca1f158e151bd852d970b50fcd9f5"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0020_review.py": {
+    "mtime": 1780185726.4249976,
+    "ast_hash": "d682f7ae30db743ac15b9e4ec36b4e50",
+    "semantic_hash": "d682f7ae30db743ac15b9e4ec36b4e50"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0021_habit.py": {
+    "mtime": 1780185726.4270842,
+    "ast_hash": "66fdcdc530aa8e8680526683e6fe116a",
+    "semantic_hash": "66fdcdc530aa8e8680526683e6fe116a"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0022_meeting.py": {
+    "mtime": 1780185726.429329,
+    "ast_hash": "2b5e8c68144d55717b47e557b9150c2f",
+    "semantic_hash": "2b5e8c68144d55717b47e557b9150c2f"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0023_knowledge.py": {
+    "mtime": 1780185726.431531,
+    "ast_hash": "4102366b64a49d6edcacc63110bd907d",
+    "semantic_hash": "4102366b64a49d6edcacc63110bd907d"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0024_inbox_item.py": {
+    "mtime": 1780185726.4335575,
+    "ast_hash": "5a2b411efca797b92a7aa71bf5d71d0d",
+    "semantic_hash": "5a2b411efca797b92a7aa71bf5d71d0d"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0025_telos.py": {
+    "mtime": 1780185726.4355414,
+    "ast_hash": "2fae3db3ccb666892f2738b6fa7bbe92",
+    "semantic_hash": "2fae3db3ccb666892f2738b6fa7bbe92"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0026_tone.py": {
+    "mtime": 1780185726.4374452,
+    "ast_hash": "5f9a8d7e54eacd9f0541062e62525aba",
+    "semantic_hash": "5f9a8d7e54eacd9f0541062e62525aba"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0028_agent_persona.py": {
+    "mtime": 1780185726.4411159,
+    "ast_hash": "89bc152aa08d2b0b8f964fe5d14993ab",
+    "semantic_hash": "89bc152aa08d2b0b8f964fe5d14993ab"
+  },
+  "/Users/nls/projects/mission-control/backend/alembic/versions/0029_outbox_channel.py": {
+    "mtime": 1780185726.4430938,
+    "ast_hash": "aeb7e0cf68f3418f0ff41d410d949b1f",
+    "semantic_hash": "aeb7e0cf68f3418f0ff41d410d949b1f"
+  },
+  "/Users/nls/projects/mission-control/backend/app/__init__.py": {
+    "mtime": 1780112849.9652405,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/nls/projects/mission-control/backend/app/agent/__init__.py": {
+    "mtime": 1780123068.9232304,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/nls/projects/mission-control/backend/app/agent/agent.py": {
+    "mtime": 1780185140.1652422,
+    "ast_hash": "3f2ffa025c0c6e46b5911d6e72dcabc5",
+    "semantic_hash": "3f2ffa025c0c6e46b5911d6e72dcabc5"
+  },
+  "/Users/nls/projects/mission-control/backend/app/agent/context.py": {
+    "mtime": 1780123068.9238622,
+    "ast_hash": "7f8592860e7220b30be44907cbcbc882",
+    "semantic_hash": "7f8592860e7220b30be44907cbcbc882"
+  },
+  "/Users/nls/projects/mission-control/backend/app/agent/llm.py": {
+    "mtime": 1780763609.2786036,
+    "ast_hash": "d3b4143d14a7285af58d3eabbbef4844",
+    "semantic_hash": "d3b4143d14a7285af58d3eabbbef4844"
+  },
+  "/Users/nls/projects/mission-control/backend/app/agent/openai_auth.py": {
+    "mtime": 1780157992.6234725,
+    "ast_hash": "91f6a4a1cc7eeea8753e67de6c370325",
+    "semantic_hash": "91f6a4a1cc7eeea8753e67de6c370325"
+  },
+  "/Users/nls/projects/mission-control/backend/app/agent/persona_store.py": {
+    "mtime": 1780185134.1859198,
+    "ast_hash": "226e5d8ba265ff98430f6e001e83275b",
+    "semantic_hash": "226e5d8ba265ff98430f6e001e83275b"
+  },
+  "/Users/nls/projects/mission-control/backend/app/agent/tools.py": {
+    "mtime": 1780184862.4267292,
+    "ast_hash": "6eb451d1f833b0d43281a0bc64d79ddd",
+    "semantic_hash": "6eb451d1f833b0d43281a0bc64d79ddd"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/__init__.py": {
+    "mtime": 1780112849.9658797,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/admin.py": {
+    "mtime": 1780184862.3733728,
+    "ast_hash": "2bf283d95fff41a5e68987285af97753",
+    "semantic_hash": "2bf283d95fff41a5e68987285af97753"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/agent.py": {
+    "mtime": 1780185012.8403914,
+    "ast_hash": "122a04260de97d18cd69849e2b9ddeda",
+    "semantic_hash": "122a04260de97d18cd69849e2b9ddeda"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/audit.py": {
+    "mtime": 1780185423.5837805,
+    "ast_hash": "aa6434e4a930f07b290f4581dd123d2b",
+    "semantic_hash": "aa6434e4a930f07b290f4581dd123d2b"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/auth.py": {
+    "mtime": 1780184408.3809175,
+    "ast_hash": "105d934f2b5ee2eb69aea603df1659f9",
+    "semantic_hash": "105d934f2b5ee2eb69aea603df1659f9"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/companies.py": {
+    "mtime": 1780185423.5840771,
+    "ast_hash": "3c3a751276124c14c235cdf0398d5076",
+    "semantic_hash": "3c3a751276124c14c235cdf0398d5076"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/contexts.py": {
+    "mtime": 1780185423.5841813,
+    "ast_hash": "a6ea743a1516d37f7ab1b75a46134c23",
+    "semantic_hash": "a6ea743a1516d37f7ab1b75a46134c23"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/entity_links.py": {
+    "mtime": 1780112849.9668982,
+    "ast_hash": "16826e49a1ff02a187d97e8b41659459",
+    "semantic_hash": "16826e49a1ff02a187d97e8b41659459"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/entity_tags.py": {
+    "mtime": 1780112849.9670472,
+    "ast_hash": "d92246111221d8d90227118660277d5e",
+    "semantic_hash": "d92246111221d8d90227118660277d5e"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/graph.py": {
+    "mtime": 1780123068.925117,
+    "ast_hash": "1cf9c88dec00041bbd4184488ea79904",
+    "semantic_hash": "1cf9c88dec00041bbd4184488ea79904"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/habits.py": {
+    "mtime": 1780184471.7601473,
+    "ast_hash": "f7a2760f015a198bb6d5880eee92ab19",
+    "semantic_hash": "f7a2760f015a198bb6d5880eee92ab19"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/health.py": {
+    "mtime": 1780112849.967202,
+    "ast_hash": "7a929e37617c69bd888dba7ccea8cd51",
+    "semantic_hash": "7a929e37617c69bd888dba7ccea8cd51"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/inbox.py": {
+    "mtime": 1780184808.1488006,
+    "ast_hash": "3102f59392e9b15b926a4d6bd586fd81",
+    "semantic_hash": "3102f59392e9b15b926a4d6bd586fd81"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/journal_entries.py": {
+    "mtime": 1780184425.1380334,
+    "ast_hash": "5084af1b4773a7cf17793aa757816483",
+    "semantic_hash": "5084af1b4773a7cf17793aa757816483"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/knowledge.py": {
+    "mtime": 1780184523.0811343,
+    "ast_hash": "362c2f3d41f2ebf8e6769db2b1a8a6d6",
+    "semantic_hash": "362c2f3d41f2ebf8e6769db2b1a8a6d6"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/meetings.py": {
+    "mtime": 1780184523.0277069,
+    "ast_hash": "4cfc7e9995273cd05795347637afbaaf",
+    "semantic_hash": "4cfc7e9995273cd05795347637afbaaf"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/observations.py": {
+    "mtime": 1780185423.5842836,
+    "ast_hash": "ed54580b00d37c704366f1d30037d7be",
+    "semantic_hash": "ed54580b00d37c704366f1d30037d7be"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/pagination.py": {
+    "mtime": 1780185423.5843487,
+    "ast_hash": "1150c2f98f68190d8452a094236e37d0",
+    "semantic_hash": "1150c2f98f68190d8452a094236e37d0"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/people.py": {
+    "mtime": 1780185423.5844548,
+    "ast_hash": "ce232af16625a905e72f8d0224216821",
+    "semantic_hash": "ce232af16625a905e72f8d0224216821"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/projects.py": {
+    "mtime": 1780185423.5845494,
+    "ast_hash": "81805bf7030e851d784ae822469ed0eb",
+    "semantic_hash": "81805bf7030e851d784ae822469ed0eb"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/relationships.py": {
+    "mtime": 1780185423.584664,
+    "ast_hash": "c7ad2f39ac399ea91b4bc34cc6b2cfc0",
+    "semantic_hash": "c7ad2f39ac399ea91b4bc34cc6b2cfc0"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/reviews.py": {
+    "mtime": 1780184471.7006505,
+    "ast_hash": "3300d11c5aabb3d6bab81a3fe258b44c",
+    "semantic_hash": "3300d11c5aabb3d6bab81a3fe258b44c"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/search.py": {
+    "mtime": 1780116831.2541103,
+    "ast_hash": "471e556bca6709ff87df7843170201e3",
+    "semantic_hash": "471e556bca6709ff87df7843170201e3"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/tags.py": {
+    "mtime": 1780185423.5847607,
+    "ast_hash": "4baeb2a95125cae33e164cc74892b175",
+    "semantic_hash": "4baeb2a95125cae33e164cc74892b175"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/task_links.py": {
+    "mtime": 1780123068.925404,
+    "ast_hash": "d54dc40449047760e5aa62a1521e2b47",
+    "semantic_hash": "d54dc40449047760e5aa62a1521e2b47"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/tasks.py": {
+    "mtime": 1780185423.5848603,
+    "ast_hash": "fe97db07fd2ddb771884db735458a49c",
+    "semantic_hash": "fe97db07fd2ddb771884db735458a49c"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/telos.py": {
+    "mtime": 1780184862.3734832,
+    "ast_hash": "5c2fe1b56d509da7b585db7f71b720c5",
+    "semantic_hash": "5c2fe1b56d509da7b585db7f71b720c5"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/tones.py": {
+    "mtime": 1780184862.426804,
+    "ast_hash": "a1d7e3f19da49b1f56893492d355ca7b",
+    "semantic_hash": "a1d7e3f19da49b1f56893492d355ca7b"
+  },
+  "/Users/nls/projects/mission-control/backend/app/api/webauthn.py": {
+    "mtime": 1780184962.750193,
+    "ast_hash": "600656a50fa4dd7524a32c4557d93297",
+    "semantic_hash": "600656a50fa4dd7524a32c4557d93297"
+  },
+  "/Users/nls/projects/mission-control/backend/app/audit/__init__.py": {
+    "mtime": 1780112849.968479,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/nls/projects/mission-control/backend/app/audit/registry.py": {
+    "mtime": 1780185529.2756445,
+    "ast_hash": "133b5ed285258d4ef982840cd4492997",
+    "semantic_hash": "133b5ed285258d4ef982840cd4492997"
+  },
+  "/Users/nls/projects/mission-control/backend/app/audit/revert.py": {
+    "mtime": 1780184408.4590635,
+    "ast_hash": "046bcde3e59f3cbfffc31e8c0129734d",
+    "semantic_hash": "046bcde3e59f3cbfffc31e8c0129734d"
+  },
+  "/Users/nls/projects/mission-control/backend/app/audit/serialize.py": {
+    "mtime": 1780112849.9690995,
+    "ast_hash": "23403ad1a6ca3e97d6390dbcbb456d93",
+    "semantic_hash": "23403ad1a6ca3e97d6390dbcbb456d93"
+  },
+  "/Users/nls/projects/mission-control/backend/app/audit/service.py": {
+    "mtime": 1780184408.4592857,
+    "ast_hash": "a652302af284cfa9db1aca386c108b03",
+    "semantic_hash": "a652302af284cfa9db1aca386c108b03"
+  },
+  "/Users/nls/projects/mission-control/backend/app/cli.py": {
+    "mtime": 1780185012.840931,
+    "ast_hash": "29ba8820b303ae35b0bc358efb4d2bc4",
+    "semantic_hash": "29ba8820b303ae35b0bc358efb4d2bc4"
+  },
+  "/Users/nls/projects/mission-control/backend/app/config.py": {
+    "mtime": 1780781349.1916332,
+    "ast_hash": "d9bc2ddcf9749222d01337bc5cbd696c",
+    "semantic_hash": "d9bc2ddcf9749222d01337bc5cbd696c"
+  },
+  "/Users/nls/projects/mission-control/backend/app/db.py": {
+    "mtime": 1780112849.9700065,
+    "ast_hash": "5d491696b0a0729dd5a362ad37d4ba0f",
+    "semantic_hash": "5d491696b0a0729dd5a362ad37d4ba0f"
+  },
+  "/Users/nls/projects/mission-control/backend/app/demo_seed.py": {
+    "mtime": 1780782894.2420583,
+    "ast_hash": "1bbaaa7a21c5369e2f300ce4133b28eb",
+    "semantic_hash": "1bbaaa7a21c5369e2f300ce4133b28eb"
+  },
+  "/Users/nls/projects/mission-control/backend/app/deps.py": {
+    "mtime": 1780112849.9702246,
+    "ast_hash": "93cb24a93af5139f9160b2a0c27fbad9",
+    "semantic_hash": "93cb24a93af5139f9160b2a0c27fbad9"
+  },
+  "/Users/nls/projects/mission-control/backend/app/graph/__init__.py": {
+    "mtime": 1780123068.9261544,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/nls/projects/mission-control/backend/app/graph/client.py": {
+    "mtime": 1780123068.9266076,
+    "ast_hash": "e39e7140ddc500bf92d10e8d606e5bba",
+    "semantic_hash": "e39e7140ddc500bf92d10e8d606e5bba"
+  },
+  "/Users/nls/projects/mission-control/backend/app/graph/projector.py": {
+    "mtime": 1780184523.0284817,
+    "ast_hash": "b5d8c61b4a567ebcce77081db3f45489",
+    "semantic_hash": "b5d8c61b4a567ebcce77081db3f45489"
+  },
+  "/Users/nls/projects/mission-control/backend/app/graph/query.py": {
+    "mtime": 1780123068.9270737,
+    "ast_hash": "cb729819764ae734dcfdbaed7d59c696",
+    "semantic_hash": "cb729819764ae734dcfdbaed7d59c696"
+  },
+  "/Users/nls/projects/mission-control/backend/app/graph/worker.py": {
+    "mtime": 1780184408.4594953,
+    "ast_hash": "72b5853dc271c314df1e8ffe63a3f7ae",
+    "semantic_hash": "72b5853dc271c314df1e8ffe63a3f7ae"
+  },
+  "/Users/nls/projects/mission-control/backend/app/main.py": {
+    "mtime": 1780185529.275711,
+    "ast_hash": "10b10c1d3a7073cdff2f5b2d43ffba1a",
+    "semantic_hash": "10b10c1d3a7073cdff2f5b2d43ffba1a"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/__init__.py": {
+    "mtime": 1780185529.2756453,
+    "ast_hash": "f9f5f68a636b5575af5e79caa1e87b2a",
+    "semantic_hash": "f9f5f68a636b5575af5e79caa1e87b2a"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/agent_persona.py": {
+    "mtime": 1780185012.8415234,
+    "ast_hash": "2bd3069e002ea4385ac562030dbae9d3",
+    "semantic_hash": "2bd3069e002ea4385ac562030dbae9d3"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/agent_run.py": {
+    "mtime": 1780123068.928277,
+    "ast_hash": "1f37353288c17445c1ca51869cfb2784",
+    "semantic_hash": "1f37353288c17445c1ca51869cfb2784"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/audit.py": {
+    "mtime": 1780112849.9707336,
+    "ast_hash": "7c30ace2bb48067824f16cc6defb9265",
+    "semantic_hash": "7c30ace2bb48067824f16cc6defb9265"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/chunk.py": {
+    "mtime": 1780116831.255148,
+    "ast_hash": "6ed2daaf9e66905a8d5544aa96ad628e",
+    "semantic_hash": "6ed2daaf9e66905a8d5544aa96ad628e"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/company.py": {
+    "mtime": 1780112849.9709527,
+    "ast_hash": "02efc52679973e4a61da61084ad6d63b",
+    "semantic_hash": "02efc52679973e4a61da61084ad6d63b"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/context.py": {
+    "mtime": 1780782894.2425814,
+    "ast_hash": "1f7d3b0df28fda2ee041117fa79a7586",
+    "semantic_hash": "1f7d3b0df28fda2ee041117fa79a7586"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/entity_link.py": {
+    "mtime": 1780112849.9713612,
+    "ast_hash": "cbae5178128d3661d6c3c487352bbf64",
+    "semantic_hash": "cbae5178128d3661d6c3c487352bbf64"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/entity_tag.py": {
+    "mtime": 1780112849.9716046,
+    "ast_hash": "087969d6dd6d00692cbca4c3e035b320",
+    "semantic_hash": "087969d6dd6d00692cbca4c3e035b320"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/habit.py": {
+    "mtime": 1780184471.7606344,
+    "ast_hash": "20eab38e1c0b2767825c25cf44359e33",
+    "semantic_hash": "20eab38e1c0b2767825c25cf44359e33"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/inbox_item.py": {
+    "mtime": 1780184808.1495974,
+    "ast_hash": "e104d663c78d31d3849e4fdf46ff9b74",
+    "semantic_hash": "e104d663c78d31d3849e4fdf46ff9b74"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/journal_entry.py": {
+    "mtime": 1780184425.1386824,
+    "ast_hash": "95185825dafe4fb51a4e80b5ed2b5071",
+    "semantic_hash": "95185825dafe4fb51a4e80b5ed2b5071"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/knowledge.py": {
+    "mtime": 1780184523.0817096,
+    "ast_hash": "5ff0dbf2c35a2b94d945e58a6354d8a7",
+    "semantic_hash": "5ff0dbf2c35a2b94d945e58a6354d8a7"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/meeting.py": {
+    "mtime": 1780184523.029094,
+    "ast_hash": "8935792217ca968076f67d238d4f4660",
+    "semantic_hash": "8935792217ca968076f67d238d4f4660"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/observation.py": {
+    "mtime": 1780112849.9718053,
+    "ast_hash": "acf6e7deca9639f0e6e30c4fd0bc74bf",
+    "semantic_hash": "acf6e7deca9639f0e6e30c4fd0bc74bf"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/outbox.py": {
+    "mtime": 1780184408.459688,
+    "ast_hash": "51304c3a6fdd9ef2e86c835e05473f71",
+    "semantic_hash": "51304c3a6fdd9ef2e86c835e05473f71"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/person.py": {
+    "mtime": 1780112849.9720218,
+    "ast_hash": "5d5a43da235498b07571ff662ac62492",
+    "semantic_hash": "5d5a43da235498b07571ff662ac62492"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/project.py": {
+    "mtime": 1780112849.972221,
+    "ast_hash": "8bea0811a88aca910d3376203c2067dc",
+    "semantic_hash": "8bea0811a88aca910d3376203c2067dc"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/relationship.py": {
+    "mtime": 1780112849.9724264,
+    "ast_hash": "95940f4dd96dffa522a40906d2a28934",
+    "semantic_hash": "95940f4dd96dffa522a40906d2a28934"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/review.py": {
+    "mtime": 1780184471.7017481,
+    "ast_hash": "69ebf6159543a6fec32e6c4e39e45da8",
+    "semantic_hash": "69ebf6159543a6fec32e6c4e39e45da8"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/tag.py": {
+    "mtime": 1780112849.9726467,
+    "ast_hash": "00726abc0af793def1b1b320891c3f29",
+    "semantic_hash": "00726abc0af793def1b1b320891c3f29"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/task.py": {
+    "mtime": 1780112849.9728746,
+    "ast_hash": "5dc7c4430d037b84e74d2ba33df7e5cb",
+    "semantic_hash": "5dc7c4430d037b84e74d2ba33df7e5cb"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/task_link.py": {
+    "mtime": 1780123068.9286883,
+    "ast_hash": "ed1b0138cc85819f8739d6021bc88148",
+    "semantic_hash": "ed1b0138cc85819f8739d6021bc88148"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/telos.py": {
+    "mtime": 1780184862.374038,
+    "ast_hash": "b05baa9de6be73aebb08a9eadc1bfba6",
+    "semantic_hash": "b05baa9de6be73aebb08a9eadc1bfba6"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/tone.py": {
+    "mtime": 1780184862.4277873,
+    "ast_hash": "91ba88a6bcc864da6e196798b43f9ff1",
+    "semantic_hash": "91ba88a6bcc864da6e196798b43f9ff1"
+  },
+  "/Users/nls/projects/mission-control/backend/app/models/user.py": {
+    "mtime": 1780112849.9730995,
+    "ast_hash": "0c063e79457b919f3325065e32d2eade",
+    "semantic_hash": "0c063e79457b919f3325065e32d2eade"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/__init__.py": {
+    "mtime": 1780112849.973139,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/agent_persona.py": {
+    "mtime": 1780185012.8417165,
+    "ast_hash": "400d3f6909a867ded005c8704ff7c606",
+    "semantic_hash": "400d3f6909a867ded005c8704ff7c606"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/audit.py": {
+    "mtime": 1780120441.469719,
+    "ast_hash": "6d9722e21fe54999f27768777bedede4",
+    "semantic_hash": "6d9722e21fe54999f27768777bedede4"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/auth.py": {
+    "mtime": 1780112849.973595,
+    "ast_hash": "0be73e3a86098623febef7b33259004c",
+    "semantic_hash": "0be73e3a86098623febef7b33259004c"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/company.py": {
+    "mtime": 1780112849.973822,
+    "ast_hash": "7b81c199ed75f2e78eee40a164cbf8af",
+    "semantic_hash": "7b81c199ed75f2e78eee40a164cbf8af"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/context.py": {
+    "mtime": 1780782894.2429733,
+    "ast_hash": "dbc47348909d280dfba975cae395c5fb",
+    "semantic_hash": "dbc47348909d280dfba975cae395c5fb"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/entity_link.py": {
+    "mtime": 1780112849.9742389,
+    "ast_hash": "84e466206ae3849c7c4abb7a037186d2",
+    "semantic_hash": "84e466206ae3849c7c4abb7a037186d2"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/entity_tag.py": {
+    "mtime": 1780112849.9744096,
+    "ast_hash": "5bb3e78ec070d931bf176f158de86f95",
+    "semantic_hash": "5bb3e78ec070d931bf176f158de86f95"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/habit.py": {
+    "mtime": 1780184471.7606924,
+    "ast_hash": "26aeeee6932a393ae81a50c337759eef",
+    "semantic_hash": "26aeeee6932a393ae81a50c337759eef"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/inbox_item.py": {
+    "mtime": 1780184808.1496654,
+    "ast_hash": "9c3e8ac2ec47e6b2b3d21c3986c3253a",
+    "semantic_hash": "9c3e8ac2ec47e6b2b3d21c3986c3253a"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/journal_entry.py": {
+    "mtime": 1780184425.1387494,
+    "ast_hash": "c54ecfca54e408693d156dc0f8566d3c",
+    "semantic_hash": "c54ecfca54e408693d156dc0f8566d3c"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/knowledge.py": {
+    "mtime": 1780184523.0817811,
+    "ast_hash": "0875dd5dea7f16e13bc70b768939f1dd",
+    "semantic_hash": "0875dd5dea7f16e13bc70b768939f1dd"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/meeting.py": {
+    "mtime": 1780184523.0291634,
+    "ast_hash": "323ba709f8f782881a85bdfb66cee118",
+    "semantic_hash": "323ba709f8f782881a85bdfb66cee118"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/observation.py": {
+    "mtime": 1780120441.4701946,
+    "ast_hash": "ea2cac14adc1ee330dad0c702e996500",
+    "semantic_hash": "ea2cac14adc1ee330dad0c702e996500"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/person.py": {
+    "mtime": 1780112849.9748735,
+    "ast_hash": "ccf4a77bc8a958a8390ce6d5a5c049bb",
+    "semantic_hash": "ccf4a77bc8a958a8390ce6d5a5c049bb"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/project.py": {
+    "mtime": 1780120441.470668,
+    "ast_hash": "bd8cdda8540b82ce067c4d88a7dc7af1",
+    "semantic_hash": "bd8cdda8540b82ce067c4d88a7dc7af1"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/relationship.py": {
+    "mtime": 1780112849.9754224,
+    "ast_hash": "6745e5ea11b1390e802e8db6de6ea7e9",
+    "semantic_hash": "6745e5ea11b1390e802e8db6de6ea7e9"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/review.py": {
+    "mtime": 1780184471.7020044,
+    "ast_hash": "c15de7dbf11894d1b54d28defd8f5258",
+    "semantic_hash": "c15de7dbf11894d1b54d28defd8f5258"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/search.py": {
+    "mtime": 1780120441.4709003,
+    "ast_hash": "19c44dad68d9e2ab5d2b0d2c46d599c8",
+    "semantic_hash": "19c44dad68d9e2ab5d2b0d2c46d599c8"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/tag.py": {
+    "mtime": 1780112849.975657,
+    "ast_hash": "fdd6b936d388e0dbfcff8bd78ad48299",
+    "semantic_hash": "fdd6b936d388e0dbfcff8bd78ad48299"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/task.py": {
+    "mtime": 1780120441.471142,
+    "ast_hash": "1f93988bb2252cc4fced8766f246272a",
+    "semantic_hash": "1f93988bb2252cc4fced8766f246272a"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/task_link.py": {
+    "mtime": 1780123068.9289136,
+    "ast_hash": "9739ab17f8518dd6b041271b1e4229a6",
+    "semantic_hash": "9739ab17f8518dd6b041271b1e4229a6"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/telos.py": {
+    "mtime": 1780184862.374102,
+    "ast_hash": "cd66f5598e3f9d018c0d3940540f065a",
+    "semantic_hash": "cd66f5598e3f9d018c0d3940540f065a"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/tone.py": {
+    "mtime": 1780184862.428336,
+    "ast_hash": "68c852c8a7affc0aef35fdb5379ff057",
+    "semantic_hash": "68c852c8a7affc0aef35fdb5379ff057"
+  },
+  "/Users/nls/projects/mission-control/backend/app/schemas/webauthn.py": {
+    "mtime": 1780184962.7508183,
+    "ast_hash": "b53c85663ce4deda7e15e054ec28cfcf",
+    "semantic_hash": "b53c85663ce4deda7e15e054ec28cfcf"
+  },
+  "/Users/nls/projects/mission-control/backend/app/search/__init__.py": {
+    "mtime": 1780116831.255385,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/nls/projects/mission-control/backend/app/search/embedder.py": {
+    "mtime": 1780781349.1923435,
+    "ast_hash": "c4ea107e5459d9630ef581c9f3637694",
+    "semantic_hash": "c4ea107e5459d9630ef581c9f3637694"
+  },
+  "/Users/nls/projects/mission-control/backend/app/search/index.py": {
+    "mtime": 1780184408.4598756,
+    "ast_hash": "caa52e2828542f056f322368f306f6e2",
+    "semantic_hash": "caa52e2828542f056f322368f306f6e2"
+  },
+  "/Users/nls/projects/mission-control/backend/app/search/query.py": {
+    "mtime": 1780120441.4722393,
+    "ast_hash": "720626f8245a21d76932e8369a98aaa5",
+    "semantic_hash": "720626f8245a21d76932e8369a98aaa5"
+  },
+  "/Users/nls/projects/mission-control/backend/app/search/worker.py": {
+    "mtime": 1780184408.4599378,
+    "ast_hash": "a2e26105d15605fad3b34909c773cb1b",
+    "semantic_hash": "a2e26105d15605fad3b34909c773cb1b"
+  },
+  "/Users/nls/projects/mission-control/backend/app/security.py": {
+    "mtime": 1780112849.976061,
+    "ast_hash": "15234a3aa6826d964b5fd7cd3d51e19f",
+    "semantic_hash": "15234a3aa6826d964b5fd7cd3d51e19f"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/__init__.py": {
+    "mtime": 1780112849.9760997,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/auth.py": {
+    "mtime": 1780112849.976387,
+    "ast_hash": "58717e0989c39a95157ac319c116a97b",
+    "semantic_hash": "58717e0989c39a95157ac319c116a97b"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/company.py": {
+    "mtime": 1780185501.8032722,
+    "ast_hash": "844095425d6f8988e866f05bef680443",
+    "semantic_hash": "844095425d6f8988e866f05bef680443"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/context.py": {
+    "mtime": 1780185501.8032649,
+    "ast_hash": "f6dad7d3db2b2b6c7c0306dd783226ac",
+    "semantic_hash": "f6dad7d3db2b2b6c7c0306dd783226ac"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/entity_link.py": {
+    "mtime": 1780112849.9769387,
+    "ast_hash": "89e2e979180e5f732622ecb982f472da",
+    "semantic_hash": "89e2e979180e5f732622ecb982f472da"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/entity_tag.py": {
+    "mtime": 1780112849.9770916,
+    "ast_hash": "b1edc86f547d22342498e7d192c37bf3",
+    "semantic_hash": "b1edc86f547d22342498e7d192c37bf3"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/habit.py": {
+    "mtime": 1780184471.7607527,
+    "ast_hash": "216f98e8cf3c5b981416ace0d8d2d73c",
+    "semantic_hash": "216f98e8cf3c5b981416ace0d8d2d73c"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/inbox_item.py": {
+    "mtime": 1780184808.1497376,
+    "ast_hash": "d882fb7b07ae9236c934e1e8b3d29564",
+    "semantic_hash": "d882fb7b07ae9236c934e1e8b3d29564"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/journal_entry.py": {
+    "mtime": 1780184425.1388102,
+    "ast_hash": "76d6d3b8436615dcdd33fc368e2195cc",
+    "semantic_hash": "76d6d3b8436615dcdd33fc368e2195cc"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/knowledge.py": {
+    "mtime": 1780184523.0818527,
+    "ast_hash": "440c9e0ecc00e56e37d426ec42f34637",
+    "semantic_hash": "440c9e0ecc00e56e37d426ec42f34637"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/meeting.py": {
+    "mtime": 1780184523.0294127,
+    "ast_hash": "fde4f3a276aba8b139b8c1da5127674b",
+    "semantic_hash": "fde4f3a276aba8b139b8c1da5127674b"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/observation.py": {
+    "mtime": 1780185501.8034706,
+    "ast_hash": "87f9171c3d73d680248532ac6b48bb30",
+    "semantic_hash": "87f9171c3d73d680248532ac6b48bb30"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/pagination.py": {
+    "mtime": 1780185423.585394,
+    "ast_hash": "c3714118b0c60d71528f53caf7e464ba",
+    "semantic_hash": "c3714118b0c60d71528f53caf7e464ba"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/person.py": {
+    "mtime": 1780185501.8034415,
+    "ast_hash": "dd8463b14562f98aec71eece56e6c92b",
+    "semantic_hash": "dd8463b14562f98aec71eece56e6c92b"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/project.py": {
+    "mtime": 1780185501.8032684,
+    "ast_hash": "7dfad6affcf58ed460d8b7027dbb6871",
+    "semantic_hash": "7dfad6affcf58ed460d8b7027dbb6871"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/relationship.py": {
+    "mtime": 1780185423.5858867,
+    "ast_hash": "1e11bc4c2663702759117e5c3e74330e",
+    "semantic_hash": "1e11bc4c2663702759117e5c3e74330e"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/review.py": {
+    "mtime": 1780184471.7021625,
+    "ast_hash": "4ab74630024298e681dcd11fb6834dbe",
+    "semantic_hash": "4ab74630024298e681dcd11fb6834dbe"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/tag.py": {
+    "mtime": 1780185423.5859985,
+    "ast_hash": "17a12dde17b9a24845031c1a26e4a07f",
+    "semantic_hash": "17a12dde17b9a24845031c1a26e4a07f"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/task.py": {
+    "mtime": 1780185501.8032598,
+    "ast_hash": "40af2a6bb6beacf3e21e5a7b232b7985",
+    "semantic_hash": "40af2a6bb6beacf3e21e5a7b232b7985"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/task_link.py": {
+    "mtime": 1780123068.9291563,
+    "ast_hash": "8c1746a13e147bb1396e96c1f752e70e",
+    "semantic_hash": "8c1746a13e147bb1396e96c1f752e70e"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/telos.py": {
+    "mtime": 1780184862.374174,
+    "ast_hash": "78f3f47638075afc249cfeade0f3615e",
+    "semantic_hash": "78f3f47638075afc249cfeade0f3615e"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/tone.py": {
+    "mtime": 1780184862.4285233,
+    "ast_hash": "65189c409a8844267b8be3734847e3d1",
+    "semantic_hash": "65189c409a8844267b8be3734847e3d1"
+  },
+  "/Users/nls/projects/mission-control/backend/app/services/webauthn.py": {
+    "mtime": 1780184962.7508965,
+    "ast_hash": "4456fc41218e4ae9d10866fd916f9fc7",
+    "semantic_hash": "4456fc41218e4ae9d10866fd916f9fc7"
+  },
+  "/Users/nls/projects/mission-control/backend/entrypoint.sh": {
+    "mtime": 1780123068.9293904,
+    "ast_hash": "4325641be7a72950df3f5de1cded2cc8",
+    "semantic_hash": "4325641be7a72950df3f5de1cded2cc8"
+  },
+  "/Users/nls/projects/mission-control/backend/scripts/__init__.py": {
+    "mtime": 1780123068.929702,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/nls/projects/mission-control/backend/scripts/import_aya.py": {
+    "mtime": 1780184940.9857605,
+    "ast_hash": "8b6c5df3c5b6526ed463a4f061ee2d69",
+    "semantic_hash": "8b6c5df3c5b6526ed463a4f061ee2d69"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/__init__.py": {
+    "mtime": 1780112849.9786828,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/conftest.py": {
+    "mtime": 1780112849.9789639,
+    "ast_hash": "b8161a383d8180f33cf240dcb2d64099",
+    "semantic_hash": "b8161a383d8180f33cf240dcb2d64099"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/helpers.py": {
+    "mtime": 1780112849.9792202,
+    "ast_hash": "c6a798ce4ed09306260e4f1d437aec28",
+    "semantic_hash": "c6a798ce4ed09306260e4f1d437aec28"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_agent_api.py": {
+    "mtime": 1780123068.9318666,
+    "ast_hash": "01e3d4b87c641d935076812e3b6b07cf",
+    "semantic_hash": "01e3d4b87c641d935076812e3b6b07cf"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_agent_llm.py": {
+    "mtime": 1780184408.341691,
+    "ast_hash": "2990eb544bff6a57b811f2b7d2566c86",
+    "semantic_hash": "2990eb544bff6a57b811f2b7d2566c86"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_agent_persona_wiring.py": {
+    "mtime": 1780185012.8419218,
+    "ast_hash": "b759998ca2e1719f2860319c151429ef",
+    "semantic_hash": "b759998ca2e1719f2860319c151429ef"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_agent_run.py": {
+    "mtime": 1780123068.9323077,
+    "ast_hash": "30a97d27d3c5b0a7ee3eea6452866ea5",
+    "semantic_hash": "30a97d27d3c5b0a7ee3eea6452866ea5"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_agent_tools.py": {
+    "mtime": 1780123068.9325001,
+    "ast_hash": "e077163ca017129e6a8faa3d79da87e5",
+    "semantic_hash": "e077163ca017129e6a8faa3d79da87e5"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_audit_api.py": {
+    "mtime": 1780120441.4724941,
+    "ast_hash": "4b9cefba73b93b3f7875f3b1e7cb2635",
+    "semantic_hash": "4b9cefba73b93b3f7875f3b1e7cb2635"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_audit_model.py": {
+    "mtime": 1780112849.9797356,
+    "ast_hash": "3416f2a2478bc5de6afd892e0ac0dbdf",
+    "semantic_hash": "3416f2a2478bc5de6afd892e0ac0dbdf"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_audit_revert.py": {
+    "mtime": 1780120441.4726882,
+    "ast_hash": "1e9fcff72e7b1e42fadc2a994b47deb8",
+    "semantic_hash": "1e9fcff72e7b1e42fadc2a994b47deb8"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_audit_serialize.py": {
+    "mtime": 1780112849.9801033,
+    "ast_hash": "039f16ac9898a5f5988170b21d40bf8c",
+    "semantic_hash": "039f16ac9898a5f5988170b21d40bf8c"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_auth_api.py": {
+    "mtime": 1780184408.3813035,
+    "ast_hash": "7cc40210da39927fa044327b1cbf7781",
+    "semantic_hash": "7cc40210da39927fa044327b1cbf7781"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_auth_openai_cli.py": {
+    "mtime": 1780157992.625423,
+    "ast_hash": "ebbd45f89dd255cbe29e8ae0f05a87cd",
+    "semantic_hash": "ebbd45f89dd255cbe29e8ae0f05a87cd"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_auth_service.py": {
+    "mtime": 1780112849.9807265,
+    "ast_hash": "46b99adf94c772aad104bffccf14a227",
+    "semantic_hash": "46b99adf94c772aad104bffccf14a227"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_chunk_model.py": {
+    "mtime": 1780116831.2587903,
+    "ast_hash": "47d8b1d36b155ef16e1eb109ef6937bd",
+    "semantic_hash": "47d8b1d36b155ef16e1eb109ef6937bd"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_cli.py": {
+    "mtime": 1780112849.9809468,
+    "ast_hash": "4677bcd8cc5f04d9d09b76dbd6413d90",
+    "semantic_hash": "4677bcd8cc5f04d9d09b76dbd6413d90"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_companies_api.py": {
+    "mtime": 1780112849.9811628,
+    "ast_hash": "c1548e183038f0b50d142575802bd816",
+    "semantic_hash": "c1548e183038f0b50d142575802bd816"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_config.py": {
+    "mtime": 1780120441.4729166,
+    "ast_hash": "54d931f89db4ca298933a952f0fd49bc",
+    "semantic_hash": "54d931f89db4ca298933a952f0fd49bc"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_context_model.py": {
+    "mtime": 1780112849.9815445,
+    "ast_hash": "2428187fd57d7cac97572cfd2a7dbce6",
+    "semantic_hash": "2428187fd57d7cac97572cfd2a7dbce6"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_contexts_api.py": {
+    "mtime": 1780782894.2433898,
+    "ast_hash": "45a8d31b6c619b477ffb0598bce2f2c7",
+    "semantic_hash": "45a8d31b6c619b477ffb0598bce2f2c7"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_db.py": {
+    "mtime": 1780112849.981908,
+    "ast_hash": "34d9c97c2a42182269e676a063151d38",
+    "semantic_hash": "34d9c97c2a42182269e676a063151d38"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_demo_seed.py": {
+    "mtime": 1780158832.5855527,
+    "ast_hash": "810875b565691db4ee3f778af258a83d",
+    "semantic_hash": "810875b565691db4ee3f778af258a83d"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_deps.py": {
+    "mtime": 1780112849.9821239,
+    "ast_hash": "f2528ca4994209b99fc8fc05fd0c7c37",
+    "semantic_hash": "f2528ca4994209b99fc8fc05fd0c7c37"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_embedder.py": {
+    "mtime": 1780781349.1927586,
+    "ast_hash": "952927b30a94970f18648bf2ededcbb6",
+    "semantic_hash": "952927b30a94970f18648bf2ededcbb6"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_entity_links_api.py": {
+    "mtime": 1780112849.9822538,
+    "ast_hash": "f01343c25ff1d50633350d6034abc695",
+    "semantic_hash": "f01343c25ff1d50633350d6034abc695"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_entity_tags_api.py": {
+    "mtime": 1780112849.982378,
+    "ast_hash": "67cf125db231a88fca6e9732687410de",
+    "semantic_hash": "67cf125db231a88fca6e9732687410de"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_graph_projector.py": {
+    "mtime": 1780123068.9326794,
+    "ast_hash": "ab8c226c66197c93c4fbffdcb50a57a8",
+    "semantic_hash": "ab8c226c66197c93c4fbffdcb50a57a8"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_graph_query.py": {
+    "mtime": 1780123068.9328978,
+    "ast_hash": "7674030adbe0dbd957d763bb75c9f8e1",
+    "semantic_hash": "7674030adbe0dbd957d763bb75c9f8e1"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_graph_worker.py": {
+    "mtime": 1780123068.9331038,
+    "ast_hash": "4485a44670e86fa001f8e99f459f3ac2",
+    "semantic_hash": "4485a44670e86fa001f8e99f459f3ac2"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_habits_api.py": {
+    "mtime": 1780184471.7609155,
+    "ast_hash": "568f1d42803f2539bf02ad7504b28449",
+    "semantic_hash": "568f1d42803f2539bf02ad7504b28449"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_health.py": {
+    "mtime": 1780112849.982507,
+    "ast_hash": "0e80c6261c119b3941e17ed677fe15df",
+    "semantic_hash": "0e80c6261c119b3941e17ed677fe15df"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_immutable_revert.py": {
+    "mtime": 1780123068.933423,
+    "ast_hash": "076a40fcd8c38586fa86c4328151fd05",
+    "semantic_hash": "076a40fcd8c38586fa86c4328151fd05"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_import_aya.py": {
+    "mtime": 1780184862.3747308,
+    "ast_hash": "06b63d4feff6dccf2899f28972fb6aa0",
+    "semantic_hash": "06b63d4feff6dccf2899f28972fb6aa0"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_inbox_api.py": {
+    "mtime": 1780184808.1498892,
+    "ast_hash": "2d5181eb6049ddc9be963aefe71d59da",
+    "semantic_hash": "2d5181eb6049ddc9be963aefe71d59da"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_indexer.py": {
+    "mtime": 1780184408.4616585,
+    "ast_hash": "fca717f4809767c66832640e4f0c4ae9",
+    "semantic_hash": "fca717f4809767c66832640e4f0c4ae9"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_integrity_errors.py": {
+    "mtime": 1780120441.4736724,
+    "ast_hash": "5f0b24b7cc507e716ec4d4bf1f09fd8e",
+    "semantic_hash": "5f0b24b7cc507e716ec4d4bf1f09fd8e"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_journal_entries_api.py": {
+    "mtime": 1780184425.1391888,
+    "ast_hash": "1560a87ad2b660b10a076ddf845cb36b",
+    "semantic_hash": "1560a87ad2b660b10a076ddf845cb36b"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_knowledge_api.py": {
+    "mtime": 1780184523.082505,
+    "ast_hash": "2d9c7bbc9e4643f47a8dda5360e7e76b",
+    "semantic_hash": "2d9c7bbc9e4643f47a8dda5360e7e76b"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_llm_openrouter.py": {
+    "mtime": 1780763609.2792127,
+    "ast_hash": "42e2d847b8e12a0716bc5f201461587a",
+    "semantic_hash": "42e2d847b8e12a0716bc5f201461587a"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_meetings_api.py": {
+    "mtime": 1780184523.029582,
+    "ast_hash": "e8ef3668b9f74bdad808859d482bcb64",
+    "semantic_hash": "e8ef3668b9f74bdad808859d482bcb64"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_observations_api.py": {
+    "mtime": 1780112849.9830313,
+    "ast_hash": "1c032f3a0266713027efc988e125977a",
+    "semantic_hash": "1c032f3a0266713027efc988e125977a"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_openai_auth.py": {
+    "mtime": 1780157992.625908,
+    "ast_hash": "cb6485e0e35871dceda90e591db6ed29",
+    "semantic_hash": "cb6485e0e35871dceda90e591db6ed29"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_openai_oauth_provider.py": {
+    "mtime": 1780157992.6263328,
+    "ast_hash": "46d5d908d80e0173d452046b8e47f5ad",
+    "semantic_hash": "46d5d908d80e0173d452046b8e47f5ad"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_outbox.py": {
+    "mtime": 1780184408.4618287,
+    "ast_hash": "bee191a6656fff84ffb6b74c19dc3735",
+    "semantic_hash": "bee191a6656fff84ffb6b74c19dc3735"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_pagination.py": {
+    "mtime": 1780185423.5862298,
+    "ast_hash": "552c5e4e39ad2cdded5db8e6f3ec26b2",
+    "semantic_hash": "552c5e4e39ad2cdded5db8e6f3ec26b2"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_people_api.py": {
+    "mtime": 1780112849.9832425,
+    "ast_hash": "633fbb2361efaa2e420865465692dd69",
+    "semantic_hash": "633fbb2361efaa2e420865465692dd69"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_persona_api.py": {
+    "mtime": 1780185012.8419886,
+    "ast_hash": "dfef809cc4d122817420227c2bd52279",
+    "semantic_hash": "dfef809cc4d122817420227c2bd52279"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_persona_store.py": {
+    "mtime": 1780185012.8420484,
+    "ast_hash": "dacecfdee4a087153c042ed8c0ab0c03",
+    "semantic_hash": "dacecfdee4a087153c042ed8c0ab0c03"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_project_revert.py": {
+    "mtime": 1780112849.983495,
+    "ast_hash": "abf94dce51ec4b0b1e223d3ba6768a3b",
+    "semantic_hash": "abf94dce51ec4b0b1e223d3ba6768a3b"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_projects_api.py": {
+    "mtime": 1780112849.9837158,
+    "ast_hash": "c1750e84070cf7e185cbe4d874b90ab0",
+    "semantic_hash": "c1750e84070cf7e185cbe4d874b90ab0"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_reindex_api.py": {
+    "mtime": 1780116831.2596352,
+    "ast_hash": "d67671ec7046800fee609c042ae4f191",
+    "semantic_hash": "d67671ec7046800fee609c042ae4f191"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_relationships_api.py": {
+    "mtime": 1780112849.9839244,
+    "ast_hash": "da1997cb7013705545886044b91dff9b",
+    "semantic_hash": "da1997cb7013705545886044b91dff9b"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_reviews_api.py": {
+    "mtime": 1780184471.7024019,
+    "ast_hash": "76bf2dea880d2b96b2dd5f6b37dcc53c",
+    "semantic_hash": "76bf2dea880d2b96b2dd5f6b37dcc53c"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_search_api.py": {
+    "mtime": 1780116831.2598972,
+    "ast_hash": "5d74db52f97ea263069cc06c44ecbebf",
+    "semantic_hash": "5d74db52f97ea263069cc06c44ecbebf"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_search_worker.py": {
+    "mtime": 1780184408.4618912,
+    "ast_hash": "1e46128cb9f3eb6be52ea61c69481063",
+    "semantic_hash": "1e46128cb9f3eb6be52ea61c69481063"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_security.py": {
+    "mtime": 1780112849.984135,
+    "ast_hash": "e9413855132cf367760bf889001063c4",
+    "semantic_hash": "e9413855132cf367760bf889001063c4"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_tags_api.py": {
+    "mtime": 1780112849.9844449,
+    "ast_hash": "878be404d293a0ba8faa6617cf913dd6",
+    "semantic_hash": "878be404d293a0ba8faa6617cf913dd6"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_task_links_api.py": {
+    "mtime": 1780123068.9342444,
+    "ast_hash": "c243dfec557950b464b34bd01d252f43",
+    "semantic_hash": "c243dfec557950b464b34bd01d252f43"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_tasks_api.py": {
+    "mtime": 1780120441.4738297,
+    "ast_hash": "2ea06dd08e146d15da4485e3a7939cec",
+    "semantic_hash": "2ea06dd08e146d15da4485e3a7939cec"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_telos_api.py": {
+    "mtime": 1780184862.3748014,
+    "ast_hash": "e55aed13daa6127b9266d79c869379ef",
+    "semantic_hash": "e55aed13daa6127b9266d79c869379ef"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_tones_api.py": {
+    "mtime": 1780184862.4290173,
+    "ast_hash": "b9969b34adb88a58014ff8a219e8ed44",
+    "semantic_hash": "b9969b34adb88a58014ff8a219e8ed44"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_user_model.py": {
+    "mtime": 1780112849.9848843,
+    "ast_hash": "14fae32601e6b0b1a103a0970d7da05b",
+    "semantic_hash": "14fae32601e6b0b1a103a0970d7da05b"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/test_webauthn_api.py": {
+    "mtime": 1780184962.751135,
+    "ast_hash": "92a105cf0fec435d8a0b3c54f076dd9e",
+    "semantic_hash": "92a105cf0fec435d8a0b3c54f076dd9e"
+  },
+  "/Users/nls/projects/mission-control/frontend/eslint.config.js": {
+    "mtime": 1780119691.3998544,
+    "ast_hash": "31c05874d4b82f14a32b270ece44e365",
+    "semantic_hash": "31c05874d4b82f14a32b270ece44e365"
+  },
+  "/Users/nls/projects/mission-control/frontend/package.json": {
+    "mtime": 1780119691.4015791,
+    "ast_hash": "0f15e7804b86ba6474d66e06a2676013",
+    "semantic_hash": "0f15e7804b86ba6474d66e06a2676013"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/components/AppShell.tsx": {
+    "mtime": 1780185618.4439049,
+    "ast_hash": "db1a2faa7ffb65285eff519369f56f75",
+    "semantic_hash": "db1a2faa7ffb65285eff519369f56f75"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/components/CommandPalette.test.tsx": {
+    "mtime": 1780185618.4439921,
+    "ast_hash": "9a454e6bcd5385afafe041a57368046a",
+    "semantic_hash": "9a454e6bcd5385afafe041a57368046a"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/components/ConfirmButton.tsx": {
+    "mtime": 1780119691.4023037,
+    "ast_hash": "d17f178ef61af05509cb673c325fdde6",
+    "semantic_hash": "d17f178ef61af05509cb673c325fdde6"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/components/DataTable.tsx": {
+    "mtime": 1780119691.40282,
+    "ast_hash": "e5d0dabe33f2e9c6193fc1786b24d30f",
+    "semantic_hash": "e5d0dabe33f2e9c6193fc1786b24d30f"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/components/Pagination.test.tsx": {
+    "mtime": 1780185423.5863037,
+    "ast_hash": "70733884a9c4a8cc0dd5d95e3f50ad0d",
+    "semantic_hash": "70733884a9c4a8cc0dd5d95e3f50ad0d"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/components/Pagination.tsx": {
+    "mtime": 1780185423.5863616,
+    "ast_hash": "b57362b206cf600822fc32c30f70d971",
+    "semantic_hash": "b57362b206cf600822fc32c30f70d971"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/components/RequireAuth.test.tsx": {
+    "mtime": 1780112849.9898872,
+    "ast_hash": "84672d3630d7f28bf5b5c0f9e02b8786",
+    "semantic_hash": "84672d3630d7f28bf5b5c0f9e02b8786"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/components/RequireAuth.tsx": {
+    "mtime": 1780185618.4063056,
+    "ast_hash": "77f4f859aab5d10152286f3735155f5b",
+    "semantic_hash": "77f4f859aab5d10152286f3735155f5b"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/components/SubjectPicker.test.tsx": {
+    "mtime": 1780116831.263286,
+    "ast_hash": "e383bd248c870290b2af6aea48dcc85a",
+    "semantic_hash": "e383bd248c870290b2af6aea48dcc85a"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/components/SubjectPicker.tsx": {
+    "mtime": 1780116831.2635055,
+    "ast_hash": "fd8f0923bd3aaaf40e6b99f2ca601b71",
+    "semantic_hash": "fd8f0923bd3aaaf40e6b99f2ca601b71"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/components/console.tsx": {
+    "mtime": 1780782894.2436807,
+    "ast_hash": "d28fed21ee62da4d91c8af7c2f0e5fab",
+    "semantic_hash": "d28fed21ee62da4d91c8af7c2f0e5fab"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/components/ui.tsx": {
+    "mtime": 1780185012.8425314,
+    "ast_hash": "ef05a6fc486ec1007b532330fd190161",
+    "semantic_hash": "ef05a6fc486ec1007b532330fd190161"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/agent/api.test.tsx": {
+    "mtime": 1780123068.9368434,
+    "ast_hash": "5f7cd10a11c41465e8582e01ca220183",
+    "semantic_hash": "5f7cd10a11c41465e8582e01ca220183"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/agent/api.ts": {
+    "mtime": 1780184808.1500242,
+    "ast_hash": "df3540fe11f0285e4d34554c74ff1395",
+    "semantic_hash": "df3540fe11f0285e4d34554c74ff1395"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/audit/api.ts": {
+    "mtime": 1780185423.5865614,
+    "ast_hash": "a6c1a8764036641a4450d6441a8f8aff",
+    "semantic_hash": "a6c1a8764036641a4450d6441a8f8aff"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/companies/api.ts": {
+    "mtime": 1780116831.2644768,
+    "ast_hash": "536f9ea67f47c73e2b8440f1505a5061",
+    "semantic_hash": "536f9ea67f47c73e2b8440f1505a5061"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/contexts/api.ts": {
+    "mtime": 1780116831.2647393,
+    "ast_hash": "46c34f94c2875fec522f1c8913bee530",
+    "semantic_hash": "46c34f94c2875fec522f1c8913bee530"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/entityLinks/api.ts": {
+    "mtime": 1780116831.2650108,
+    "ast_hash": "7bd96cd24401a93aadb673683ee1f4c9",
+    "semantic_hash": "7bd96cd24401a93aadb673683ee1f4c9"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/entityTags/api.ts": {
+    "mtime": 1780116831.2652638,
+    "ast_hash": "12198c0d3d3556906fdf7391544aae31",
+    "semantic_hash": "12198c0d3d3556906fdf7391544aae31"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/graph/api.ts": {
+    "mtime": 1780185423.53448,
+    "ast_hash": "c46536c36f8efcfb5c83c24acdcafeac",
+    "semantic_hash": "c46536c36f8efcfb5c83c24acdcafeac"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/habits/api.ts": {
+    "mtime": 1780184471.7610226,
+    "ast_hash": "c34b4f6507f6a9799c16f2fcee71854a",
+    "semantic_hash": "c34b4f6507f6a9799c16f2fcee71854a"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/inbox/api.ts": {
+    "mtime": 1780184808.1502633,
+    "ast_hash": "fe70918ef8a65130d676da7cd9b76465",
+    "semantic_hash": "fe70918ef8a65130d676da7cd9b76465"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/journal/api.ts": {
+    "mtime": 1780184425.1393046,
+    "ast_hash": "70f6132cef0bec9e8ea865a1ee903f34",
+    "semantic_hash": "70f6132cef0bec9e8ea865a1ee903f34"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/knowledge/api.ts": {
+    "mtime": 1780184523.082641,
+    "ast_hash": "1292feb2b1109045ca4da62554264704",
+    "semantic_hash": "1292feb2b1109045ca4da62554264704"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/meetings/api.ts": {
+    "mtime": 1780184523.029873,
+    "ast_hash": "7aaf689ab6fa020601779e8aee8e3c12",
+    "semantic_hash": "7aaf689ab6fa020601779e8aee8e3c12"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/observations/api.ts": {
+    "mtime": 1780116831.2655473,
+    "ast_hash": "f69ccae838077963d089cf6bb65f6c75",
+    "semantic_hash": "f69ccae838077963d089cf6bb65f6c75"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/people/api.ts": {
+    "mtime": 1780185423.5867715,
+    "ast_hash": "1ab0c5de50ac4b30eeb963ccaf772ad1",
+    "semantic_hash": "1ab0c5de50ac4b30eeb963ccaf772ad1"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/persona/api.test.tsx": {
+    "mtime": 1780185012.8427253,
+    "ast_hash": "d7d6a2c83159530a5039786233606385",
+    "semantic_hash": "d7d6a2c83159530a5039786233606385"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/persona/api.ts": {
+    "mtime": 1780185012.8427973,
+    "ast_hash": "bd65a5c45ad14c49312b07b57594e40f",
+    "semantic_hash": "bd65a5c45ad14c49312b07b57594e40f"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/projects/api.ts": {
+    "mtime": 1780116831.2662566,
+    "ast_hash": "a92a31b5caba2bef07067eaddb1d8d91",
+    "semantic_hash": "a92a31b5caba2bef07067eaddb1d8d91"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/relationships/api.ts": {
+    "mtime": 1780116831.2664225,
+    "ast_hash": "79e53ebf2fd5fe9c5aa8f6e3378d5f9c",
+    "semantic_hash": "79e53ebf2fd5fe9c5aa8f6e3378d5f9c"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/reviews/api.ts": {
+    "mtime": 1780184471.7027678,
+    "ast_hash": "d4331f5643c09343c8cd2a5e12ae0e99",
+    "semantic_hash": "d4331f5643c09343c8cd2a5e12ae0e99"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/search/api.ts": {
+    "mtime": 1780116831.266855,
+    "ast_hash": "29c5638ee4d874eeb2498ef49d181f8b",
+    "semantic_hash": "29c5638ee4d874eeb2498ef49d181f8b"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/tags/api.ts": {
+    "mtime": 1780116831.2670426,
+    "ast_hash": "a9c1a0139d5610a16f3ae604b8d6ebd7",
+    "semantic_hash": "a9c1a0139d5610a16f3ae604b8d6ebd7"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/tasks/api.ts": {
+    "mtime": 1780116831.2672136,
+    "ast_hash": "4bc5fbc0faa72dce45d120581795afdb",
+    "semantic_hash": "4bc5fbc0faa72dce45d120581795afdb"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/telos/api.ts": {
+    "mtime": 1780184862.374904,
+    "ast_hash": "0909222606f17038bc80cf1b2d4d9482",
+    "semantic_hash": "0909222606f17038bc80cf1b2d4d9482"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/features/tones/api.ts": {
+    "mtime": 1780184862.4296758,
+    "ast_hash": "c07e17f8584f2d0d92cb68eae59cf490",
+    "semantic_hash": "c07e17f8584f2d0d92cb68eae59cf490"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/lib/api.test.ts": {
+    "mtime": 1780112849.9910467,
+    "ast_hash": "2b904e2168291035fe32187c1df63011",
+    "semantic_hash": "2b904e2168291035fe32187c1df63011"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/lib/api.ts": {
+    "mtime": 1780185423.5868888,
+    "ast_hash": "ff4e6a2cea4f4db1168f35206b418264",
+    "semantic_hash": "ff4e6a2cea4f4db1168f35206b418264"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/lib/auth.test.tsx": {
+    "mtime": 1780112849.9920487,
+    "ast_hash": "a61115a2f89acc1c9d13799cccde844b",
+    "semantic_hash": "a61115a2f89acc1c9d13799cccde844b"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/lib/auth.ts": {
+    "mtime": 1780184962.7524295,
+    "ast_hash": "f2b7022df789aa423e47e1e7ad569728",
+    "semantic_hash": "f2b7022df789aa423e47e1e7ad569728"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/lib/greeting.test.ts": {
+    "mtime": 1780185538.7119653,
+    "ast_hash": "4d996db423201bdcc0c906f427538fb1",
+    "semantic_hash": "4d996db423201bdcc0c906f427538fb1"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/lib/greeting.ts": {
+    "mtime": 1780185538.7120242,
+    "ast_hash": "6b77b3f44b9a4e8d71f883bff8529edd",
+    "semantic_hash": "6b77b3f44b9a4e8d71f883bff8529edd"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/lib/hooks.test.tsx": {
+    "mtime": 1780116831.267744,
+    "ast_hash": "5aef3d889c6507acbe071d63440233af",
+    "semantic_hash": "5aef3d889c6507acbe071d63440233af"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/lib/hooks.ts": {
+    "mtime": 1780185423.5870042,
+    "ast_hash": "905d336458460cd17273aa93ec2c2c83",
+    "semantic_hash": "905d336458460cd17273aa93ec2c2c83"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/lib/pagination.test.ts": {
+    "mtime": 1780185423.5870788,
+    "ast_hash": "162bd6eec93a50d8b60cd3ee7ab21d10",
+    "semantic_hash": "162bd6eec93a50d8b60cd3ee7ab21d10"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/lib/pagination.ts": {
+    "mtime": 1780185423.5871553,
+    "ast_hash": "0ff7fcfdcf1a113e3a17025d0299f5a2",
+    "semantic_hash": "0ff7fcfdcf1a113e3a17025d0299f5a2"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/lib/resource.test.ts": {
+    "mtime": 1780116831.2683232,
+    "ast_hash": "8efbb884c8ed3431e7328225348f77c2",
+    "semantic_hash": "8efbb884c8ed3431e7328225348f77c2"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/lib/resource.ts": {
+    "mtime": 1780185423.587285,
+    "ast_hash": "a02b1a45f1364f23da9540ba45627b79",
+    "semantic_hash": "a02b1a45f1364f23da9540ba45627b79"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/lib/types.ts": {
+    "mtime": 1780782894.2441072,
+    "ast_hash": "9ce3c45fa1289bd7b0bc851a36fa8db2",
+    "semantic_hash": "9ce3c45fa1289bd7b0bc851a36fa8db2"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/lib/useFocusTrap.test.tsx": {
+    "mtime": 1780185618.4440587,
+    "ast_hash": "6771adfe0f6b8c481639c24db2281a8e",
+    "semantic_hash": "6771adfe0f6b8c481639c24db2281a8e"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/lib/useFocusTrap.ts": {
+    "mtime": 1780185618.4442532,
+    "ast_hash": "b580228ec47e21715a62a5d6a74db524",
+    "semantic_hash": "b580228ec47e21715a62a5d6a74db524"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/lib/webauthn.ts": {
+    "mtime": 1780184962.7525074,
+    "ast_hash": "bb0382fe72f9e27c8a52746ab6d4c1f6",
+    "semantic_hash": "bb0382fe72f9e27c8a52746ab6d4c1f6"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/main.tsx": {
+    "mtime": 1780119691.40377,
+    "ast_hash": "a60048b40beed83b44083f72c2d54e18",
+    "semantic_hash": "a60048b40beed83b44083f72c2d54e18"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/router.tsx": {
+    "mtime": 1780185862.295251,
+    "ast_hash": "07aa2721abab9ed818e3c5f7870c27c0",
+    "semantic_hash": "07aa2721abab9ed818e3c5f7870c27c0"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/activity.test.tsx": {
+    "mtime": 1780116831.2692611,
+    "ast_hash": "9c8db480ff4f492c2d1ac061c27e1fc8",
+    "semantic_hash": "9c8db480ff4f492c2d1ac061c27e1fc8"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/activity.tsx": {
+    "mtime": 1780185618.4064689,
+    "ast_hash": "ef08f4709cea3529b16eefb522a2250e",
+    "semantic_hash": "ef08f4709cea3529b16eefb522a2250e"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/companies.test.tsx": {
+    "mtime": 1780116831.2697222,
+    "ast_hash": "97ebb0bb39c8f5a19a86d65b1df9366c",
+    "semantic_hash": "97ebb0bb39c8f5a19a86d65b1df9366c"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/companies.tsx": {
+    "mtime": 1780185618.4066248,
+    "ast_hash": "84e136c9d6f5d2c3e3b650915c8d589f",
+    "semantic_hash": "84e136c9d6f5d2c3e3b650915c8d589f"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/contexts.test.tsx": {
+    "mtime": 1780116831.270311,
+    "ast_hash": "835ffea254c35c4f1b9e293fa6d3290e",
+    "semantic_hash": "835ffea254c35c4f1b9e293fa6d3290e"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/contexts.tsx": {
+    "mtime": 1780185618.4068453,
+    "ast_hash": "f1162efdaa1194866762c2e5b73428e5",
+    "semantic_hash": "f1162efdaa1194866762c2e5b73428e5"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/entity-links.test.tsx": {
+    "mtime": 1780116831.2707493,
+    "ast_hash": "bf75438b52c572ce4ac0208cbb531238",
+    "semantic_hash": "bf75438b52c572ce4ac0208cbb531238"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/entity-links.tsx": {
+    "mtime": 1780185618.4069567,
+    "ast_hash": "33575a4df9831a9847acc934a56607a4",
+    "semantic_hash": "33575a4df9831a9847acc934a56607a4"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/entity-tags.test.tsx": {
+    "mtime": 1780116831.2716453,
+    "ast_hash": "fa2e2e6b22db85a0ca43c5fd941f0a76",
+    "semantic_hash": "fa2e2e6b22db85a0ca43c5fd941f0a76"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/entity-tags.tsx": {
+    "mtime": 1780185618.4070876,
+    "ast_hash": "e6e3f3b7b0652133375b599852b31135",
+    "semantic_hash": "e6e3f3b7b0652133375b599852b31135"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/habits.test.tsx": {
+    "mtime": 1780184471.7615097,
+    "ast_hash": "9fcb6eea968d5c87bc5484bc72e732a7",
+    "semantic_hash": "9fcb6eea968d5c87bc5484bc72e732a7"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/habits.tsx": {
+    "mtime": 1780184471.7616165,
+    "ast_hash": "4c0b3b3d36bf9dba7154e79d473ecd7d",
+    "semantic_hash": "4c0b3b3d36bf9dba7154e79d473ecd7d"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/inbox.test.tsx": {
+    "mtime": 1780184808.1506913,
+    "ast_hash": "2e4183c515e1b587171a6208c93a4900",
+    "semantic_hash": "2e4183c515e1b587171a6208c93a4900"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/inbox.tsx": {
+    "mtime": 1780184808.1507802,
+    "ast_hash": "dde4800442b92420a7ca7f5d0d655a18",
+    "semantic_hash": "dde4800442b92420a7ca7f5d0d655a18"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/index.tsx": {
+    "mtime": 1780184513.240747,
+    "ast_hash": "f4aad9b37524a1f3a288aa04fb3845f4",
+    "semantic_hash": "f4aad9b37524a1f3a288aa04fb3845f4"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/journal.test.tsx": {
+    "mtime": 1780184425.1401784,
+    "ast_hash": "a67c23993e91d77ad6c8139f9d20e4f9",
+    "semantic_hash": "a67c23993e91d77ad6c8139f9d20e4f9"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/journal.tsx": {
+    "mtime": 1780184425.1402884,
+    "ast_hash": "17549c48ed0265fe89897151eb2e4912",
+    "semantic_hash": "17549c48ed0265fe89897151eb2e4912"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/knowledge.test.tsx": {
+    "mtime": 1780184523.083127,
+    "ast_hash": "87f829fdc8703dd706b407f790eeb478",
+    "semantic_hash": "87f829fdc8703dd706b407f790eeb478"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/knowledge.tsx": {
+    "mtime": 1780184523.0832214,
+    "ast_hash": "6d9e359cd9ddc6520ec230acd7c29d3a",
+    "semantic_hash": "6d9e359cd9ddc6520ec230acd7c29d3a"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/login.test.tsx": {
+    "mtime": 1780184962.7527618,
+    "ast_hash": "45b8209c9391792af1c498189f95ee06",
+    "semantic_hash": "45b8209c9391792af1c498189f95ee06"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/login.tsx": {
+    "mtime": 1780184962.7530568,
+    "ast_hash": "8c5d8f72bb3588e713ef895c1fc15229",
+    "semantic_hash": "8c5d8f72bb3588e713ef895c1fc15229"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/meetings.test.tsx": {
+    "mtime": 1780184523.030402,
+    "ast_hash": "84689ad12ef8357827ffcd973c95113e",
+    "semantic_hash": "84689ad12ef8357827ffcd973c95113e"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/meetings.tsx": {
+    "mtime": 1780184523.0305126,
+    "ast_hash": "0c01a5c81e01fd5f2e967b0127d678ed",
+    "semantic_hash": "0c01a5c81e01fd5f2e967b0127d678ed"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/observations.test.tsx": {
+    "mtime": 1780116831.2720485,
+    "ast_hash": "299e519125953ab5fc5e7fd9f02d3a16",
+    "semantic_hash": "299e519125953ab5fc5e7fd9f02d3a16"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/observations.tsx": {
+    "mtime": 1780185618.4072316,
+    "ast_hash": "bd0f0fd0414bfef9f28868d1fcc8d166",
+    "semantic_hash": "bd0f0fd0414bfef9f28868d1fcc8d166"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/people.test.tsx": {
+    "mtime": 1780185423.587672,
+    "ast_hash": "bd8d525433b60188ea32eb8ef99cd558",
+    "semantic_hash": "bd8d525433b60188ea32eb8ef99cd558"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/people.tsx": {
+    "mtime": 1780185618.4074132,
+    "ast_hash": "0b5386931addf354f62087ca530d45a0",
+    "semantic_hash": "0b5386931addf354f62087ca530d45a0"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/person-detail.test.tsx": {
+    "mtime": 1780185423.5352795,
+    "ast_hash": "9fd754c958fe4b95a1017f2a21525395",
+    "semantic_hash": "9fd754c958fe4b95a1017f2a21525395"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/person-detail.tsx": {
+    "mtime": 1780185423.535364,
+    "ast_hash": "5fcdab8faefe685136938a6158fe09dc",
+    "semantic_hash": "5fcdab8faefe685136938a6158fe09dc"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/placeholder.tsx": {
+    "mtime": 1780185618.4075215,
+    "ast_hash": "c984b044cfc6f6a3e1b6c113eb9fbea4",
+    "semantic_hash": "c984b044cfc6f6a3e1b6c113eb9fbea4"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/projects.test.tsx": {
+    "mtime": 1780116831.2736816,
+    "ast_hash": "e06c4ab1c7d49cf7f7eca61450b9aad0",
+    "semantic_hash": "e06c4ab1c7d49cf7f7eca61450b9aad0"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/projects.tsx": {
+    "mtime": 1780185618.4077268,
+    "ast_hash": "6767d9019250e531d8768d77259b3b37",
+    "semantic_hash": "6767d9019250e531d8768d77259b3b37"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/relationships.test.tsx": {
+    "mtime": 1780116831.2740898,
+    "ast_hash": "b1a72733fdb512ce50a0c7467e05f54f",
+    "semantic_hash": "b1a72733fdb512ce50a0c7467e05f54f"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/relationships.tsx": {
+    "mtime": 1780185618.4078498,
+    "ast_hash": "15aa8a21753fa9405ffa441574250cad",
+    "semantic_hash": "15aa8a21753fa9405ffa441574250cad"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/reviews.test.tsx": {
+    "mtime": 1780184471.7036247,
+    "ast_hash": "b1de4ed45e2b0059ce6526cc26363ddd",
+    "semantic_hash": "b1de4ed45e2b0059ce6526cc26363ddd"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/reviews.tsx": {
+    "mtime": 1780184471.703732,
+    "ast_hash": "c90d82cc59a114937abd81dac8874b2e",
+    "semantic_hash": "c90d82cc59a114937abd81dac8874b2e"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/root.tsx": {
+    "mtime": 1780112849.9934554,
+    "ast_hash": "d18c8f61e1076782a46e3db4a9ba4946",
+    "semantic_hash": "d18c8f61e1076782a46e3db4a9ba4946"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/search.test.tsx": {
+    "mtime": 1780120441.475972,
+    "ast_hash": "5e51350fea7fb46d027b4ecb0641585a",
+    "semantic_hash": "5e51350fea7fb46d027b4ecb0641585a"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/search.tsx": {
+    "mtime": 1780185618.4080546,
+    "ast_hash": "27695d9df043a9e914e42bc2e2b5a4fd",
+    "semantic_hash": "27695d9df043a9e914e42bc2e2b5a4fd"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/settings.test.tsx": {
+    "mtime": 1780185395.1529992,
+    "ast_hash": "bf27cb90d34404098df9c823c40bf7f4",
+    "semantic_hash": "bf27cb90d34404098df9c823c40bf7f4"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/settings.tsx": {
+    "mtime": 1780185292.2295973,
+    "ast_hash": "8efb6d434f47ff28a4d779c56254ba48",
+    "semantic_hash": "8efb6d434f47ff28a4d779c56254ba48"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/tags.test.tsx": {
+    "mtime": 1780116831.2749097,
+    "ast_hash": "98620ad08337a2cd8cafcfc7dcf414e4",
+    "semantic_hash": "98620ad08337a2cd8cafcfc7dcf414e4"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/tags.tsx": {
+    "mtime": 1780185618.4082618,
+    "ast_hash": "02974cdd6c96c4d923a4861167a52077",
+    "semantic_hash": "02974cdd6c96c4d923a4861167a52077"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/tasks.test.tsx": {
+    "mtime": 1780185423.4953358,
+    "ast_hash": "470508544b34101a3c20c3134e83be79",
+    "semantic_hash": "470508544b34101a3c20c3134e83be79"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/tasks.tsx": {
+    "mtime": 1780185618.4084673,
+    "ast_hash": "e42cdfc4f6e77fd2e199d8c8d0a57736",
+    "semantic_hash": "e42cdfc4f6e77fd2e199d8c8d0a57736"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/telos.test.tsx": {
+    "mtime": 1780184862.3752975,
+    "ast_hash": "270d029a8d3f9427b9a34d67e1665014",
+    "semantic_hash": "270d029a8d3f9427b9a34d67e1665014"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/telos.tsx": {
+    "mtime": 1780184862.3753853,
+    "ast_hash": "17fbf85ba4643896ebdf3e7a4fde4f97",
+    "semantic_hash": "17fbf85ba4643896ebdf3e7a4fde4f97"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/tones.test.tsx": {
+    "mtime": 1780184862.4302208,
+    "ast_hash": "ec8ad72c7866330da20b514885c5d74b",
+    "semantic_hash": "ec8ad72c7866330da20b514885c5d74b"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/routes/tones.tsx": {
+    "mtime": 1780184862.430313,
+    "ast_hash": "dda3d35258fd6ad24340430fa129a032",
+    "semantic_hash": "dda3d35258fd6ad24340430fa129a032"
+  },
+  "/Users/nls/projects/mission-control/frontend/src/test-setup.ts": {
+    "mtime": 1780112849.993649,
+    "ast_hash": "3709e3aa95abf0544678f0f2d9b46702",
+    "semantic_hash": "3709e3aa95abf0544678f0f2d9b46702"
+  },
+  "/Users/nls/projects/mission-control/frontend/tsconfig.app.json": {
+    "mtime": 1780112849.9937918,
+    "ast_hash": "136630b5accce1ca50663df229534a26",
+    "semantic_hash": "136630b5accce1ca50663df229534a26"
+  },
+  "/Users/nls/projects/mission-control/frontend/tsconfig.json": {
+    "mtime": 1780112849.9939218,
+    "ast_hash": "a3d39fa780ebff65444de257f291ce6c",
+    "semantic_hash": "a3d39fa780ebff65444de257f291ce6c"
+  },
+  "/Users/nls/projects/mission-control/frontend/tsconfig.node.json": {
+    "mtime": 1780112849.9940593,
+    "ast_hash": "70bdd0a673bcfc0e828080b306e7c680",
+    "semantic_hash": "70bdd0a673bcfc0e828080b306e7c680"
+  },
+  "/Users/nls/projects/mission-control/frontend/vite.config.ts": {
+    "mtime": 1780116831.2760146,
+    "ast_hash": "74be9cc21caeb013d0e5f3f36c6c4681",
+    "semantic_hash": "74be9cc21caeb013d0e5f3f36c6c4681"
+  },
+  "/Users/nls/projects/mission-control/.github/workflows/ci.yml": {
+    "mtime": 1780112849.960458,
+    "ast_hash": "3f01bb97299b4eeb78924d99a1c9f29f",
+    "semantic_hash": "3f01bb97299b4eeb78924d99a1c9f29f"
+  },
+  "/Users/nls/projects/mission-control/DESIGN.md": {
+    "mtime": 1780119691.3993125,
+    "ast_hash": "5e723680d46c724955a2da4cfaba7da0",
+    "semantic_hash": "5e723680d46c724955a2da4cfaba7da0"
+  },
+  "/Users/nls/projects/mission-control/README.md": {
+    "mtime": 1780763430.353041,
+    "ast_hash": "f39351adf40dd46a9b4a6a9a3e06210c",
+    "semantic_hash": "f39351adf40dd46a9b4a6a9a3e06210c"
+  },
+  "/Users/nls/projects/mission-control/SPEC.md": {
+    "mtime": 1780763430.3536353,
+    "ast_hash": "48d30224bde919c291cde0ba9bdaa93c",
+    "semantic_hash": "48d30224bde919c291cde0ba9bdaa93c"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/fixtures/aya_vault/02.people/alice-example.md": {
+    "mtime": 1780123068.9302857,
+    "ast_hash": "396f0edddf90d37b92ba94b03d181b42",
+    "semantic_hash": "396f0edddf90d37b92ba94b03d181b42"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/fixtures/aya_vault/02.people/bob-example.md": {
+    "mtime": 1780123068.930514,
+    "ast_hash": "1c03bce387ff22c9113554415fb9229b",
+    "semantic_hash": "1c03bce387ff22c9113554415fb9229b"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/fixtures/aya_vault/03.contexts/work/INDEX.md": {
+    "mtime": 1780123068.9307806,
+    "ast_hash": "53707b382c3c1ccaa36c521e59f9af7b",
+    "semantic_hash": "53707b382c3c1ccaa36c521e59f9af7b"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/fixtures/aya_vault/03.contexts/work/projects/alpha-project.md": {
+    "mtime": 1780123068.9310255,
+    "ast_hash": "f451a176d3e61a7c25633725390eecc1",
+    "semantic_hash": "f451a176d3e61a7c25633725390eecc1"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/fixtures/aya_vault/04.knowledge/raw/sample-note.md": {
+    "mtime": 1780184523.0822592,
+    "ast_hash": "3beea1dcd59dbe727dcf8d80e8f61c27",
+    "semantic_hash": "3beea1dcd59dbe727dcf8d80e8f61c27"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/fixtures/aya_vault/05.tasks/open/20250101-0900-setup-ci-pipeline.md": {
+    "mtime": 1780123068.9313338,
+    "ast_hash": "cc79e0c05b1a25dc66435d76670359ac",
+    "semantic_hash": "cc79e0c05b1a25dc66435d76670359ac"
+  },
+  "/Users/nls/projects/mission-control/backend/tests/fixtures/aya_vault/99.system/configuration/TELOS.md": {
+    "mtime": 1780184862.3745458,
+    "ast_hash": "93db4fd1d1b9113323423072131e83db",
+    "semantic_hash": "93db4fd1d1b9113323423072131e83db"
+  },
+  "/Users/nls/projects/mission-control/docker-compose.yml": {
+    "mtime": 1780184962.7521589,
+    "ast_hash": "74b19c32cf132106f9360c95b28d6683",
+    "semantic_hash": "74b19c32cf132106f9360c95b28d6683"
+  },
+  "/Users/nls/projects/mission-control/docs/REVIEW-2026-05-30.md": {
+    "mtime": 1780119691.3995028,
+    "ast_hash": "e0a5013d8b3c0f334ad7b85ea6508bda",
+    "semantic_hash": "e0a5013d8b3c0f334ad7b85ea6508bda"
+  },
+  "/Users/nls/projects/mission-control/docs/superpowers/plans/2026-05-29-p0-backend-foundations.md": {
+    "mtime": 1780105191.4915245,
+    "ast_hash": "37bdc59aa75badb5a93839909e4cc0ca",
+    "semantic_hash": "37bdc59aa75badb5a93839909e4cc0ca"
+  },
+  "/Users/nls/projects/mission-control/docs/superpowers/plans/2026-05-29-p0-frontend-shell.md": {
+    "mtime": 1780112849.9861104,
+    "ast_hash": "50c242420cb381ffbfbd792b53367252",
+    "semantic_hash": "50c242420cb381ffbfbd792b53367252"
+  },
+  "/Users/nls/projects/mission-control/docs/superpowers/plans/2026-05-29-p1-2-entities.md": {
+    "mtime": 1780112849.9863782,
+    "ast_hash": "f387ebf5710e1a42a0284dbc24dd3412",
+    "semantic_hash": "f387ebf5710e1a42a0284dbc24dd3412"
+  },
+  "/Users/nls/projects/mission-control/docs/superpowers/plans/2026-05-29-p1-3-relationship-observation.md": {
+    "mtime": 1780112849.9866824,
+    "ast_hash": "89f79dccf3bacfe5ccae82321eefd195",
+    "semantic_hash": "89f79dccf3bacfe5ccae82321eefd195"
+  },
+  "/Users/nls/projects/mission-control/docs/superpowers/plans/2026-05-29-p1-4-tags-links.md": {
+    "mtime": 1780112849.986943,
+    "ast_hash": "0a422d2aa775039fa3dc46ececddb0ef",
+    "semantic_hash": "0a422d2aa775039fa3dc46ececddb0ef"
+  },
+  "/Users/nls/projects/mission-control/docs/superpowers/plans/2026-05-29-p1-5-frontend-crud.md": {
+    "mtime": 1780116831.26127,
+    "ast_hash": "1e7b35485b9d05d3a19a21f3e2a4e964",
+    "semantic_hash": "1e7b35485b9d05d3a19a21f3e2a4e964"
+  },
+  "/Users/nls/projects/mission-control/docs/superpowers/plans/2026-05-29-p1-6-core-entity-pages.md": {
+    "mtime": 1780116831.2615986,
+    "ast_hash": "33e652804691c7cc5152a7ea3b9cfb52",
+    "semantic_hash": "33e652804691c7cc5152a7ea3b9cfb52"
+  },
+  "/Users/nls/projects/mission-control/docs/superpowers/plans/2026-05-29-p1-7-remaining-pages.md": {
+    "mtime": 1780116831.2619314,
+    "ast_hash": "9495f26e019e06fa839b208e5689011b",
+    "semantic_hash": "9495f26e019e06fa839b208e5689011b"
+  },
+  "/Users/nls/projects/mission-control/docs/superpowers/plans/2026-05-29-p1-audit-and-contexts.md": {
+    "mtime": 1780112849.9872503,
+    "ast_hash": "8f0efba99c89417dbb649a119e03829e",
+    "semantic_hash": "8f0efba99c89417dbb649a119e03829e"
+  },
+  "/Users/nls/projects/mission-control/docs/superpowers/plans/2026-05-29-p3-semantic-search.md": {
+    "mtime": 1780116831.2622163,
+    "ast_hash": "919e5b28c92fbba8274dcec86f97731f",
+    "semantic_hash": "919e5b28c92fbba8274dcec86f97731f"
+  },
+  "/Users/nls/projects/mission-control/docs/superpowers/plans/2026-05-30-openai-oauth-agent.md": {
+    "mtime": 1780157992.62777,
+    "ast_hash": "cf7b575d9bd2f3272a0d64ad06a9c3ce",
+    "semantic_hash": "cf7b575d9bd2f3272a0d64ad06a9c3ce"
+  },
+  "/Users/nls/projects/mission-control/docs/superpowers/specs/2026-05-30-openai-oauth-agent-design.md": {
+    "mtime": 1780157992.6281931,
+    "ast_hash": "87c0cbbf7ab4fb90c6f57e4a4f31810b",
+    "semantic_hash": "87c0cbbf7ab4fb90c6f57e4a4f31810b"
+  },
+  "/Users/nls/projects/mission-control/frontend/README.md": {
+    "mtime": 1780123068.9363267,
+    "ast_hash": "d54af3d9bc00a48bb64813bf12d2db10",
+    "semantic_hash": "d54af3d9bc00a48bb64813bf12d2db10"
+  },
+  "/Users/nls/projects/mission-control/frontend/index.html": {
+    "mtime": 1780119691.400147,
+    "ast_hash": "75715883965bf9c465c9abb8d14427e1",
+    "semantic_hash": "75715883965bf9c465c9abb8d14427e1"
+  },
+  "/Users/nls/projects/mission-control/docs/screenshots/dashboard.png": {
+    "mtime": 1780158762.5756948,
+    "ast_hash": "2c134829e10c189aac8c7d5d7bc57e00",
+    "semantic_hash": "2c134829e10c189aac8c7d5d7bc57e00"
+  },
+  "/Users/nls/projects/mission-control/docs/screenshots/people.png": {
+    "mtime": 1780158765.267842,
+    "ast_hash": "4105544800f8e47968108d356b0b8623",
+    "semantic_hash": "4105544800f8e47968108d356b0b8623"
+  },
+  "/Users/nls/projects/mission-control/frontend/public/favicon.svg": {
+    "mtime": 1780112849.9893217,
+    "ast_hash": "7e840862161341271697daa99a40d76b",
+    "semantic_hash": "7e840862161341271697daa99a40d76b"
+  },
+  "/Users/nls/projects/mission-control/frontend/public/icons.svg": {
+    "mtime": 1780112849.9894829,
+    "ast_hash": "3b4fcfcf393eca4d264dca4a4663bc37",
+    "semantic_hash": "3b4fcfcf393eca4d264dca4a4663bc37"
+  }
+}
