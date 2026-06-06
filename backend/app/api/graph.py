@@ -1,7 +1,7 @@
 """Graph query API."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 
 from app.deps import get_current_user
@@ -24,7 +24,7 @@ class GraphQuery(BaseModel):
 
 
 @router.post("/query")
-async def graph_query(body: GraphQuery) -> list[dict]:
+async def graph_query(body: GraphQuery, run: Runner = Depends(get_runner)) -> list[dict]:  # noqa: B008
     if body.intent not in _INTENTS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -34,19 +34,19 @@ async def graph_query(body: GraphQuery) -> list[dict]:
     p = body.params
     if body.intent == "who_at_company":
         company_slug = p.get("company_slug") or p.get("slug", "")
-        return await gq.who_at_company(neo4j_runner, company_slug)
+        return await gq.who_at_company(run, company_slug)
 
     if body.intent == "connection_path":
-        return await gq.connection_path(neo4j_runner, p.get("from_id", ""), p.get("to_id", ""))
+        return await gq.connection_path(run, p.get("from_id", ""), p.get("to_id", ""))
 
     # neighbors
-    return await gq.neighbors(neo4j_runner, p.get("person_id", ""))
+    return await gq.neighbors(run, p.get("person_id", ""))
 
 
 @router.get("/full")
 async def graph_full(
     context: str | None = None,
-    limit: int = 5000,
+    limit: int = Query(default=5000, ge=1, le=50_000),
     run: Runner = Depends(get_runner),  # noqa: B008
 ) -> dict:
     return await gq.full_graph(run, context=context, limit=limit)

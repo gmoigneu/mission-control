@@ -49,7 +49,7 @@ async def test_graph_full_returns_snapshot(client, db):
         app.dependency_overrides.pop(get_runner, None)
 
 
-async def test_graph_node_detail_and_404(client, db):
+async def test_graph_node_detail_returns_node(client, db):
     await login(client, db)
     _use_runner(
         FakeRunner(
@@ -67,6 +67,9 @@ async def test_graph_node_detail_and_404(client, db):
     finally:
         app.dependency_overrides.pop(get_runner, None)
 
+
+async def test_graph_node_missing_returns_404(client, db):
+    await login(client, db)
     _use_runner(FakeRunner([("OPTIONAL MATCH (n)-[r]-(m)", [])]))
     try:
         missing = await client.get("/graph/node/missing")
