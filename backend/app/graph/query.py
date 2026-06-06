@@ -51,7 +51,7 @@ _CONTEXT_NODES = (
     "OPTIONAL MATCH (c)<-[:IN_CONTEXT|PART_OF]-(m) "
     "WITH collect(DISTINCT c) + collect(DISTINCT m) AS ns "
     "UNWIND ns AS n "
-    "WITH DISTINCT n WHERE n IS NOT NULL "
+    "WITH DISTINCT n "
     "RETURN n.id AS id, labels(n)[0] AS label, "
     "coalesce(n.name, n.title, n.slug, n.id) AS name, properties(n) AS props"
 )

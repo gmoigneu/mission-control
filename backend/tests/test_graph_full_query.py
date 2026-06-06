@@ -75,7 +75,10 @@ async def test_node_detail_returns_props_and_filters_null_rels() -> None:
                     "label": "Person",
                     "props": {"id": "a", "name": "Alice"},
                     "rels": [
-                        {"rel": "WORKS_AT", "dir": "out", "id": "co", "label": "Company", "name": "Acme"},
+                        {
+                            "rel": "WORKS_AT", "dir": "out",
+                            "id": "co", "label": "Company", "name": "Acme",
+                        },
                         None,
                     ],
                 }
@@ -93,3 +96,16 @@ async def test_node_detail_returns_props_and_filters_null_rels() -> None:
 async def test_node_detail_returns_none_for_unknown_id() -> None:
     runner = MapRunner([("OPTIONAL MATCH (n)-[r]-(m)", [])])
     assert await node_detail(runner, "missing") is None
+
+
+async def test_node_detail_isolated_node_returns_empty_rels() -> None:
+    runner = MapRunner(
+        [
+            ("OPTIONAL MATCH (n)-[r]-(m)", [
+                {"label": "Task", "props": {"id": "t1"}, "rels": [None]},
+            ]),
+        ]
+    )
+    result = await node_detail(runner, "t1")
+    assert result is not None
+    assert result["rels"] == []
