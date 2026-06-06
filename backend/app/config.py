@@ -44,6 +44,15 @@ class Settings(BaseSettings):
     openai_responses_url: str = "https://chatgpt.com/backend-api/codex/responses"
     openai_originator: str = "codex_cli_rs"  # confirm in the live smoke
     openai_user_agent: str = "mission-control-agent/0.1"  # confirm in the live smoke
+    # ── OpenRouter provider (LLM_PROVIDER=openrouter) ────────────────────────
+    # OpenAI-compatible Chat Completions. Requires an API key; the model and
+    # base URL are env-overridable (OPENROUTER_MODEL / OPENROUTER_BASE_URL).
+    openrouter_api_key: str | None = None
+    openrouter_model: str = "deepseek/deepseek-v4-flash"
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    # Sent as OpenRouter's recommended attribution headers on each request.
+    openrouter_referer: str = "https://github.com/gmoigneu/mission-control"
+    openrouter_title: str = "Mission Control"
 
     @model_validator(mode="after")
     def _require_secure_secret_in_prod(self) -> "Settings":
