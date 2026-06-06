@@ -6,11 +6,16 @@ from pydantic import BaseModel
 
 from app.deps import get_current_user
 from app.graph import query as gq
-from app.graph.client import neo4j_runner
+from app.graph.client import Runner, neo4j_runner
 
 router = APIRouter(prefix="/graph", tags=["graph"], dependencies=[Depends(get_current_user)])
 
 _INTENTS = {"who_at_company", "connection_path", "neighbors"}
+
+
+def get_runner() -> Runner:
+    """Injectable Neo4j runner (overridden in tests)."""
+    return neo4j_runner
 
 
 class GraphQuery(BaseModel):
@@ -36,3 +41,20 @@ async def graph_query(body: GraphQuery) -> list[dict]:
 
     # neighbors
     return await gq.neighbors(neo4j_runner, p.get("person_id", ""))
+
+
+@router.get("/full")
+async def graph_full(
+    context: str | None = None,
+    limit: int = 5000,
+    run: Runner = Depends(get_runner),  # noqa: B008
+) -> dict:
+    return await gq.full_graph(run, context=context, limit=limit)
+
+
+@router.get("/node/{node_id}")
+async def graph_node(node_id: str, run: Runner = Depends(get_runner)) -> dict:  # noqa: B008
+    detail = await gq.node_detail(run, node_id)
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Node not found")
+    return detail
