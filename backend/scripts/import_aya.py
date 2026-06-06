@@ -134,28 +134,36 @@ def _first_prose_paragraph(body: str) -> str | None:
 
 
 def _extract_section(body: str, heading: str) -> str:
-    """Extract lines under a heading until the next same-or-higher-level heading.
+    """Extract the lines under a heading, concatenating EVERY occurrence.
 
     Matches the heading at any depth (``##``…``######``) — vault files use both
-    ``##`` and ``###`` for the same sections — and stops at the next heading whose
-    level is <= the matched heading's level (so nested sub-headings don't end it).
+    ``##`` and ``###`` for the same section — and, for each match, collects until
+    the next heading whose level is <= that match's level (so nested sub-headings
+    don't end it). Multi-block person files repeat a section across blocks
+    (e.g. work ``## Relationships`` + family ``### Relationships``); all are
+    merged so nothing in a later block is shadowed by an earlier one.
     """
     lines = body.splitlines()
-    collecting = False
-    start_level = 0
-    result: list[str] = []
-    for line in lines:
-        hm = re.match(r"^(#{2,6})\s+(.+?)\s*$", line)
-        if not collecting:
-            if hm and hm.group(2).strip().lower() == heading.lower():
-                collecting = True
-                start_level = len(hm.group(1))
+    headings: list[tuple[int, int, str]] = []  # (line_index, level, name)
+    for i, line in enumerate(lines):
+        m = re.match(r"^(#{1,6})\s+(.+?)\s*$", line)
+        if m:
+            headings.append((i, len(m.group(1)), m.group(2).strip().lower()))
+
+    target = heading.lower()
+    chunks: list[str] = []
+    for i, level, name in headings:
+        if name != target:
             continue
-        stop = re.match(r"^(#{1,6})\s+", line)
-        if stop and len(stop.group(1)) <= start_level:
-            break
-        result.append(line)
-    return "\n".join(result).strip()
+        end = len(lines)
+        for j, lvl, _n in headings:
+            if j > i and lvl <= level:
+                end = j
+                break
+        chunk = "\n".join(lines[i + 1:end]).strip()
+        if chunk:
+            chunks.append(chunk)
+    return "\n\n".join(chunks).strip()
 
 
 def _parse_obs_line(line: str) -> tuple[date | None, str, str | None]:

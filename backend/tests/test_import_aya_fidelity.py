@@ -205,6 +205,39 @@ async def test_bare_multiblock_file_with_h3_sections(db):
 
 
 @pytest.mark.asyncio
+async def test_multiblock_same_section_in_both_blocks_is_merged(db):
+    """When a section name appears in BOTH blocks (block 1 `## Relationships`
+    shadowing block 2 `### Relationships`), both are extracted — so the second
+    block's observations and relationships are not lost."""
+    from scripts.import_aya import import_vault
+
+    await import_vault(db, FIXTURE, reindex=False)
+
+    karl = await _person(db, "karl-multi")
+    assert karl is not None
+
+    # both the work observation and the family observation survive
+    obs_bodies = [
+        o.body or ""
+        for o in (
+            await db.execute(
+                select(Observation).where(Observation.subject_id == karl.id)
+            )
+        ).scalars().all()
+    ]
+    assert any("partnerships" in b.lower() for b in obs_bodies)
+    assert any("daughter" in b.lower() for b in obs_bodies)
+
+    # block 2's relationship is imported even though block 1 had a (skipped)
+    # Relationships section first
+    nadia = await _person(db, "nadia")
+    assert nadia is not None
+    assert nadia.summary == "at university."
+    edge = await _edge(db, "karl-multi", "nadia")
+    assert edge is not None and edge.type == "parent_of"
+
+
+@pytest.mark.asyncio
 async def test_dry_run_persists_nothing(db):
     """--dry-run parses and counts but writes no rows."""
     from scripts.import_aya import import_vault
