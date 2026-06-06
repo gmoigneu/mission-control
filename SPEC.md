@@ -4,11 +4,11 @@
 > Audience: an engineer (or another Claude instance) implementing this from scratch.
 > Source of this design: distilled from the existing `aya` markdown vault (`~/brain/aya`), whose entities define the data model.
 
-### Implementation status (2026-05-30)
+### Implementation status (2026-06-06)
 
-**Done:** P0.1 backend foundations, P0.2 frontend shell, P0.3 deploy infra (Dockerfiles + Caddy + compose `deploy` profile), P1 all 10 entities + audit/undo + CRUD pages + `task_link`, P3 semantic search (pgvector), P4 Neo4j graph (outbox → projector → Neo4j, `/graph/query`, `/admin/rebuild-graph`, worker), P5 AI agent (`agent_run`, pluggable LLM with `mock` default + `anthropic` provider, `/agent/chat` + `/agent/capture`, whole-run undo, Aya dock + ⌘K), P6 aya importer (`scripts/import_aya.py`, ran live on `~/brain/aya`).
+**Done:** P0.1 backend foundations, P0.2 frontend shell, P0.3 deploy infra (Dockerfiles + Caddy + compose `deploy` profile), P1 all 10 entities + audit/undo + CRUD pages + `task_link`, P3 semantic search (pgvector, async outbox → worker indexing), P4 Neo4j graph (outbox → projector → Neo4j, `/graph/query`, `/admin/rebuild-graph`, worker), P5 AI agent (`agent_run`, pluggable LLM with `mock` default + OpenAI provider billed to a ChatGPT subscription via Codex device-code OAuth, `/agent/chat` + `/agent/capture`, whole-run undo, Aya dock + ⌘K), P6 aya importer (`scripts/import_aya.py`, ran live on `~/brain/aya`). Plus the P2+ wave: journal/meetings/knowledge/inbox/TELOS/tones/reviews entities + pages, passkeys (WebAuthn), list pagination, Console restyle, a11y focus, configurable Soul persona. Backend 234 tests / frontend 65 tests / Alembic head `0029`; CI green on `main`.
 
-**Not yet built:** journal/meetings/knowledge/inbox/TELOS/tones/reviews entities (P2-ish), passkeys, list pagination, full per-page Console restyle, some a11y items.
+**Remaining gaps (post-merge audit 2026-06-06):** TELOS & Tones pages still use light-theme Tailwind (missed the Console restyle pass); dashboard Mood/Energy gauges are UI-only (not persisted to `journal_entry.mood`/`energy`); `0014_chunk` migration hardcodes the embedding dim; `tag` entities aren't indexed for search.
 
 ---
 

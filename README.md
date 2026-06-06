@@ -22,9 +22,11 @@ A single-user, self-hosted web app to track and manage life across all devices �
 | P4 | Neo4j graph — outbox → projector → Neo4j, `/graph/query`, `/admin/rebuild-graph`, worker | done |
 | P5 | AI agent — `agent_run`, pluggable LLM (`mock` default + OpenAI provider billed to a ChatGPT subscription via Codex device-code OAuth), `/agent/chat` + `/agent/capture`, whole-run undo, Aya dock + ⌘K wired | done |
 | P6 | Aya importer — `scripts/import_aya.py`, ran live (~298 people, 343 observations, 27 tasks, 8 companies, 5 contexts, 2 projects) | done |
-| P2+ | Journal/meetings/knowledge/inbox/TELOS/tones/reviews entities, passkeys, list pagination, per-page Console restyle, some a11y items | not yet built |
+| P2+ | Journal/meetings/knowledge/inbox/TELOS/tones/reviews entities + pages, passkeys (WebAuthn), list pagination, Console restyle, a11y focus, configurable Soul persona | done¹ |
 
-Backend: 153 tests. Frontend: ~26 tests. Alembic head: `0018`.
+Backend: 234 tests. Frontend: 65 tests. Alembic head: `0029`. CI green on `main`.
+
+¹ Remaining gaps from the post-merge audit (2026-06-06): the TELOS & Tones pages still use light-theme Tailwind (missed the Console restyle pass); the dashboard Mood/Energy gauges are UI-only (not yet persisted to `journal_entry.mood`/`energy`); `0014_chunk` hardcodes the embedding dim; `tag` entities aren't indexed for search.
 
 ## Stack
 
