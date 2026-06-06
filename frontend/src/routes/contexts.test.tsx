@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ContextsPage } from "./contexts";
 
 afterEach(() => vi.restoreAllMocks());
@@ -96,5 +96,50 @@ it("renders the contexts page and POSTs when Add is clicked", async () => {
     const body = JSON.parse(postCall![1]!.body as string);
     expect(body.name).toBe("Test Name");
     expect(body.slug).toBe("test-slug");
+    expect(body.status).toBe("active");
+    expect(body.color).toBe(null);
+  });
+});
+
+describe("ContextsPage form", () => {
+  it("submits status and color in the create payload", async () => {
+    const calls: Array<[string, RequestInit | undefined]> = [];
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push([String(url), init]);
+      if (String(url).includes("/auth/me")) {
+        return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), { status: 200 });
+      }
+      if (String(url).includes("/contexts") && (!init?.method || init.method === "GET")) {
+        return new Response(JSON.stringify([]), { status: 200 });
+      }
+      if (String(url).includes("/contexts") && init?.method === "POST") {
+        return new Response(
+          JSON.stringify({
+            id: "c1", slug: "oss", name: "Open Source", category: "other",
+            description: null, status: "archived", color: "teal",
+            created_at: "", updated_at: "",
+          }),
+          { status: 201 },
+        );
+      }
+      return new Response(JSON.stringify({}), { status: 200 });
+    });
+
+    renderContexts(fetchMock);
+
+    await screen.findByRole("heading", { name: "Contexts" });
+    await userEvent.type(screen.getByRole("textbox", { name: "Name" }), "Open Source");
+    await userEvent.type(screen.getByRole("textbox", { name: "Slug" }), "oss");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Status" }), "archived");
+    await userEvent.click(screen.getByRole("button", { name: "Teal" }));
+    await userEvent.click(screen.getByRole("button", { name: /^add$/i }));
+
+    await waitFor(() => {
+      const post = calls.find(([u, i]) => String(u).includes("/contexts") && i?.method === "POST");
+      expect(post).toBeDefined();
+      const body = JSON.parse(post![1]!.body as string);
+      expect(body.status).toBe("archived");
+      expect(body.color).toBe("teal");
+    });
   });
 });
