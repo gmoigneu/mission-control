@@ -5,6 +5,7 @@ export interface Context {
   category: string;
   description: string | null;
   status: string;
+  color: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -14,6 +15,7 @@ export interface ContextCreate {
   category?: string;
   description?: string | null;
   status?: string;
+  color?: string | null;
 }
 export type ContextUpdate = Partial<ContextCreate>;
 
