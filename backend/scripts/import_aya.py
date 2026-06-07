@@ -1063,18 +1063,27 @@ async def import_knowledge(db: AsyncSession, vault: Path, stats: Stats) -> None:
         sub_dir = knowledge_dir / sub
         if not sub_dir.exists():
             continue
-        for kfile in sorted(sub_dir.glob("*.md")):
+        # rglob: knowledge files live in nested subfolders (e.g. wiki/ai/…).
+        for kfile in sorted(sub_dir.rglob("*.md")):
             try:
-                post = frontmatter.load(str(kfile))
-                slug_val = str(post.get("slug") or "").strip()
+                try:
+                    post = frontmatter.load(str(kfile))
+                    slug_val = str(post.get("slug") or "").strip()
+                    title = str(post.get("title") or kfile.stem).strip()
+                    body = post.content or None
+                except Exception:
+                    # Malformed frontmatter — ingest the raw file body-only
+                    # rather than dropping the note entirely.
+                    slug_val = ""
+                    title = kfile.stem
+                    body = kfile.read_text(encoding="utf-8", errors="replace") or None
+
                 slug = slug_val or slugify(kfile.stem)
                 if slug in seen_slugs:
-                    # Disambiguate duplicate slugs across raw/ and wiki/
-                    slug = slugify(f"{sub}-{kfile.stem}")
+                    # Disambiguate by full relative path (nested stems can clash)
+                    rel = kfile.relative_to(knowledge_dir).with_suffix("")
+                    slug = slugify(str(rel))
                 seen_slugs.add(slug)
-
-                title = str(post.get("title") or kfile.stem).strip()
-                body = post.content or None
 
                 await _upsert_knowledge(db, slug, {"title": title, "body": body})
                 await db.flush()

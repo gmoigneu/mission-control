@@ -17,6 +17,7 @@ from sqlalchemy import func, select
 
 from app.models.company import Company
 from app.models.context import Context
+from app.models.knowledge import Knowledge
 from app.models.observation import Observation
 from app.models.person import Person
 from app.models.relationship import Relationship
@@ -235,6 +236,29 @@ async def test_multiblock_same_section_in_both_blocks_is_merged(db):
     assert nadia.summary == "at university."
     edge = await _edge(db, "karl-multi", "nadia")
     assert edge is not None and edge.type == "parent_of"
+
+
+@pytest.mark.asyncio
+async def test_knowledge_recurses_subfolders_and_tolerates_bad_yaml(db):
+    """Knowledge import recurses into subfolders and ingests files whose
+    frontmatter is malformed (body-only fallback)."""
+    from scripts.import_aya import import_vault
+
+    await import_vault(db, FIXTURE, reindex=False)
+
+    # nested wiki/nested/deep-note.md imported via recursion
+    deep = (
+        await db.execute(select(Knowledge).where(Knowledge.slug == "deep-note"))
+    ).scalar_one_or_none()
+    assert deep is not None
+    assert deep.title == "Deep Nested Note"
+
+    # malformed-frontmatter file still imported, body preserved
+    broken = (
+        await db.execute(select(Knowledge).where(Knowledge.slug == "broken-note"))
+    ).scalar_one_or_none()
+    assert broken is not None
+    assert "Body survives" in (broken.body or "")
 
 
 @pytest.mark.asyncio
