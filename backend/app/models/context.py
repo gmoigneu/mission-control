@@ -17,7 +17,8 @@ class Context(Base):
     category: Mapped[str] = mapped_column(String, default="other")  # work|personal|side|other
     description: Mapped[str | None] = mapped_column(String, nullable=True)
     status: Mapped[str] = mapped_column(String, default="active")  # active|archived
-    color: Mapped[str | None] = mapped_column(String, nullable=True)  # palette key; None → category tint
+    # palette key; None → category tint
+    color: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
