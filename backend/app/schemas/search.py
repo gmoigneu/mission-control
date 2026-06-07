@@ -8,3 +8,5 @@ class SearchResult(BaseModel):
     subject_id: uuid.UUID
     score: float
     snippet: str
+    name: str | None = None
+    slug: str | None = None

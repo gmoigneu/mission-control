@@ -31,9 +31,27 @@ function renderSearch(fetchMock: ReturnType<typeof vi.fn>) {
     path: "/login",
     component: () => <div>login-page</div>,
   });
+  // Destinations search results link to — registered so <Link> resolves hrefs.
+  const stub = (path: string) =>
+    createRoute({ getParentRoute: () => root, path, component: () => <div /> });
+  const personDetail = stub("/people/$slug");
+  const people = stub("/people");
+  const companies = stub("/companies");
+  const projects = stub("/projects");
+  const contexts = stub("/contexts");
+  const tasks = stub("/tasks");
   const history = createMemoryHistory({ initialEntries: ["/search"] });
   const router = createRouter({
-    routeTree: root.addChildren([search, login]),
+    routeTree: root.addChildren([
+      search,
+      login,
+      personDetail,
+      people,
+      companies,
+      projects,
+      contexts,
+      tasks,
+    ]),
     history,
   });
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -62,6 +80,8 @@ it("renders search page, fires GET /search on Enter, shows result row", async ()
             subject_id: "p1",
             score: 0.91,
             snippet: "Python engineer",
+            name: "Alice Engineer",
+            slug: "alice-engineer",
           },
         ]),
         { status: 200 },
@@ -79,9 +99,12 @@ it("renders search page, fires GET /search on Enter, shows result row", async ()
   await userEvent.type(input, "python engineer");
   await userEvent.keyboard("{Enter}");
 
-  // Result row should render
-  await screen.findByText("person");
+  // Result row should render: a type badge, the entity snippet, and a name that
+  // deep-links to the person detail page.
+  await screen.findByText("Person");
   await screen.findByText("Python engineer");
+  const link = await screen.findByRole("link", { name: "Alice Engineer" });
+  expect(link).toHaveAttribute("href", "/people/alice-engineer");
 
   // A GET to /search with the query should have been fired
   await waitFor(() => {

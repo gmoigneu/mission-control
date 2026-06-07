@@ -341,6 +341,10 @@ export interface SearchResult {
   subject_id: string;
   score: number;
   snippet: string;
+  /** Display name/title of the owning entity (null if it no longer exists). */
+  name: string | null;
+  /** Entity slug, when the type has one; used for deep links. */
+  slug: string | null;
 }
 
 /** A node returned by the `/graph/query` "neighbors" intent. */
