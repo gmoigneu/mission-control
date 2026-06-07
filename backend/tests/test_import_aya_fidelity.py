@@ -295,3 +295,33 @@ async def test_reset_clears_existing_rows_first(db):
     assert await _person(db, "stray-demo") is None
     # …and the vault data is present
     assert await _person(db, "dana-upsun") is not None
+
+
+@pytest.mark.asyncio
+async def test_reset_clears_orphaned_search_chunks(db):
+    """--reset also wipes the search Chunk table so demo embeddings don't linger
+    as orphans after the entities they pointed at are gone."""
+    from app.config import settings
+    from app.models.chunk import Chunk
+    from scripts.import_aya import import_vault
+
+    db.add(
+        Chunk(
+            id=uuid.uuid4(),
+            subject_type="person",
+            subject_id=uuid.uuid4(),
+            chunk_index=0,
+            content="stray demo chunk",
+            embedding=[0.0] * settings.embeddings_dim,
+        )
+    )
+    await db.flush()
+
+    await import_vault(db, FIXTURE, reindex=False, reset=True)
+
+    stray = (
+        await db.execute(
+            select(Chunk).where(Chunk.content == "stray demo chunk")
+        )
+    ).scalar_one_or_none()
+    assert stray is None

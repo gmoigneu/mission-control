@@ -36,6 +36,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import SessionLocal
+from app.models.chunk import Chunk
 from app.models.company import Company
 from app.models.context import Context
 from app.models.journal_entry import JournalEntry
@@ -275,7 +276,10 @@ async def _commit(db: AsyncSession, stats: Stats) -> None:
 
 
 # Importer-owned tables, in FK-safe delete order (children before parents).
+# Chunk holds search embeddings for these subjects — wipe it too so demo
+# embeddings don't linger as orphans (reindex rebuilds it for vault data).
 _RESET_MODELS = (
+    Chunk,
     Relationship,
     Observation,
     Task,
