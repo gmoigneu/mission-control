@@ -1,22 +1,33 @@
 import { createRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "../components/AppShell";
+import { ColorPicker } from "../components/ColorPicker";
 import { ConfirmButton } from "../components/ConfirmButton";
+import { StatusBadge, contextTint } from "../components/console";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
-import { Button, Card, Field, Input } from "../components/ui";
+import { Button, Card, Field, Input, Select } from "../components/ui";
 import { useContexts, useCreateContext, useDeleteContext, useUpdateContext } from "../features/contexts/api";
 import type { Context } from "../lib/types";
 import { rootRoute } from "./root";
+
+const STATUS_OPTIONS = [
+  { value: "active", label: "Active" },
+  { value: "archived", label: "Archived" },
+];
 
 interface FormState {
   slug: string;
   name: string;
   category: string;
   description: string;
+  status: string;
+  color: string;
 }
 
-const EMPTY_FORM: FormState = { slug: "", name: "", category: "", description: "" };
+const EMPTY_FORM: FormState = {
+  slug: "", name: "", category: "", description: "", status: "active", color: "",
+};
 
 export function ContextsPage() {
   const { data: contexts = [] } = useContexts();
@@ -32,6 +43,10 @@ export function ContextsPage() {
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
   }
 
+  function handleSelectChange(key: keyof FormState) {
+    return (value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
   function handleEdit(row: Context) {
     setEditingId(row.id);
     setForm({
@@ -39,6 +54,8 @@ export function ContextsPage() {
       name: row.name,
       category: row.category,
       description: row.description ?? "",
+      status: row.status,
+      color: row.color ?? "",
     });
   }
 
@@ -54,6 +71,8 @@ export function ContextsPage() {
       name: form.name,
       category: form.category || undefined,
       description: form.description || null,
+      status: form.status,
+      color: form.color || null,
     };
     if (editingId) {
       updateContext.mutate(
@@ -73,10 +92,20 @@ export function ContextsPage() {
   }
 
   const columns = [
-    { header: "Name", cell: (row: Context) => row.name },
+    {
+      header: "Name",
+      cell: (row: Context) => (
+        <span className="row gap-2">
+          <span
+            style={{ background: contextTint(row), width: 9, height: 9, borderRadius: 9, flexShrink: 0 }}
+          />
+          {row.name}
+        </span>
+      ),
+    },
     { header: "Slug", cell: (row: Context) => row.slug },
     { header: "Category", cell: (row: Context) => row.category },
-    { header: "Status", cell: (row: Context) => row.status },
+    { header: "Status", cell: (row: Context) => <StatusBadge status={row.status} /> },
     {
       header: "Actions",
       cell: (row: Context) => (
@@ -149,6 +178,16 @@ export function ContextsPage() {
                   placeholder="Optional description"
                   aria-label="Description"
                 />
+              </Field>
+              <Field label="Status">
+                <Select
+                  value={form.status}
+                  onChange={handleSelectChange("status")}
+                  options={STATUS_OPTIONS}
+                />
+              </Field>
+              <Field label="Color">
+                <ColorPicker value={form.color} onChange={handleSelectChange("color")} />
               </Field>
               <div className="col-span-2 flex gap-2">
                 <Button type="submit">{editingId ? "Save" : "Add"}</Button>

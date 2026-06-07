@@ -35,3 +35,33 @@ async def test_get_missing_context_404(client, db):
     import uuid
 
     assert (await client.get(f"/contexts/{uuid.uuid4()}")).status_code == 404
+
+
+async def test_context_color_and_status(client, db):
+    await login(client, db)
+
+    created = await client.post(
+        "/contexts",
+        json={"slug": "oss", "name": "Open Source", "color": "teal", "status": "archived"},
+    )
+    assert created.status_code == 201
+    body = created.json()
+    assert body["color"] == "teal"
+    assert body["status"] == "archived"
+    cid = body["id"]
+
+    # color omitted → stored/returned as null
+    plain = await client.post("/contexts", json={"slug": "work", "name": "Work"})
+    assert plain.status_code == 201
+    assert plain.json()["color"] is None
+
+    # update can change the color
+    patched = await client.patch(f"/contexts/{cid}", json={"color": "blue"})
+    assert patched.status_code == 200
+    assert patched.json()["color"] == "blue"
+
+    # an unknown color key is rejected
+    bad = await client.post(
+        "/contexts", json={"slug": "bad", "name": "Bad", "color": "chartreuse"}
+    )
+    assert bad.status_code == 422

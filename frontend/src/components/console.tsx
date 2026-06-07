@@ -18,6 +18,32 @@ export function tintColor(t: string): string {
   return TINT_VAR[t] ?? "var(--fg-dim)";
 }
 
+export const PALETTE: { key: string; label: string }[] = [
+  { key: "slate", label: "Slate" },
+  { key: "red", label: "Red" },
+  { key: "orange", label: "Orange" },
+  { key: "amber", label: "Amber" },
+  { key: "green", label: "Green" },
+  { key: "teal", label: "Teal" },
+  { key: "cyan", label: "Cyan" },
+  { key: "blue", label: "Blue" },
+  { key: "indigo", label: "Indigo" },
+  { key: "violet", label: "Violet" },
+  { key: "magenta", label: "Magenta" },
+  { key: "pink", label: "Pink" },
+];
+
+const PALETTE_KEYS = new Set(PALETTE.map((p) => p.key));
+
+export function paletteVar(key: string): string {
+  return PALETTE_KEYS.has(key) ? `var(--palette-${key})` : "var(--fg-dim)";
+}
+
+// Resolved CSS color for a context: explicit palette color if set, else category tint.
+export function contextTint(ctx: { color?: string | null; category: string }): string {
+  return ctx.color ? paletteVar(ctx.color) : tintColor(ctx.category);
+}
+
 // ─── Data maps ─────────────────────────────────────────────────────────────────
 
 export const STATUS: Record<string, { label: string; color: string }> = {
@@ -112,6 +138,7 @@ export function ContextChip({
   children,
   onClick,
 }: {
+  /** Pre-resolved CSS color string, e.g. from contextTint(ctx). */
   tint: string;
   children: ReactNode;
   onClick?: () => void;
@@ -122,7 +149,7 @@ export function ContextChip({
       onClick={onClick}
       style={onClick ? { cursor: "pointer" } : undefined}
     >
-      <span className="dot" style={{ background: tintColor(tint) }} />
+      <span className="dot" style={{ background: tint }} />
       {children}
     </span>
   );

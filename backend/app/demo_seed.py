@@ -62,13 +62,13 @@ def _days(offset: int) -> date:
     return _TODAY + timedelta(days=offset)
 
 
-# (slug, name, category, description)
+# (slug, name, category, description, color)
 _CONTEXTS = [
-    ("work", "Helios Robotics", "work", "Building the company — warehouse robotics"),
-    ("personal", "Personal", "personal", "Life outside work"),
-    ("health", "Health & Fitness", "personal", "Training, climbing, sleep"),
-    ("oss", "Open Source", "side", "Maintaining tide-ui and side projects"),
-    ("learning", "Learning", "personal", "Books, courses, deliberate practice"),
+    ("work", "Helios Robotics", "work", "Building the company — warehouse robotics", "blue"),
+    ("personal", "Personal", "personal", "Life outside work", "violet"),
+    ("health", "Health & Fitness", "personal", "Training, climbing, sleep", "green"),
+    ("oss", "Open Source", "side", "Maintaining tide-ui and side projects", "teal"),
+    ("learning", "Learning", "personal", "Books, courses, deliberate practice", "amber"),
 ]
 
 # (slug, name, domain, notes)
@@ -252,9 +252,9 @@ async def seed_demo(
     db.add(AgentPersona(**SEED_PERSONA))
 
     contexts: dict[str, Context] = {}
-    for slug, nm, category, desc in _CONTEXTS:
+    for slug, nm, category, desc, color in _CONTEXTS:
         contexts[slug] = Context(
-            slug=slug, name=nm, category=category, description=desc, status="active"
+            slug=slug, name=nm, category=category, description=desc, status="active", color=color
         )
         db.add(contexts[slug])
 
