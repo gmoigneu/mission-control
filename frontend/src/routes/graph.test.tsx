@@ -24,6 +24,7 @@ vi.mock("cytoscape", () => {
     layout: () => ({ run: vi.fn() }),
     nodes: () => collection,
     animate: vi.fn(),
+    resize: vi.fn(),
   };
   const fn = Object.assign(vi.fn(() => cy), { use: vi.fn() });
   return { default: fn };
