@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit.serialize import model_to_dict
@@ -16,7 +16,7 @@ async def list_companies(
     db: AsyncSession, *, limit: int | None = None, offset: int = 0
 ) -> list[Company]:
     stmt = apply_window(
-        select(Company).order_by(Company.created_at), limit=limit, offset=offset
+        select(Company).order_by(func.lower(Company.name)), limit=limit, offset=offset
     )
     result = await db.execute(stmt)
     return list(result.scalars().all())
@@ -28,6 +28,18 @@ async def count_companies(db: AsyncSession) -> int:
 
 async def get_company(db: AsyncSession, company_id: uuid.UUID) -> Company | None:
     return await db.get(Company, company_id)
+
+
+async def search_companies(db: AsyncSession, q: str, *, limit: int = 10) -> list[Company]:
+    """Name/slug substring lookup — reliable without the search index."""
+    pattern = f"%{q.strip()}%"
+    stmt = (
+        select(Company)
+        .where(or_(Company.name.ilike(pattern), Company.slug.ilike(pattern)))
+        .order_by(func.lower(Company.name))
+        .limit(limit)
+    )
+    return list((await db.execute(stmt)).scalars().all())
 
 
 async def create_company(db: AsyncSession, data: CompanyCreate, *, surface: str = "api") -> Company:

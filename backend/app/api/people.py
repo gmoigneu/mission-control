@@ -30,6 +30,14 @@ async def create_person(payload: PersonCreate, db: AsyncSession = Depends(get_db
     return obj
 
 
+@router.get("/by-slug/{slug}", response_model=PersonOut)
+async def get_person_by_slug(slug: str, db: AsyncSession = Depends(get_db)):  # noqa: B008
+    obj = await svc.get_person_by_slug(db, slug)
+    if obj is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+    return obj
+
+
 @router.get("/{person_id}", response_model=PersonOut)
 async def get_person(person_id: uuid.UUID, db: AsyncSession = Depends(get_db)):  # noqa: B008
     obj = await svc.get_person(db, person_id)

@@ -55,25 +55,23 @@ it("renders the person detail with observations timeline and graph neighbors", a
         status: 200,
       });
     }
-    if (u.includes("/people") && (!init?.method || init.method === "GET")) {
+    if (u.includes("/people/by-slug/") && (!init?.method || init.method === "GET")) {
       return new Response(
-        JSON.stringify([
-          {
-            id: "p1",
-            slug: "jane-doe",
-            name: "Jane Doe",
-            role: "Engineer",
-            company_id: "c1",
-            email: "jane@example.com",
-            linkedin: null,
-            first_met: null,
-            primary_context_id: null,
-            summary: null,
-            archived: false,
-            created_at: "2026-01-01T00:00:00Z",
-            updated_at: "2026-01-01T00:00:00Z",
-          },
-        ]),
+        JSON.stringify({
+          id: "p1",
+          slug: "jane-doe",
+          name: "Jane Doe",
+          role: "Engineer",
+          company_id: "c1",
+          email: "jane@example.com",
+          linkedin: null,
+          first_met: null,
+          primary_context_id: null,
+          summary: null,
+          archived: false,
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+        }),
         { status: 200 },
       );
     }
