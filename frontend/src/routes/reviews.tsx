@@ -1,10 +1,12 @@
 import { createRoute, Link } from "@tanstack/react-router";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "../components/AppShell";
 import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
-import { Button, Card, Field, Input, Select } from "../components/ui";
+import { SidePanel } from "../components/SidePanel";
+import { Button, Field, Input, Select } from "../components/ui";
 import {
   useCreateReview,
   useDeleteReview,
@@ -54,6 +56,7 @@ export function ReviewsPage() {
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -62,6 +65,12 @@ export function ReviewsPage() {
 
   function handleSelectChange(key: keyof FormState) {
     return (value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleNew() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setPanelOpen(true);
   }
 
   function handleEdit(row: Review) {
@@ -73,9 +82,11 @@ export function ReviewsPage() {
       body: row.body ?? "",
       highlights: row.highlights ?? "",
     });
+    setPanelOpen(true);
   }
 
-  function handleCancel() {
+  function handleClose() {
+    setPanelOpen(false);
     setEditingId(null);
     setForm(EMPTY_FORM);
   }
@@ -86,17 +97,10 @@ export function ReviewsPage() {
     if (editingId) {
       updateReview.mutate(
         { id: editingId, data: payload },
-        {
-          onSuccess: () => {
-            setEditingId(null);
-            setForm(EMPTY_FORM);
-          },
-        },
+        { onSuccess: handleClose },
       );
     } else {
-      createReview.mutate(payload, {
-        onSuccess: () => setForm(EMPTY_FORM),
-      });
+      createReview.mutate(payload, { onSuccess: handleClose });
     }
   }
 
@@ -134,73 +138,78 @@ export function ReviewsPage() {
         <div className="p-6 space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-semibold">Reviews</h1>
-            <p className="text-sm text-gray-400">
-              <Link to="/activity" className="underline hover:text-gray-600">
-                Manage from the Activity page to undo changes.
-              </Link>
-            </p>
+            <div className="flex items-center gap-4">
+              <p className="text-sm text-gray-400">
+                <Link to="/activity" className="underline hover:text-gray-600">
+                  Manage from the Activity page to undo changes.
+                </Link>
+              </p>
+              <Button type="button" onClick={handleNew} className="row gap-2">
+                <Plus size={15} /> New
+              </Button>
+            </div>
           </div>
-
-          <Card>
-            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-              <Field label="Period">
-                <Select
-                  value={form.period}
-                  onChange={handleSelectChange("period")}
-                  options={PERIOD_OPTIONS}
-                />
-              </Field>
-              <Field label="Date">
-                <Input
-                  type="date"
-                  value={form.date}
-                  onChange={handleChange("date")}
-                  aria-label="Date"
-                  required
-                />
-              </Field>
-              <Field label="Title">
-                <Input
-                  value={form.title}
-                  onChange={handleChange("title")}
-                  placeholder="Week 21 review"
-                  aria-label="Title"
-                  required
-                />
-              </Field>
-              <Field label="Highlights">
-                <Input
-                  value={form.highlights}
-                  onChange={handleChange("highlights")}
-                  placeholder="Wins worth remembering"
-                  aria-label="Highlights"
-                />
-              </Field>
-              <div className="col-span-2">
-                <Field label="Body">
-                  <Input
-                    value={form.body}
-                    onChange={handleChange("body")}
-                    placeholder="What happened, what's next"
-                    aria-label="Body"
-                  />
-                </Field>
-              </div>
-              <div className="col-span-2 flex gap-2">
-                <Button type="submit" disabled={!form.date || !form.title}>
-                  {editingId ? "Save" : "Add"}
-                </Button>
-                {editingId && (
-                  <Button type="button" onClick={handleCancel} className="bg-gray-400 hover:bg-gray-500">
-                    Cancel
-                  </Button>
-                )}
-              </div>
-            </form>
-          </Card>
 
           <DataTable rows={reviews} columns={columns} empty="No reviews yet." />
         </div>
+
+        <SidePanel
+          open={panelOpen}
+          onClose={handleClose}
+          title={editingId ? "Edit review" : "New review"}
+        >
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
+            <Field label="Period">
+              <Select
+                value={form.period}
+                onChange={handleSelectChange("period")}
+                options={PERIOD_OPTIONS}
+              />
+            </Field>
+            <Field label="Date">
+              <Input
+                type="date"
+                value={form.date}
+                onChange={handleChange("date")}
+                aria-label="Date"
+                required
+              />
+            </Field>
+            <Field label="Title">
+              <Input
+                value={form.title}
+                onChange={handleChange("title")}
+                placeholder="Week 21 review"
+                aria-label="Title"
+                required
+              />
+            </Field>
+            <Field label="Highlights">
+              <Input
+                value={form.highlights}
+                onChange={handleChange("highlights")}
+                placeholder="Wins worth remembering"
+                aria-label="Highlights"
+              />
+            </Field>
+            <Field label="Body">
+              <Input
+                value={form.body}
+                onChange={handleChange("body")}
+                placeholder="What happened, what's next"
+                aria-label="Body"
+              />
+            </Field>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={!form.date || !form.title}>
+                {editingId ? "Save" : "Add"}
+              </Button>
+              <Button type="button" onClick={handleClose} className="ghost">
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </SidePanel>
       </AppShell>
     </RequireAuth>
   );

@@ -37,6 +37,7 @@ function fetchMockFor(
   tasks: Task[],
   calls: Array<[string, RequestInit | undefined]>,
   contexts: Array<{ id: string; name: string }> = [],
+  projects: Array<{ id: string; title: string }> = [],
 ) {
   return vi.fn(async (url: string, init?: RequestInit) => {
     calls.push([String(url), init]);
@@ -55,6 +56,7 @@ function fetchMockFor(
             category: "work",
             description: null,
             status: "active",
+            color: null,
             created_at: "",
             updated_at: "",
           })),
@@ -63,7 +65,22 @@ function fetchMockFor(
       );
     }
     if (String(url).includes("/projects") && (!init?.method || init.method === "GET")) {
-      return new Response(JSON.stringify([]), { status: 200 });
+      return new Response(
+        JSON.stringify(
+          projects.map((p) => ({
+            id: p.id,
+            context_id: "",
+            slug: p.id,
+            title: p.title,
+            status: "active",
+            purpose: null,
+            body: null,
+            created_at: "",
+            updated_at: "",
+          })),
+        ),
+        { status: 200 },
+      );
     }
     if (String(url).includes("/tasks") && (!init?.method || init.method === "GET")) {
       return new Response(JSON.stringify(tasks), { status: 200 });
@@ -72,6 +89,9 @@ function fetchMockFor(
       return new Response(JSON.stringify({ ...tasks[0], ...JSON.parse(String(init.body)) }), {
         status: 200,
       });
+    }
+    if (init?.method === "DELETE" && /\/tasks\//.test(String(url))) {
+      return new Response(null, { status: 204 });
     }
     return new Response(JSON.stringify({}), { status: 200 });
   });
@@ -156,6 +176,8 @@ it("renders the tasks page and POSTs with title; empty optional fields are omitt
   // Wait for the page to render (RequireAuth resolves)
   await screen.findByRole("heading", { name: "Tasks" });
 
+  await userEvent.click(screen.getByRole("button", { name: /new/i }));
+
   // Type the title — leave all optional fields empty
   await userEvent.type(screen.getByRole("textbox", { name: /title/i }), "My Task");
 
@@ -183,26 +205,110 @@ it("renders the tasks page and POSTs with title; empty optional fields are omitt
   });
 });
 
-it("groups tasks by status in the list view", async () => {
+it("hides done/archived tasks by default and reveals them via Show completed", async () => {
   const calls: Array<[string, RequestInit | undefined]> = [];
   const tasks = [
     makeTask({ id: "t1", title: "Open one", status: "open" }),
     makeTask({ id: "t2", title: "Working", status: "in_progress" }),
     makeTask({ id: "t3", title: "Finished", status: "done" }),
+    makeTask({ id: "t4", title: "Old one", status: "archived" }),
   ];
   renderTasks(fetchMockFor(tasks, calls));
 
   await screen.findByRole("heading", { name: "Tasks" });
 
-  // Each status group is a labelled section; rows live under their group.
+  // Open + in-progress are visible; done + archived are hidden by default.
   const openGroup = await screen.findByRole("region", { name: "Open" });
   expect(within(openGroup).getByText("Open one")).toBeDefined();
+  expect(screen.getByRole("region", { name: "In progress" })).toBeDefined();
+  expect(screen.queryByText("Finished")).toBeNull();
+  expect(screen.queryByText("Old one")).toBeNull();
+  expect(screen.queryByRole("region", { name: "Done" })).toBeNull();
 
-  const progressGroup = screen.getByRole("region", { name: "In Progress" });
-  expect(within(progressGroup).getByText("Working")).toBeDefined();
-
-  const doneGroup = screen.getByRole("region", { name: "Done" });
+  // Toggling "Show completed" reveals the done + archived groups.
+  await userEvent.click(screen.getByRole("button", { name: /show completed/i }));
+  const doneGroup = await screen.findByRole("region", { name: "Done" });
   expect(within(doneGroup).getByText("Finished")).toBeDefined();
+  expect(within(screen.getByRole("region", { name: "Archived" })).getByText("Old one")).toBeDefined();
+});
+
+it("orders status groups with In progress first", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const tasks = [
+    makeTask({ id: "t1", title: "Open one", status: "open" }),
+    makeTask({ id: "t2", title: "Working", status: "in_progress" }),
+  ];
+  renderTasks(fetchMockFor(tasks, calls));
+
+  await screen.findByRole("heading", { name: "Tasks" });
+  await screen.findByRole("region", { name: "In progress" });
+
+  const regions = screen.getAllByRole("region");
+  const labels = regions.map((r) => r.getAttribute("aria-label"));
+  expect(labels.indexOf("In progress")).toBeLessThan(labels.indexOf("Open"));
+});
+
+it("shows the project name in the list", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const tasks = [makeTask({ id: "t1", title: "Has project", status: "open", project_id: "p1" })];
+  renderTasks(fetchMockFor(tasks, calls, [], [{ id: "p1", title: "Apollo" }]));
+
+  await screen.findByRole("heading", { name: "Tasks" });
+  // Scope to the table region — the name also appears in the Project filter <option>.
+  const region = await screen.findByRole("region", { name: "Open" });
+  expect(await within(region).findByText("Apollo")).toBeDefined();
+});
+
+it("shows the context name in the list", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const tasks = [makeTask({ id: "t1", title: "Has context", status: "open", context_id: "c1" })];
+  renderTasks(fetchMockFor(tasks, calls, [{ id: "c1", name: "Work" }]));
+
+  await screen.findByRole("heading", { name: "Tasks" });
+  // Scope to the table region — the name also appears in the Context filter <option>.
+  const region = await screen.findByRole("region", { name: "Open" });
+  expect(await within(region).findByText("Work")).toBeDefined();
+});
+
+it("filters tasks by project", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const tasks = [
+    makeTask({ id: "t1", title: "Apollo task", status: "open", project_id: "p1" }),
+    makeTask({ id: "t2", title: "Zephyr task", status: "open", project_id: "p2" }),
+  ];
+  renderTasks(
+    fetchMockFor(tasks, calls, [], [
+      { id: "p1", title: "Apollo" },
+      { id: "p2", title: "Zephyr" },
+    ]),
+  );
+
+  await screen.findByRole("heading", { name: "Tasks" });
+  expect(await screen.findByText("Apollo task")).toBeDefined();
+  expect(screen.getByText("Zephyr task")).toBeDefined();
+
+  const filter = screen.getByRole("combobox", { name: /project filter/i });
+  await waitFor(() => {
+    expect(within(filter).getByRole("option", { name: "Apollo" })).toBeDefined();
+  });
+  await userEvent.selectOptions(filter, "p1");
+
+  await waitFor(() => {
+    expect(screen.queryByText("Zephyr task")).toBeNull();
+  });
+  expect(screen.getByText("Apollo task")).toBeDefined();
+});
+
+it("opens the edit panel when a task title is clicked", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const tasks = [makeTask({ id: "t1", title: "Click me", status: "open" })];
+  renderTasks(fetchMockFor(tasks, calls));
+
+  await screen.findByRole("heading", { name: "Tasks" });
+  await userEvent.click(screen.getByRole("button", { name: "Click me" }));
+
+  // The SidePanel dialog opens in edit mode.
+  expect(await screen.findByRole("dialog", { name: "Edit task" })).toBeDefined();
 });
 
 it("toggles to the board view with a column per status", async () => {
@@ -217,12 +323,12 @@ it("toggles to the board view with a column per status", async () => {
   // The board renders a labelled column for every status, including empty ones.
   const openColumn = screen.getByRole("region", { name: "Open" });
   expect(within(openColumn).getByText("Board task")).toBeDefined();
-  expect(screen.getByRole("region", { name: "In Progress" })).toBeDefined();
+  expect(screen.getByRole("region", { name: "In progress" })).toBeDefined();
   expect(screen.getByRole("region", { name: "Done" })).toBeDefined();
   expect(screen.getByRole("region", { name: "Archived" })).toBeDefined();
 });
 
-it("PATCHes the task status when changed inline", async () => {
+it("PATCHes the task status via the status badge menu", async () => {
   const calls: Array<[string, RequestInit | undefined]> = [];
   const tasks = [makeTask({ id: "t1", title: "Move me", status: "open" })];
   renderTasks(fetchMockFor(tasks, calls));
@@ -230,9 +336,9 @@ it("PATCHes the task status when changed inline", async () => {
   await screen.findByRole("heading", { name: "Tasks" });
 
   const openGroup = await screen.findByRole("region", { name: "Open" });
-  // The inline status <select> lives inside the row for this task.
-  const statusSelect = within(openGroup).getByRole("combobox");
-  await userEvent.selectOptions(statusSelect, "in_progress");
+  // Click the clickable status badge to open its menu, then pick a new status.
+  await userEvent.click(within(openGroup).getByRole("button", { name: /change status/i }));
+  await userEvent.click(screen.getByRole("menuitem", { name: "In progress" }));
 
   await waitFor(() => {
     const patchCall = calls.find(
@@ -241,6 +347,45 @@ it("PATCHes the task status when changed inline", async () => {
     expect(patchCall).toBeDefined();
     const body = JSON.parse(patchCall![1]!.body as string);
     expect(body.status).toBe("in_progress");
+  });
+});
+
+it("renders a markdown preview of the description", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  renderTasks(fetchMockFor([], calls));
+
+  await screen.findByRole("heading", { name: "Tasks" });
+  await userEvent.click(screen.getByRole("button", { name: /new/i }));
+
+  await userEvent.type(
+    screen.getByRole("textbox", { name: /description/i }),
+    "# Preview Heading",
+  );
+  await userEvent.click(screen.getByRole("button", { name: /^preview$/i }));
+
+  const preview = screen.getByTestId("description-preview");
+  expect(within(preview).getByRole("heading", { name: "Preview Heading" })).toBeDefined();
+});
+
+it("deletes a task from the edit panel", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const tasks = [makeTask({ id: "t1", title: "Delete me", status: "open" })];
+  renderTasks(fetchMockFor(tasks, calls));
+
+  await screen.findByRole("heading", { name: "Tasks" });
+  await userEvent.click(screen.getByRole("button", { name: "Delete me" }));
+  await screen.findByRole("dialog", { name: "Edit task" });
+
+  // ConfirmButton arms on first click, fires on the second.
+  const del = screen.getByRole("button", { name: /delete task/i });
+  await userEvent.click(del);
+  await userEvent.click(screen.getByRole("button", { name: /confirm/i }));
+
+  await waitFor(() => {
+    const delCall = calls.find(
+      ([url, init]) => /\/tasks\/t1$/.test(String(url)) && init?.method === "DELETE",
+    );
+    expect(delCall).toBeDefined();
   });
 });
 

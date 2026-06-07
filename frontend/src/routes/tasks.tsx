@@ -1,14 +1,23 @@
 import { createRoute, Link } from "@tanstack/react-router";
+import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AppShell } from "../components/AppShell";
+import {
+  PriorityIcon,
+  STATUS,
+  StatusBadgeMenu,
+  contextTint,
+} from "../components/console";
 import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
+import { Markdown } from "../components/Markdown";
 import { RequireAuth } from "../components/RequireAuth";
-import { Button, Card, Field, Input, Select } from "../components/ui";
+import { SidePanel } from "../components/SidePanel";
+import { Button, Field, Input, Select, Textarea } from "../components/ui";
 import { useContexts } from "../features/contexts/api";
 import { useProjects } from "../features/projects/api";
 import { useCreateTask, useDeleteTask, useTasks, useUpdateTask } from "../features/tasks/api";
-import type { Task } from "../lib/types";
+import type { Context, Task } from "../lib/types";
 import { rootRoute } from "./root";
 
 interface FormState {
@@ -20,6 +29,7 @@ interface FormState {
   context_id: string;
   project_id: string;
   outcome: string;
+  body: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -31,6 +41,7 @@ const EMPTY_FORM: FormState = {
   context_id: "",
   project_id: "",
   outcome: "",
+  body: "",
 };
 
 /** Build a TaskCreate/TaskUpdate payload.
@@ -55,15 +66,19 @@ function buildPayload(form: FormState, isEdit: boolean) {
       ? { project_id: form.project_id || null }
       : form.project_id ? { project_id: form.project_id } : {}),
     ...(form.outcome ? { outcome: form.outcome } : { outcome: null }),
+    ...(form.body ? { body: form.body } : { body: null }),
   };
 }
 
-const STATUS_OPTIONS = [
-  { value: "open", label: "Open" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "done", label: "Done" },
-  { value: "archived", label: "Archived" },
-];
+/** Status values whose tasks are hidden until "Show completed" is enabled. */
+const COMPLETED_STATUSES = new Set(["done", "archived"]);
+
+/** Stable display order for status groups/columns — in progress first. */
+const STATUS_ORDER = ["in_progress", "open", "done", "archived"];
+const STATUS_OPTIONS = STATUS_ORDER.map((value) => ({
+  value,
+  label: STATUS[value]?.label ?? value,
+}));
 
 const PRIORITY_OPTIONS = [
   { value: "low", label: "Low" },
@@ -71,14 +86,9 @@ const PRIORITY_OPTIONS = [
   { value: "high", label: "High" },
 ];
 
-/** Stable display order for status groups/columns. */
-const STATUS_ORDER = STATUS_OPTIONS.map((o) => o.value);
-const STATUS_LABELS: Record<string, string> = Object.fromEntries(
-  STATUS_OPTIONS.map((o) => [o.value, o.label]),
-);
-
 type ViewMode = "list" | "board";
 type GroupBy = "status" | "due";
+type DescTab = "write" | "preview";
 
 const VIEW_OPTIONS: { value: ViewMode; label: string }[] = [
   { value: "list", label: "List" },
@@ -90,19 +100,44 @@ const GROUP_OPTIONS = [
   { value: "due", label: "Due" },
 ];
 
-/** Map a status value to its CSS color token. */
-function statusColor(status: string): string {
-  switch (status) {
-    case "in_progress":
-      return "var(--st-progress)";
-    case "done":
-      return "var(--st-done)";
-    case "archived":
-      return "var(--st-archived)";
-    default:
-      return "var(--st-open)";
-  }
+/** Selector for descendants that handle their own clicks (so a card/row click
+ * doesn't also fire when one of these is the target). */
+const INTERACTIVE = "button, a, select, input, textarea, label, [role='menu']";
+
+/** Shared width so every toolbar filter select is the same size. */
+const FILTER_WIDTH: React.CSSProperties = { width: 180 };
+
+/** A leading dot tinted by the task's context; muted/hollow when none. */
+function ContextDot({ ctx }: { ctx?: Context }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        width: 9,
+        height: 9,
+        borderRadius: 9,
+        flexShrink: 0,
+        background: ctx ? contextTint(ctx) : "transparent",
+        border: ctx ? "none" : "1px solid var(--line-bright)",
+      }}
+    />
+  );
 }
+
+/** Plain-text button used for a clickable task title. */
+const titleButtonStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  background: "none",
+  border: 0,
+  padding: 0,
+  margin: 0,
+  font: "inherit",
+  color: "inherit",
+  cursor: "pointer",
+  textAlign: "left",
+};
 
 /** Bucket a task's due date into a human group key, ordered. */
 const DUE_GROUP_ORDER = ["overdue", "today", "soon", "later", "none"];
@@ -138,8 +173,8 @@ function groupTasks(tasks: Task[], groupBy: GroupBy, today: string): Group[] {
   if (groupBy === "status") {
     return STATUS_ORDER.map((status) => ({
       key: status,
-      label: STATUS_LABELS[status] ?? status,
-      color: statusColor(status),
+      label: STATUS[status]?.label ?? status,
+      color: STATUS[status]?.color,
       tasks: tasks.filter((t) => t.status === status),
     }));
   }
@@ -160,19 +195,30 @@ export function TasksPage() {
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [descTab, setDescTab] = useState<DescTab>("write");
   const [view, setView] = useState<ViewMode>("list");
   const [groupBy, setGroupBy] = useState<GroupBy>("status");
   const [contextFilter, setContextFilter] = useState<string>("");
+  const [projectFilter, setProjectFilter] = useState<string>("");
+  const [showCompleted, setShowCompleted] = useState(false);
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   function handleChange(key: keyof FormState) {
-    return (e: React.ChangeEvent<HTMLInputElement>) =>
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
   }
 
   function handleSelectChange(key: keyof FormState) {
     return (value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleNew() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setDescTab("write");
+    setPanelOpen(true);
   }
 
   function handleEdit(row: Task) {
@@ -186,12 +232,17 @@ export function TasksPage() {
       context_id: row.context_id ?? "",
       project_id: row.project_id ?? "",
       outcome: row.outcome ?? "",
+      body: row.body ?? "",
     });
+    setDescTab("write");
+    setPanelOpen(true);
   }
 
-  function handleCancel() {
+  function handleClose() {
+    setPanelOpen(false);
     setEditingId(null);
     setForm(EMPTY_FORM);
+    setDescTab("write");
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -200,18 +251,16 @@ export function TasksPage() {
     if (editingId) {
       updateTask.mutate(
         { id: editingId, data: payload },
-        {
-          onSuccess: () => {
-            setEditingId(null);
-            setForm(EMPTY_FORM);
-          },
-        },
+        { onSuccess: handleClose },
       );
     } else {
-      createTask.mutate(payload, {
-        onSuccess: () => setForm(EMPTY_FORM),
-      });
+      createTask.mutate(payload, { onSuccess: handleClose });
     }
+  }
+
+  function handleDelete() {
+    if (!editingId) return;
+    deleteTask.mutate(editingId, { onSuccess: handleClose });
   }
 
   /** Inline status change — reuses the shared update hook. */
@@ -220,12 +269,28 @@ export function TasksPage() {
     updateTask.mutate({ id: row.id, data: { status } });
   }
 
-  const contextMap = Object.fromEntries(contexts.map((c) => [c.id, c.name]));
-
-  const visibleTasks = useMemo(
-    () => (contextFilter ? tasks.filter((t) => t.context_id === contextFilter) : tasks),
-    [tasks, contextFilter],
+  const contextById = useMemo(
+    () => Object.fromEntries(contexts.map((c) => [c.id, c])),
+    [contexts],
   );
+  const contextMap = useMemo(
+    () => Object.fromEntries(contexts.map((c) => [c.id, c.name])),
+    [contexts],
+  );
+  const projectMap = useMemo(
+    () => Object.fromEntries(projects.map((p) => [p.id, p.title])),
+    [projects],
+  );
+
+  const visibleTasks = useMemo(() => {
+    let list = tasks;
+    if (contextFilter) list = list.filter((t) => t.context_id === contextFilter);
+    if (projectFilter) list = list.filter((t) => t.project_id === projectFilter);
+    if (!showCompleted) list = list.filter((t) => !COMPLETED_STATUSES.has(t.status));
+    return list;
+  }, [tasks, contextFilter, projectFilter, showCompleted]);
+
+  const hasFilter = Boolean(contextFilter || projectFilter);
 
   const groups = useMemo(
     () => groupTasks(visibleTasks, groupBy, today),
@@ -233,35 +298,39 @@ export function TasksPage() {
   );
 
   const columns = [
-    { header: "Title", cell: (row: Task) => row.title },
+    {
+      header: "Title",
+      cell: (row: Task) => (
+        <button
+          type="button"
+          style={titleButtonStyle}
+          onClick={() => handleEdit(row)}
+        >
+          <ContextDot ctx={row.context_id ? contextById[row.context_id] : undefined} />
+          {row.title}
+        </button>
+      ),
+    },
     {
       header: "Status",
       cell: (row: Task) => (
-        <Select
-          value={row.status}
-          onChange={(value) => handleStatusChange(row, value)}
+        <StatusBadgeMenu
+          status={row.status}
           options={STATUS_OPTIONS}
+          onChange={(status) => handleStatusChange(row, status)}
         />
       ),
     },
-    { header: "Priority", cell: (row: Task) => row.priority },
-    { header: "Due", cell: (row: Task) => row.due ?? "" },
-    { header: "Context", cell: (row: Task) => (row.context_id ? (contextMap[row.context_id] ?? row.context_id) : "") },
+    { header: "Priority", cell: (row: Task) => <PriorityIcon priority={row.priority} withLabel /> },
     {
-      header: "Actions",
-      cell: (row: Task) => (
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            className="btn ghost sm"
-            onClick={() => handleEdit(row)}
-          >
-            Edit
-          </button>
-          <ConfirmButton onConfirm={() => deleteTask.mutate(row.id)}>Delete</ConfirmButton>
-        </div>
-      ),
+      header: "Context",
+      cell: (row: Task) => (row.context_id ? (contextMap[row.context_id] ?? "") : ""),
     },
+    {
+      header: "Project",
+      cell: (row: Task) => (row.project_id ? (projectMap[row.project_id] ?? "") : ""),
+    },
+    { header: "Due", cell: (row: Task) => row.due ?? "" },
   ];
 
   return (
@@ -277,88 +346,17 @@ export function TasksPage() {
         >
           <div className="flex items-center justify-between">
             <h1 className="title">Tasks</h1>
-            <p className="meta">
-              <Link to="/activity" className="underline">
-                Manage from the Activity page to undo changes.
-              </Link>
-            </p>
+            <div className="flex items-center gap-4">
+              <p className="meta">
+                <Link to="/activity" className="underline">
+                  Manage from the Activity page to undo changes.
+                </Link>
+              </p>
+              <Button type="button" onClick={handleNew} className="row gap-2">
+                <Plus size={15} /> New
+              </Button>
+            </div>
           </div>
-
-          <Card>
-            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-              <Field label="Title">
-                <Input
-                  value={form.title}
-                  onChange={handleChange("title")}
-                  placeholder="Task title"
-                  aria-label="Title"
-                  required
-                />
-              </Field>
-              <Field label="Status">
-                <Select
-                  value={form.status}
-                  onChange={handleSelectChange("status")}
-                  options={STATUS_OPTIONS}
-                />
-              </Field>
-              <Field label="Priority">
-                <Select
-                  value={form.priority}
-                  onChange={handleSelectChange("priority")}
-                  options={PRIORITY_OPTIONS}
-                />
-              </Field>
-              <Field label="Due">
-                <Input
-                  type="date"
-                  value={form.due}
-                  onChange={handleChange("due")}
-                  aria-label="Due"
-                />
-              </Field>
-              <Field label="Scheduled">
-                <Input
-                  type="date"
-                  value={form.scheduled}
-                  onChange={handleChange("scheduled")}
-                  aria-label="Scheduled"
-                />
-              </Field>
-              <Field label="Context">
-                <Select
-                  value={form.context_id}
-                  onChange={handleSelectChange("context_id")}
-                  options={contexts.map((c) => ({ value: c.id, label: c.name }))}
-                  placeholder="— none —"
-                />
-              </Field>
-              <Field label="Project">
-                <Select
-                  value={form.project_id}
-                  onChange={handleSelectChange("project_id")}
-                  options={projects.map((p) => ({ value: p.id, label: p.title }))}
-                  placeholder="— none —"
-                />
-              </Field>
-              <Field label="Outcome">
-                <Input
-                  value={form.outcome}
-                  onChange={handleChange("outcome")}
-                  placeholder="Optional outcome"
-                  aria-label="Outcome"
-                />
-              </Field>
-              <div className="col-span-2 flex gap-2">
-                <Button type="submit">{editingId ? "Save" : "Add"}</Button>
-                {editingId && (
-                  <Button type="button" onClick={handleCancel} className="ghost">
-                    Cancel
-                  </Button>
-                )}
-              </div>
-            </form>
-          </Card>
 
           <div className="flex flex-wrap items-end gap-4">
             <div role="group" aria-label="View" className="flex gap-2">
@@ -376,38 +374,193 @@ export function TasksPage() {
             </div>
             {view === "list" && (
               <Field label="Group by">
-                <Select
-                  value={groupBy}
-                  onChange={(value) => setGroupBy(value as GroupBy)}
-                  options={GROUP_OPTIONS}
-                />
+                <div style={FILTER_WIDTH}>
+                  <Select
+                    value={groupBy}
+                    onChange={(value) => setGroupBy(value as GroupBy)}
+                    options={GROUP_OPTIONS}
+                  />
+                </div>
               </Field>
             )}
             <Field label="Context filter">
-              <Select
-                value={contextFilter}
-                onChange={setContextFilter}
-                options={contexts.map((c) => ({ value: c.id, label: c.name }))}
-                placeholder="All contexts"
-              />
+              <div style={FILTER_WIDTH}>
+                <Select
+                  value={contextFilter}
+                  onChange={setContextFilter}
+                  options={contexts.map((c) => ({ value: c.id, label: c.name }))}
+                  placeholder="All contexts"
+                />
+              </div>
             </Field>
+            <Field label="Project filter">
+              <div style={FILTER_WIDTH}>
+                <Select
+                  value={projectFilter}
+                  onChange={setProjectFilter}
+                  options={projects.map((p) => ({ value: p.id, label: p.title }))}
+                  placeholder="All projects"
+                />
+              </div>
+            </Field>
+            <Button
+              type="button"
+              aria-pressed={showCompleted}
+              className={showCompleted ? "primary" : "ghost"}
+              onClick={() => setShowCompleted((v) => !v)}
+            >
+              Show completed
+            </Button>
           </div>
 
           {view === "list" ? (
             <ListView
               groups={groups}
               columns={columns}
-              empty={contextFilter ? "No tasks in this context." : "No tasks yet."}
+              onRowClick={handleEdit}
+              empty={hasFilter ? "No tasks match these filters." : "No tasks yet."}
             />
           ) : (
             <BoardView
               tasks={visibleTasks}
+              contextById={contextById}
               contextMap={contextMap}
               onStatusChange={handleStatusChange}
               onEdit={handleEdit}
             />
           )}
         </div>
+
+        <SidePanel
+          open={panelOpen}
+          onClose={handleClose}
+          title={editingId ? "Edit task" : "New task"}
+        >
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
+            <Field label="Title">
+              <Input
+                value={form.title}
+                onChange={handleChange("title")}
+                placeholder="Task title"
+                aria-label="Title"
+                required
+              />
+            </Field>
+            <Field label="Status">
+              <Select
+                value={form.status}
+                onChange={handleSelectChange("status")}
+                options={STATUS_OPTIONS}
+              />
+            </Field>
+            <Field label="Priority">
+              <Select
+                value={form.priority}
+                onChange={handleSelectChange("priority")}
+                options={PRIORITY_OPTIONS}
+              />
+            </Field>
+            <Field label="Due">
+              <Input
+                type="date"
+                value={form.due}
+                onChange={handleChange("due")}
+                aria-label="Due"
+              />
+            </Field>
+            <Field label="Scheduled">
+              <Input
+                type="date"
+                value={form.scheduled}
+                onChange={handleChange("scheduled")}
+                aria-label="Scheduled"
+              />
+            </Field>
+            <Field label="Context">
+              <Select
+                value={form.context_id}
+                onChange={handleSelectChange("context_id")}
+                options={contexts.map((c) => ({ value: c.id, label: c.name }))}
+                placeholder="— none —"
+              />
+            </Field>
+            <Field label="Project">
+              <Select
+                value={form.project_id}
+                onChange={handleSelectChange("project_id")}
+                options={projects.map((p) => ({ value: p.id, label: p.title }))}
+                placeholder="— none —"
+              />
+            </Field>
+            <Field label="Outcome">
+              <Input
+                value={form.outcome}
+                onChange={handleChange("outcome")}
+                placeholder="Optional outcome"
+                aria-label="Outcome"
+              />
+            </Field>
+            <div>
+              <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+                <span className="label">Description</span>
+                <div role="group" aria-label="Description editor mode" className="flex gap-2">
+                  <Button
+                    type="button"
+                    aria-pressed={descTab === "write"}
+                    className={descTab === "write" ? "primary sm" : "ghost sm"}
+                    onClick={() => setDescTab("write")}
+                  >
+                    Write
+                  </Button>
+                  <Button
+                    type="button"
+                    aria-pressed={descTab === "preview"}
+                    className={descTab === "preview" ? "primary sm" : "ghost sm"}
+                    onClick={() => setDescTab("preview")}
+                  >
+                    Preview
+                  </Button>
+                </div>
+              </div>
+              {descTab === "write" ? (
+                <Textarea
+                  value={form.body}
+                  onChange={handleChange("body")}
+                  placeholder="Details — markdown supported"
+                  aria-label="Description"
+                  rows={8}
+                />
+              ) : (
+                <div
+                  data-testid="description-preview"
+                  style={{
+                    minHeight: 160,
+                    padding: "10px 12px",
+                    background: "var(--bg-deep)",
+                    border: "1px solid var(--line)",
+                    borderRadius: "var(--r-sm)",
+                  }}
+                >
+                  <Markdown>{form.body || "_Nothing to preview._"}</Markdown>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button type="submit">{editingId ? "Save" : "Add"}</Button>
+              <Button type="button" onClick={handleClose} className="ghost">
+                Cancel
+              </Button>
+            </div>
+            {editingId && (
+              <>
+                <hr className="hr" />
+                <div className="flex justify-end">
+                  <ConfirmButton onConfirm={handleDelete}>Delete task</ConfirmButton>
+                </div>
+              </>
+            )}
+          </form>
+        </SidePanel>
       </AppShell>
     </RequireAuth>
   );
@@ -416,10 +569,12 @@ export function TasksPage() {
 function ListView({
   groups,
   columns,
+  onRowClick,
   empty,
 }: {
   groups: Group[];
   columns: { header: string; cell: (row: Task) => React.ReactNode }[];
+  onRowClick: (row: Task) => void;
   empty: string;
 }) {
   const nonEmpty = groups.filter((g) => g.tasks.length > 0);
@@ -451,7 +606,7 @@ function ListView({
               {group.tasks.length}
             </span>
           </div>
-          <DataTable rows={group.tasks} columns={columns} empty={empty} />
+          <DataTable rows={group.tasks} columns={columns} onRowClick={onRowClick} empty={empty} />
         </section>
       ))}
     </div>
@@ -460,11 +615,13 @@ function ListView({
 
 function BoardView({
   tasks,
+  contextById,
   contextMap,
   onStatusChange,
   onEdit,
 }: {
   tasks: Task[];
+  contextById: Record<string, Context>;
   contextMap: Record<string, string>;
   onStatusChange: (row: Task, status: string) => void;
   onEdit: (row: Task) => void;
@@ -484,7 +641,7 @@ function BoardView({
         return (
           <section
             key={status}
-            aria-label={STATUS_LABELS[status] ?? status}
+            aria-label={STATUS[status]?.label ?? status}
             className="card"
             style={{ padding: "12px" }}
           >
@@ -495,11 +652,11 @@ function BoardView({
                   width: "8px",
                   height: "8px",
                   borderRadius: "999px",
-                  background: statusColor(status),
+                  background: STATUS[status]?.color,
                 }}
               />
               <h2 className="label" style={{ fontWeight: 600 }}>
-                {STATUS_LABELS[status] ?? status}
+                {STATUS[status]?.label ?? status}
               </h2>
               <span className="label" style={{ color: "var(--fg-faint)" }}>
                 {columnTasks.length}
@@ -513,6 +670,7 @@ function BoardView({
                   <BoardCard
                     key={task.id}
                     task={task}
+                    contextById={contextById}
                     contextMap={contextMap}
                     onStatusChange={onStatusChange}
                     onEdit={onEdit}
@@ -529,48 +687,57 @@ function BoardView({
 
 function BoardCard({
   task,
+  contextById,
   contextMap,
   onStatusChange,
   onEdit,
 }: {
   task: Task;
+  contextById: Record<string, Context>;
   contextMap: Record<string, string>;
   onStatusChange: (row: Task, status: string) => void;
   onEdit: (row: Task) => void;
 }) {
+  const ctx = task.context_id ? contextById[task.context_id] : undefined;
   const contextName = task.context_id
     ? (contextMap[task.context_id] ?? task.context_id)
     : null;
   return (
     <article
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest(INTERACTIVE)) return;
+        onEdit(task);
+      }}
       style={{
         background: "var(--surface-2)",
         border: "1px solid var(--line-soft)",
         borderRadius: "var(--r-sm)",
         padding: "10px",
+        cursor: "pointer",
       }}
     >
-      <div style={{ fontSize: "13px", fontWeight: 500, marginBottom: "6px" }}>
+      <button
+        type="button"
+        style={{ ...titleButtonStyle, fontSize: "13px", fontWeight: 500 }}
+        onClick={() => onEdit(task)}
+      >
+        <ContextDot ctx={ctx} />
         {task.title}
-      </div>
-      <div className="flex flex-wrap items-center gap-2" style={{ fontSize: "11px" }}>
-        <span style={{ color: "var(--fg-dim)" }}>{task.priority}</span>
+      </button>
+      <div
+        className="flex flex-wrap items-center gap-2"
+        style={{ fontSize: "11px", marginTop: "6px" }}
+      >
+        <PriorityIcon priority={task.priority} withLabel />
         {task.due && <span style={{ color: "var(--fg-dim)" }}>· {task.due}</span>}
         {contextName && <span style={{ color: "var(--fg-dim)" }}>· {contextName}</span>}
       </div>
-      <div className="flex items-center gap-2" style={{ marginTop: "8px" }}>
-        <Select
-          value={task.status}
-          onChange={(value) => onStatusChange(task, value)}
+      <div className="row" style={{ marginTop: "8px" }}>
+        <StatusBadgeMenu
+          status={task.status}
           options={STATUS_OPTIONS}
+          onChange={(status) => onStatusChange(task, status)}
         />
-        <button
-          type="button"
-          className="text-xs text-gray-500 hover:text-gray-900"
-          onClick={() => onEdit(task)}
-        >
-          Edit
-        </button>
       </div>
     </article>
   );

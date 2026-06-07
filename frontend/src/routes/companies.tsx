@@ -1,10 +1,12 @@
 import { createRoute, Link } from "@tanstack/react-router";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "../components/AppShell";
 import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
-import { Button, Card, Field, Input } from "../components/ui";
+import { SidePanel } from "../components/SidePanel";
+import { Button, Field, Input } from "../components/ui";
 import { useCompanies, useCreateCompany, useDeleteCompany, useUpdateCompany } from "../features/companies/api";
 import type { Company } from "../lib/types";
 import { rootRoute } from "./root";
@@ -26,10 +28,17 @@ export function CompaniesPage() {
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
+  }
+
+  function handleNew() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setPanelOpen(true);
   }
 
   function handleEdit(row: Company) {
@@ -40,9 +49,11 @@ export function CompaniesPage() {
       domain: row.domain ?? "",
       notes: row.notes ?? "",
     });
+    setPanelOpen(true);
   }
 
-  function handleCancel() {
+  function handleClose() {
+    setPanelOpen(false);
     setEditingId(null);
     setForm(EMPTY_FORM);
   }
@@ -58,17 +69,10 @@ export function CompaniesPage() {
     if (editingId) {
       updateCompany.mutate(
         { id: editingId, data: payload },
-        {
-          onSuccess: () => {
-            setEditingId(null);
-            setForm(EMPTY_FORM);
-          },
-        },
+        { onSuccess: handleClose },
       );
     } else {
-      createCompany.mutate(payload, {
-        onSuccess: () => setForm(EMPTY_FORM),
-      });
+      createCompany.mutate(payload, { onSuccess: handleClose });
     }
   }
 
@@ -106,62 +110,69 @@ export function CompaniesPage() {
         >
           <div className="flex items-center justify-between">
             <h1 className="title">Companies</h1>
-            <p className="meta">
-              <Link to="/activity" className="underline">
-                Manage from the Activity page to undo changes.
-              </Link>
-            </p>
+            <div className="flex items-center gap-4">
+              <p className="meta">
+                <Link to="/activity" className="underline">
+                  Manage from the Activity page to undo changes.
+                </Link>
+              </p>
+              <Button type="button" onClick={handleNew} className="row gap-2">
+                <Plus size={15} /> New
+              </Button>
+            </div>
           </div>
-
-          <Card>
-            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-              <Field label="Name">
-                <Input
-                  value={form.name}
-                  onChange={handleChange("name")}
-                  placeholder="Acme Corp"
-                  aria-label="Name"
-                  required
-                />
-              </Field>
-              <Field label="Slug">
-                <Input
-                  value={form.slug}
-                  onChange={handleChange("slug")}
-                  placeholder="acme-corp"
-                  aria-label="Slug"
-                  required
-                />
-              </Field>
-              <Field label="Domain">
-                <Input
-                  value={form.domain}
-                  onChange={handleChange("domain")}
-                  placeholder="acme.com"
-                  aria-label="Domain"
-                />
-              </Field>
-              <Field label="Notes">
-                <Input
-                  value={form.notes}
-                  onChange={handleChange("notes")}
-                  placeholder="Optional notes"
-                  aria-label="Notes"
-                />
-              </Field>
-              <div className="col-span-2 flex gap-2">
-                <Button type="submit">{editingId ? "Save" : "Add"}</Button>
-                {editingId && (
-                  <Button type="button" onClick={handleCancel} className="ghost">
-                    Cancel
-                  </Button>
-                )}
-              </div>
-            </form>
-          </Card>
 
           <DataTable rows={companies} columns={columns} empty="No companies yet." />
         </div>
+
+        <SidePanel
+          open={panelOpen}
+          onClose={handleClose}
+          title={editingId ? "Edit company" : "New company"}
+        >
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
+            <Field label="Name">
+              <Input
+                value={form.name}
+                onChange={handleChange("name")}
+                placeholder="Acme Corp"
+                aria-label="Name"
+                required
+              />
+            </Field>
+            <Field label="Slug">
+              <Input
+                value={form.slug}
+                onChange={handleChange("slug")}
+                placeholder="acme-corp"
+                aria-label="Slug"
+                required
+              />
+            </Field>
+            <Field label="Domain">
+              <Input
+                value={form.domain}
+                onChange={handleChange("domain")}
+                placeholder="acme.com"
+                aria-label="Domain"
+              />
+            </Field>
+            <Field label="Notes">
+              <Input
+                value={form.notes}
+                onChange={handleChange("notes")}
+                placeholder="Optional notes"
+                aria-label="Notes"
+              />
+            </Field>
+            <div className="flex gap-2">
+              <Button type="submit">{editingId ? "Save" : "Add"}</Button>
+              <Button type="button" onClick={handleClose} className="ghost">
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </SidePanel>
       </AppShell>
     </RequireAuth>
   );

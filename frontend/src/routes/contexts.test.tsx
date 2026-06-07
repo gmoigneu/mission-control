@@ -80,6 +80,9 @@ it("renders the contexts page and POSTs when Add is clicked", async () => {
   // Wait for the page to render (RequireAuth resolves)
   await screen.findByRole("heading", { name: "Contexts" });
 
+  // Open the create drawer
+  await userEvent.click(screen.getByRole("button", { name: /new/i }));
+
   // Type into the form inputs
   await userEvent.type(screen.getByRole("textbox", { name: /name/i }), "Test Name");
   await userEvent.type(screen.getByRole("textbox", { name: /slug/i }), "test-slug");
@@ -128,6 +131,7 @@ describe("ContextsPage form", () => {
     renderContexts(fetchMock);
 
     await screen.findByRole("heading", { name: "Contexts" });
+    await userEvent.click(screen.getByRole("button", { name: /new/i }));
     await userEvent.type(screen.getByRole("textbox", { name: "Name" }), "Open Source");
     await userEvent.type(screen.getByRole("textbox", { name: "Slug" }), "oss");
     await userEvent.selectOptions(screen.getByRole("combobox", { name: "Status" }), "archived");

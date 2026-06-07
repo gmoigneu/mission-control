@@ -1,4 +1,5 @@
 import { createRoute, Link } from "@tanstack/react-router";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "../components/AppShell";
 import { ColorPicker } from "../components/ColorPicker";
@@ -6,7 +7,8 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { StatusBadge, contextTint } from "../components/console";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
-import { Button, Card, Field, Input, Select } from "../components/ui";
+import { SidePanel } from "../components/SidePanel";
+import { Button, Field, Input, Select } from "../components/ui";
 import { useContexts, useCreateContext, useDeleteContext, useUpdateContext } from "../features/contexts/api";
 import type { Context } from "../lib/types";
 import { rootRoute } from "./root";
@@ -37,6 +39,7 @@ export function ContextsPage() {
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -45,6 +48,12 @@ export function ContextsPage() {
 
   function handleSelectChange(key: keyof FormState) {
     return (value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleNew() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setPanelOpen(true);
   }
 
   function handleEdit(row: Context) {
@@ -57,9 +66,11 @@ export function ContextsPage() {
       status: row.status,
       color: row.color ?? "",
     });
+    setPanelOpen(true);
   }
 
-  function handleCancel() {
+  function handleClose() {
+    setPanelOpen(false);
     setEditingId(null);
     setForm(EMPTY_FORM);
   }
@@ -77,17 +88,10 @@ export function ContextsPage() {
     if (editingId) {
       updateContext.mutate(
         { id: editingId, data: payload },
-        {
-          onSuccess: () => {
-            setEditingId(null);
-            setForm(EMPTY_FORM);
-          },
-        },
+        { onSuccess: handleClose },
       );
     } else {
-      createContext.mutate(payload, {
-        onSuccess: () => setForm(EMPTY_FORM),
-      });
+      createContext.mutate(payload, { onSuccess: handleClose });
     }
   }
 
@@ -136,72 +140,79 @@ export function ContextsPage() {
         >
           <div className="flex items-center justify-between">
             <h1 className="title">Contexts</h1>
-            <p className="meta">
-              <Link to="/activity" className="underline">
-                Manage from the Activity page to undo changes.
-              </Link>
-            </p>
+            <div className="flex items-center gap-4">
+              <p className="meta">
+                <Link to="/activity" className="underline">
+                  Manage from the Activity page to undo changes.
+                </Link>
+              </p>
+              <Button type="button" onClick={handleNew} className="row gap-2">
+                <Plus size={15} /> New
+              </Button>
+            </div>
           </div>
-
-          <Card>
-            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-              <Field label="Name">
-                <Input
-                  value={form.name}
-                  onChange={handleChange("name")}
-                  placeholder="My Context"
-                  aria-label="Name"
-                  required
-                />
-              </Field>
-              <Field label="Slug">
-                <Input
-                  value={form.slug}
-                  onChange={handleChange("slug")}
-                  placeholder="my-context"
-                  aria-label="Slug"
-                  required
-                />
-              </Field>
-              <Field label="Category">
-                <Input
-                  value={form.category}
-                  onChange={handleChange("category")}
-                  placeholder="work"
-                  aria-label="Category"
-                />
-              </Field>
-              <Field label="Description">
-                <Input
-                  value={form.description}
-                  onChange={handleChange("description")}
-                  placeholder="Optional description"
-                  aria-label="Description"
-                />
-              </Field>
-              <Field label="Status">
-                <Select
-                  value={form.status}
-                  onChange={handleSelectChange("status")}
-                  options={STATUS_OPTIONS}
-                />
-              </Field>
-              <Field label="Color">
-                <ColorPicker value={form.color} onChange={handleSelectChange("color")} />
-              </Field>
-              <div className="col-span-2 flex gap-2">
-                <Button type="submit">{editingId ? "Save" : "Add"}</Button>
-                {editingId && (
-                  <Button type="button" onClick={handleCancel} className="ghost">
-                    Cancel
-                  </Button>
-                )}
-              </div>
-            </form>
-          </Card>
 
           <DataTable rows={contexts} columns={columns} empty="No contexts yet." />
         </div>
+
+        <SidePanel
+          open={panelOpen}
+          onClose={handleClose}
+          title={editingId ? "Edit context" : "New context"}
+        >
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
+            <Field label="Name">
+              <Input
+                value={form.name}
+                onChange={handleChange("name")}
+                placeholder="My Context"
+                aria-label="Name"
+                required
+              />
+            </Field>
+            <Field label="Slug">
+              <Input
+                value={form.slug}
+                onChange={handleChange("slug")}
+                placeholder="my-context"
+                aria-label="Slug"
+                required
+              />
+            </Field>
+            <Field label="Category">
+              <Input
+                value={form.category}
+                onChange={handleChange("category")}
+                placeholder="work"
+                aria-label="Category"
+              />
+            </Field>
+            <Field label="Description">
+              <Input
+                value={form.description}
+                onChange={handleChange("description")}
+                placeholder="Optional description"
+                aria-label="Description"
+              />
+            </Field>
+            <Field label="Status">
+              <Select
+                value={form.status}
+                onChange={handleSelectChange("status")}
+                options={STATUS_OPTIONS}
+              />
+            </Field>
+            <Field label="Color">
+              <ColorPicker value={form.color} onChange={handleSelectChange("color")} />
+            </Field>
+            <div className="flex gap-2">
+              <Button type="submit">{editingId ? "Save" : "Add"}</Button>
+              <Button type="button" onClick={handleClose} className="ghost">
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </SidePanel>
       </AppShell>
     </RequireAuth>
   );

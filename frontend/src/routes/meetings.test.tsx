@@ -79,6 +79,8 @@ it("renders the meetings page and POSTs when Add is clicked", async () => {
 
   await screen.findByRole("heading", { name: "Meetings" });
 
+  await userEvent.click(screen.getByRole("button", { name: /new/i }));
+
   await userEvent.type(screen.getByRole("textbox", { name: /title/i }), "Weekly sync");
   await userEvent.type(screen.getByRole("textbox", { name: /slug/i }), "weekly-sync");
 

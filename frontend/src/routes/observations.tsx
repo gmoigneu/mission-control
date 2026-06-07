@@ -1,11 +1,13 @@
 import { createRoute, Link } from "@tanstack/react-router";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "../components/AppShell";
 import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
+import { SidePanel } from "../components/SidePanel";
 import { SubjectPicker } from "../components/SubjectPicker";
-import { Button, Card, Field, Input, Select } from "../components/ui";
+import { Button, Field, Input, Select } from "../components/ui";
 import {
   useCreateObservation,
   useDeleteObservation,
@@ -62,6 +64,7 @@ export function ObservationsPage() {
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -76,6 +79,12 @@ export function ObservationsPage() {
     setForm((prev) => ({ ...prev, subject_type: type, subject_id: id }));
   }
 
+  function handleNew() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setPanelOpen(true);
+  }
+
   function handleEdit(row: Observation) {
     setEditingId(row.id);
     setForm({
@@ -86,9 +95,11 @@ export function ObservationsPage() {
       date: row.date ?? "",
       source: row.source ?? "",
     });
+    setPanelOpen(true);
   }
 
-  function handleCancel() {
+  function handleClose() {
+    setPanelOpen(false);
     setEditingId(null);
     setForm(EMPTY_FORM);
   }
@@ -99,17 +110,10 @@ export function ObservationsPage() {
     if (editingId) {
       updateObservation.mutate(
         { id: editingId, data: payload },
-        {
-          onSuccess: () => {
-            setEditingId(null);
-            setForm(EMPTY_FORM);
-          },
-        },
+        { onSuccess: handleClose },
       );
     } else {
-      createObservation.mutate(payload, {
-        onSuccess: () => setForm(EMPTY_FORM),
-      });
+      createObservation.mutate(payload, { onSuccess: handleClose });
     }
   }
 
@@ -151,72 +155,79 @@ export function ObservationsPage() {
         >
           <div className="flex items-center justify-between">
             <h1 className="title">Observations</h1>
-            <p className="meta">
-              <Link to="/activity" className="underline">
-                Manage from the Activity page to undo changes.
-              </Link>
-            </p>
+            <div className="flex items-center gap-4">
+              <p className="meta">
+                <Link to="/activity" className="underline">
+                  Manage from the Activity page to undo changes.
+                </Link>
+              </p>
+              <Button type="button" onClick={handleNew} className="row gap-2">
+                <Plus size={15} /> New
+              </Button>
+            </div>
           </div>
-
-          <Card>
-            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-              <Field label="Subject">
-                <SubjectPicker
-                  type={form.subject_type}
-                  id={form.subject_id}
-                  onChange={handleSubjectChange}
-                />
-              </Field>
-              <Field label="Kind">
-                <Select
-                  value={form.kind}
-                  onChange={handleSelectChange("kind")}
-                  options={KIND_OPTIONS}
-                />
-              </Field>
-              <Field label="Body">
-                <Input
-                  value={form.body}
-                  onChange={handleChange("body")}
-                  placeholder="Observation body"
-                  aria-label="Body"
-                  required
-                />
-              </Field>
-              <Field label="Date">
-                <Input
-                  type="date"
-                  value={form.date}
-                  onChange={handleChange("date")}
-                  aria-label="Date"
-                />
-              </Field>
-              <Field label="Source">
-                <Input
-                  value={form.source}
-                  onChange={handleChange("source")}
-                  placeholder="Optional source"
-                  aria-label="Source"
-                />
-              </Field>
-              <div className="col-span-2 flex gap-2">
-                <Button
-                  type="submit"
-                  disabled={!form.subject_type || !form.subject_id || !form.body}
-                >
-                  {editingId ? "Save" : "Add"}
-                </Button>
-                {editingId && (
-                  <Button type="button" onClick={handleCancel} className="ghost">
-                    Cancel
-                  </Button>
-                )}
-              </div>
-            </form>
-          </Card>
 
           <DataTable rows={observations} columns={columns} empty="No observations yet." />
         </div>
+
+        <SidePanel
+          open={panelOpen}
+          onClose={handleClose}
+          title={editingId ? "Edit observation" : "New observation"}
+        >
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
+            <Field label="Subject">
+              <SubjectPicker
+                type={form.subject_type}
+                id={form.subject_id}
+                onChange={handleSubjectChange}
+              />
+            </Field>
+            <Field label="Kind">
+              <Select
+                value={form.kind}
+                onChange={handleSelectChange("kind")}
+                options={KIND_OPTIONS}
+              />
+            </Field>
+            <Field label="Body">
+              <Input
+                value={form.body}
+                onChange={handleChange("body")}
+                placeholder="Observation body"
+                aria-label="Body"
+                required
+              />
+            </Field>
+            <Field label="Date">
+              <Input
+                type="date"
+                value={form.date}
+                onChange={handleChange("date")}
+                aria-label="Date"
+              />
+            </Field>
+            <Field label="Source">
+              <Input
+                value={form.source}
+                onChange={handleChange("source")}
+                placeholder="Optional source"
+                aria-label="Source"
+              />
+            </Field>
+            <div className="flex gap-2">
+              <Button
+                type="submit"
+                disabled={!form.subject_type || !form.subject_id || !form.body}
+              >
+                {editingId ? "Save" : "Add"}
+              </Button>
+              <Button type="button" onClick={handleClose} className="ghost">
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </SidePanel>
       </AppShell>
     </RequireAuth>
   );

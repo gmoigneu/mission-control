@@ -103,6 +103,8 @@ it("renders the observations page and POSTs with subject_type/subject_id/body wh
 
   await screen.findByRole("heading", { name: "Observations" });
 
+  await userEvent.click(screen.getByRole("button", { name: /new/i }));
+
   // Select subject_type = "person" in the first combobox of SubjectPicker
   // comboboxes[0] = subject type select, comboboxes[1] = subject id select, comboboxes[2] = kind select
   const comboboxes = screen.getAllByRole("combobox");

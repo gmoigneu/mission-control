@@ -113,6 +113,8 @@ it("renders the entity-tags page and POSTs with tag_id/subject_type/subject_id w
 
   await screen.findByRole("heading", { name: "Entity Tags" });
 
+  await userEvent.click(screen.getByRole("button", { name: /new/i }));
+
   // Wait for tags to load, then select tag t1
   await waitFor(() => {
     const selects = screen.getAllByRole("combobox");
