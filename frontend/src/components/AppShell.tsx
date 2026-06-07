@@ -1128,7 +1128,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
     return true;
   });
-  const [ayaOpen, setAyaOpen] = useState(true);
+  const [ayaOpen, setAyaOpen] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("mc-aya-open");
+      return saved !== null ? saved === "true" : true;
+    }
+    return true;
+  });
   const [mobileNav, setMobileNav] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsJustClosed = useRef(false);
@@ -1146,6 +1152,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem("mc-nav-open", String(navOpen));
   }, [navOpen]);
+
+  // Sync ayaOpen to localStorage so the panel's open/closed choice survives
+  // the AppShell remount that route navigation triggers.
+  useEffect(() => {
+    localStorage.setItem("mc-aya-open", String(ayaOpen));
+  }, [ayaOpen]);
 
   // Global ⌘K
   useEffect(() => {
