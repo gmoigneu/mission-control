@@ -30,12 +30,32 @@ MAX_INSTRUCTIONS_CHARS = 8000
 # These mirror the prompts that were previously hardcoded in agent.py and are
 # NOT user-editable.
 # ---------------------------------------------------------------------------
+_RELATIONSHIP_RULE = (
+    "When a note ties two people together (spouse, partner, parent, child, sibling, "
+    "colleague, manager, friend...), create BOTH people with create_person and connect "
+    "them with add_relationship so the graph gets the edge. Map natural language to the "
+    "relationship type (husband/wife -> partner; mom/dad/sibling/kid -> family; boss -> "
+    "manager). Resolve people you might already know with find_person before creating a "
+    "duplicate."
+)
+
 SURFACE_MECHANICS: dict[str, str] = {
-    "chat": "Read and act on their data using tools. Be concise.",
+    "chat": (
+        "Read and act on their data using tools. Resolve entities with the find_* tools "
+        "before updating, linking, or observing them. " + _RELATIONSHIP_RULE + " Be concise."
+    ),
     "capture": (
         "Parse the user's note into entities and create them with the tools. Be precise. "
-        "If you can't confidently route the note to a specific entity, drop it into the "
-        "inbox with capture_to_inbox so it can be triaged later."
+        "Route each part of the note to the right place:\n"
+        "- People -> create_person (find_person first to avoid duplicates); facts about them "
+        "-> add_observation on that person.\n"
+        "- " + _RELATIONSHIP_RULE + "\n"
+        "- A daily note, journal, or personal reflection (how the day went, feelings, what "
+        "happened) -> get_or_create_journal_entry (today by default), then append_journal_log "
+        "with the details; use set_journal_summary for a title.\n"
+        "- To-dos / follow-ups -> create_task. Meetings -> create_meeting. Companies -> "
+        "create_company. Habits done -> log_habit.\n"
+        "Only when a fragment fits nowhere, drop it into the inbox with capture_to_inbox."
     ),
 }
 _DEFAULT_MECHANICS = SURFACE_MECHANICS["chat"]

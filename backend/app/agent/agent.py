@@ -28,7 +28,7 @@ async def run_agent(
     surface: str,
     user_input: str,
     *,
-    max_steps: int = 6,
+    max_steps: int = 12,
 ) -> AgentResult:
     """Run the agent loop for one user turn.
 

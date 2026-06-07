@@ -8,6 +8,9 @@ from app.agent.context import agent_run_id_var
 from app.agent.tools import TOOL_HANDLERS
 from app.models.audit import AuditLog
 from app.models.context import Context
+from app.models.journal_entry import JournalEntry
+from app.models.outbox import OutboxEvent
+from app.models.relationship import Relationship
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -48,6 +51,67 @@ async def test_create_task_handler(db):
     await db.flush()
     assert "id" in result
     assert result["title"] == "Email Bob about the proposal"
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_add_relationship_handler_links_two_people_and_emits_graph_event(db):
+    """add_relationship creates an edge row and a graph outbox event (→ KNOWS edge)."""
+    create_person = TOOL_HANDLERS["create_person"]
+    magalie = await create_person(db, {"slug": "magalie-rel", "name": "Magalie Rel"})
+    david = await create_person(db, {"slug": "david-rel", "name": "David"})
+    await db.flush()
+
+    handler = TOOL_HANDLERS["add_relationship"]
+    result = await handler(
+        db,
+        {"from_person_id": magalie["id"], "to_person_id": david["id"], "type": "partner"},
+    )
+    await db.flush()
+
+    rel_id = uuid.UUID(result["id"])
+    rel = await db.get(Relationship, rel_id)
+    assert rel is not None
+    assert str(rel.from_person_id) == magalie["id"]
+    assert str(rel.to_person_id) == david["id"]
+    assert rel.type == "partner"
+
+    # A graph-channel outbox event was emitted so the worker projects a KNOWS edge.
+    stmt = select(OutboxEvent).where(
+        OutboxEvent.aggregate_type == "relationship",
+        OutboxEvent.aggregate_id == rel_id,
+        OutboxEvent.channel == "graph",
+    )
+    rows = list((await db.execute(stmt)).scalars().all())
+    assert len(rows) == 1
+    assert rows[0].op == "upsert"
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_journal_capture_handlers_are_idempotent_per_day(db):
+    """get_or_create returns one entry per day; append_journal_log adds to its body."""
+    get_or_create = TOOL_HANDLERS["get_or_create_journal_entry"]
+    first = await get_or_create(db, {})
+    await db.flush()
+    second = await get_or_create(db, {})
+    await db.flush()
+    assert first["id"] == second["id"]
+
+    append = TOOL_HANDLERS["append_journal_log"]
+    await append(db, {"entry_id": first["id"], "text": "Had a barbecue with Magalie and David"})
+    await db.flush()
+
+    entry = await db.get(JournalEntry, uuid.UUID(first["id"]))
+    assert entry is not None
+    assert "barbecue" in entry.body
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_find_person_handler(db):
+    """find_person resolves an existing person by name without the search index."""
+    await TOOL_HANDLERS["create_person"](db, {"slug": "zoe-finder", "name": "Zoe Finder"})
+    await db.flush()
+    res = await TOOL_HANDLERS["find_person"](db, {"query": "Zoe"})
+    assert any(p["slug"] == "zoe-finder" for p in res["people"])
 
 
 @pytest.mark.asyncio(loop_scope="session")
