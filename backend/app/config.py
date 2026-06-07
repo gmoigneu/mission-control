@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     # Sent as OpenRouter's recommended attribution headers on each request.
     openrouter_referer: str = "https://github.com/gmoigneu/mission-control"
     openrouter_title: str = "Mission Control"
+    # Embeddings via OpenRouter (EMBEDDINGS_PROVIDER=openrouter). Must output
+    # vectors of `embeddings_dim` (1536) to match the chunk.embedding column.
+    openrouter_embeddings_model: str = "openai/text-embedding-3-small"
 
     @model_validator(mode="after")
     def _require_secure_secret_in_prod(self) -> "Settings":
