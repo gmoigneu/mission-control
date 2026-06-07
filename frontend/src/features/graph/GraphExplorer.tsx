@@ -72,6 +72,11 @@ export function GraphExplorer() {
     });
   }, [types, elements]);
 
+  // Resize the canvas when the inspector panel opens/closes (the container width changes).
+  useEffect(() => {
+    cyRef.current?.resize();
+  }, [selectedId]);
+
   function runSearch() {
     const cy = cyRef.current;
     const term = search.trim().toLowerCase();
@@ -125,7 +130,14 @@ export function GraphExplorer() {
         <div
           ref={containerRef}
           data-testid="graph-canvas"
-          style={{ flex: 1, minHeight: 480, border: "1px solid #334155", borderRadius: 8 }}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            minHeight: 480,
+            overflow: "hidden",
+            border: "1px solid #334155",
+            borderRadius: 8,
+          }}
         />
         {selectedId && (
           <NodeInspector
