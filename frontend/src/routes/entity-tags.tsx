@@ -6,6 +6,7 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { useHotkey } from "../lib/useHotkey";
 import { SubjectPicker } from "../components/SubjectPicker";
 import { Button, Field, Select } from "../components/ui";
 import { useDeleteEntityTag, useCreateEntityTag, useEntityTags } from "../features/entityTags/api";
@@ -33,6 +34,7 @@ export function EntityTagsPage() {
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [panelOpen, setPanelOpen] = useState(false);
+  useHotkey("c", handleNew, !panelOpen);
 
   const tagMap = Object.fromEntries(tags.map((t) => [t.id, t.name]));
 
@@ -94,7 +96,7 @@ export function EntityTagsPage() {
                 </Link>
               </p>
               <Button type="button" onClick={handleNew} className="row gap-2">
-                <Plus size={15} /> New
+                <Plus size={15} /> Create
               </Button>
             </div>
           </div>

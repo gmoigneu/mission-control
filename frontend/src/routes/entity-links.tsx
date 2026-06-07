@@ -6,6 +6,7 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { useHotkey } from "../lib/useHotkey";
 import { SubjectPicker } from "../components/SubjectPicker";
 import { Button, Field, Input } from "../components/ui";
 import { useCreateEntityLink, useDeleteEntityLink, useEntityLinks } from "../features/entityLinks/api";
@@ -35,6 +36,7 @@ export function EntityLinksPage() {
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [panelOpen, setPanelOpen] = useState(false);
+  useHotkey("c", handleNew, !panelOpen);
 
   function handleFromChange(type: string, id: string) {
     setForm((prev) => ({ ...prev, from_type: type, from_id: id }));
@@ -106,7 +108,7 @@ export function EntityLinksPage() {
                 </Link>
               </p>
               <Button type="button" onClick={handleNew} className="row gap-2">
-                <Plus size={15} /> New
+                <Plus size={15} /> Create
               </Button>
             </div>
           </div>

@@ -7,6 +7,7 @@ import { DataTable } from "../components/DataTable";
 import { Pagination } from "../components/Pagination";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input, Select } from "../components/ui";
 import { useCompanies } from "../features/companies/api";
 import { useContexts } from "../features/contexts/api";
@@ -81,6 +82,7 @@ export function PeoplePage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  useHotkey("c", handleNew, !panelOpen);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -187,7 +189,7 @@ export function PeoplePage() {
                 </Link>
               </p>
               <Button type="button" onClick={handleNew} className="row gap-2">
-                <Plus size={15} /> New
+                <Plus size={15} /> Create
               </Button>
             </div>
           </div>

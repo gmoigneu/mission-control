@@ -176,7 +176,7 @@ it("renders the tasks page and POSTs with title; empty optional fields are omitt
   // Wait for the page to render (RequireAuth resolves)
   await screen.findByRole("heading", { name: "Tasks" });
 
-  await userEvent.click(screen.getByRole("button", { name: /new/i }));
+  await userEvent.click(screen.getByRole("button", { name: /create/i }));
 
   // Type the title — leave all optional fields empty
   await userEvent.type(screen.getByRole("textbox", { name: /title/i }), "My Task");
@@ -311,6 +311,16 @@ it("opens the edit panel when a task title is clicked", async () => {
   expect(await screen.findByRole("dialog", { name: "Edit task" })).toBeDefined();
 });
 
+it("opens the create drawer with the 'c' shortcut", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  renderTasks(fetchMockFor([], calls));
+
+  await screen.findByRole("heading", { name: "Tasks" });
+  await userEvent.keyboard("c");
+
+  expect(await screen.findByRole("dialog", { name: "New task" })).toBeDefined();
+});
+
 it("toggles to the board view with a column per status", async () => {
   const calls: Array<[string, RequestInit | undefined]> = [];
   const tasks = [makeTask({ id: "t1", title: "Board task", status: "open" })];
@@ -355,7 +365,7 @@ it("renders a markdown preview of the description", async () => {
   renderTasks(fetchMockFor([], calls));
 
   await screen.findByRole("heading", { name: "Tasks" });
-  await userEvent.click(screen.getByRole("button", { name: /new/i }));
+  await userEvent.click(screen.getByRole("button", { name: /create/i }));
 
   await userEvent.type(
     screen.getByRole("textbox", { name: /description/i }),

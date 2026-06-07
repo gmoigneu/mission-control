@@ -6,6 +6,7 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input, Select } from "../components/ui";
 import { useContexts } from "../features/contexts/api";
 import { usePeople } from "../features/people/api";
@@ -66,6 +67,7 @@ export function RelationshipsPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  useHotkey("c", handleNew, !panelOpen);
 
   const personMap = Object.fromEntries(people.map((p) => [p.id, p.name]));
 
@@ -157,7 +159,7 @@ export function RelationshipsPage() {
                 </Link>
               </p>
               <Button type="button" onClick={handleNew} className="row gap-2">
-                <Plus size={15} /> New
+                <Plus size={15} /> Create
               </Button>
             </div>
           </div>

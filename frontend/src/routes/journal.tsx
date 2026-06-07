@@ -6,6 +6,7 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input } from "../components/ui";
 import {
   useCreateJournalEntry,
@@ -41,6 +42,7 @@ export function JournalPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  useHotkey("c", handleNew, !panelOpen);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -136,7 +138,7 @@ export function JournalPage() {
                 </Link>
               </p>
               <Button type="button" onClick={handleNew} className="row gap-2">
-                <Plus size={15} /> New
+                <Plus size={15} /> Create
               </Button>
             </div>
           </div>

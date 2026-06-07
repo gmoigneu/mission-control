@@ -13,6 +13,7 @@ import { DataTable } from "../components/DataTable";
 import { Markdown } from "../components/Markdown";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input, Select, Textarea } from "../components/ui";
 import { useContexts } from "../features/contexts/api";
 import { useProjects } from "../features/projects/api";
@@ -196,6 +197,7 @@ export function TasksPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  useHotkey("c", handleNew, !panelOpen);
   const [descTab, setDescTab] = useState<DescTab>("write");
   const [view, setView] = useState<ViewMode>("list");
   const [groupBy, setGroupBy] = useState<GroupBy>("status");
@@ -353,7 +355,7 @@ export function TasksPage() {
                 </Link>
               </p>
               <Button type="button" onClick={handleNew} className="row gap-2">
-                <Plus size={15} /> New
+                <Plus size={15} /> Create
               </Button>
             </div>
           </div>

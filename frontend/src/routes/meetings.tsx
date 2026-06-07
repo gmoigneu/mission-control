@@ -6,6 +6,7 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input, Select } from "../components/ui";
 import { useContexts } from "../features/contexts/api";
 import { useCreateEntityLink, useDeleteEntityLink, useEntityLinks } from "../features/entityLinks/api";
@@ -52,6 +53,7 @@ export function MeetingsPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  useHotkey("c", handleNew, !panelOpen);
   const [attendeeFor, setAttendeeFor] = useState<string | null>(null);
   const [attendeePerson, setAttendeePerson] = useState<string>("");
 
@@ -244,7 +246,7 @@ export function MeetingsPage() {
                 </Link>
               </p>
               <Button type="button" onClick={handleNew} className="row gap-2">
-                <Plus size={15} /> New
+                <Plus size={15} /> Create
               </Button>
             </div>
           </div>

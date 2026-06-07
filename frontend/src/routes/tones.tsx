@@ -6,6 +6,7 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input } from "../components/ui";
 import { useCreateTone, useDeleteTone, useTones, useUpdateTone } from "../features/tones/api";
 import type { Tone } from "../lib/types";
@@ -29,6 +30,7 @@ export function TonesPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  useHotkey("c", handleNew, !panelOpen);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -110,7 +112,7 @@ export function TonesPage() {
                 </Link>
               </p>
               <Button type="button" onClick={handleNew} className="row gap-2">
-                <Plus size={15} /> New
+                <Plus size={15} /> Create
               </Button>
             </div>
           </div>

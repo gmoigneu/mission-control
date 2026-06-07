@@ -117,7 +117,7 @@ it("renders the entity-links page and POSTs with from_type/from_id/to_type/to_id
 
   await screen.findByRole("heading", { name: "Entity Links" });
 
-  await userEvent.click(screen.getByRole("button", { name: /new/i }));
+  await userEvent.click(screen.getByRole("button", { name: /create/i }));
 
   // Wait for comboboxes to render
   await waitFor(() => {

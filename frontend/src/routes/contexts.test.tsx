@@ -81,7 +81,7 @@ it("renders the contexts page and POSTs when Add is clicked", async () => {
   await screen.findByRole("heading", { name: "Contexts" });
 
   // Open the create drawer
-  await userEvent.click(screen.getByRole("button", { name: /new/i }));
+  await userEvent.click(screen.getByRole("button", { name: /create/i }));
 
   // Type into the form inputs
   await userEvent.type(screen.getByRole("textbox", { name: /name/i }), "Test Name");
@@ -131,7 +131,7 @@ describe("ContextsPage form", () => {
     renderContexts(fetchMock);
 
     await screen.findByRole("heading", { name: "Contexts" });
-    await userEvent.click(screen.getByRole("button", { name: /new/i }));
+    await userEvent.click(screen.getByRole("button", { name: /create/i }));
     await userEvent.type(screen.getByRole("textbox", { name: "Name" }), "Open Source");
     await userEvent.type(screen.getByRole("textbox", { name: "Slug" }), "oss");
     await userEvent.selectOptions(screen.getByRole("combobox", { name: "Status" }), "archived");

@@ -6,6 +6,7 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input, Select } from "../components/ui";
 import {
   useCreateInboxItem,
@@ -37,6 +38,7 @@ export function InboxPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [statusFilter, setStatusFilter] = useState<string>("open");
   const [panelOpen, setPanelOpen] = useState(false);
+  useHotkey("c", handleNew, !panelOpen);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -121,7 +123,7 @@ export function InboxPage() {
                 </div>
               </div>
               <Button type="button" onClick={handleNew} className="row gap-2">
-                <Plus size={15} /> New
+                <Plus size={15} /> Create
               </Button>
             </div>
           </div>

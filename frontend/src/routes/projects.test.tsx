@@ -98,7 +98,7 @@ it("renders the projects page and POSTs with context_id when Add is clicked", as
   // Wait for the page to render (RequireAuth resolves)
   await screen.findByRole("heading", { name: "Projects" });
 
-  await userEvent.click(screen.getByRole("button", { name: /new/i }));
+  await userEvent.click(screen.getByRole("button", { name: /create/i }));
 
   // Wait for the context select to populate with option "Upsun"
   await waitFor(() => {

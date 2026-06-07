@@ -80,7 +80,7 @@ it("renders the journal page and POSTs when Add is clicked", async () => {
 
   await screen.findByRole("heading", { name: "Journal" });
 
-  await userEvent.click(screen.getByRole("button", { name: /new/i }));
+  await userEvent.click(screen.getByRole("button", { name: /create/i }));
 
   await userEvent.type(screen.getByRole("textbox", { name: /entry/i }), "Shipped the journal feature.");
 

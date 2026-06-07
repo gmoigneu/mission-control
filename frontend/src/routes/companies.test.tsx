@@ -78,7 +78,7 @@ it("renders the companies page and POSTs when Add is clicked", async () => {
 
   await screen.findByRole("heading", { name: "Companies" });
 
-  await userEvent.click(screen.getByRole("button", { name: /new/i }));
+  await userEvent.click(screen.getByRole("button", { name: /create/i }));
 
   await userEvent.type(screen.getByRole("textbox", { name: /name/i }), "Acme Corp");
   await userEvent.type(screen.getByRole("textbox", { name: /slug/i }), "acme-corp");
