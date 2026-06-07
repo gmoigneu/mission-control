@@ -1,10 +1,14 @@
 import { createRoute, Link } from "@tanstack/react-router";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "../components/AppShell";
 import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
-import { Button, Card, Field, Input, Select } from "../components/ui";
+import { SidePanel } from "../components/SidePanel";
+import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
+import { useHotkey } from "../lib/useHotkey";
+import { Button, Field, Input, Select } from "../components/ui";
 import { useContexts } from "../features/contexts/api";
 import { useCreateEntityLink, useDeleteEntityLink, useEntityLinks } from "../features/entityLinks/api";
 import { useCreateMeeting, useDeleteMeeting, useMeetings, useUpdateMeeting } from "../features/meetings/api";
@@ -37,6 +41,7 @@ const EMPTY_FORM: FormState = {
 
 export function MeetingsPage() {
   const { data: meetings = [] } = useMeetings();
+  useEditFromSearch(meetings, handleEdit);
   const { data: contexts = [] } = useContexts();
   const { data: projects = [] } = useProjects();
   const { data: people = [] } = usePeople();
@@ -49,6 +54,8 @@ export function MeetingsPage() {
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  useHotkey("c", handleNew, !panelOpen);
   const [attendeeFor, setAttendeeFor] = useState<string | null>(null);
   const [attendeePerson, setAttendeePerson] = useState<string>("");
 
@@ -59,6 +66,12 @@ export function MeetingsPage() {
 
   function handleSelectChange(key: keyof FormState) {
     return (value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleNew() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setPanelOpen(true);
   }
 
   function handleEdit(row: Meeting) {
@@ -73,9 +86,11 @@ export function MeetingsPage() {
       location: row.location ?? "",
       body: row.body ?? "",
     });
+    setPanelOpen(true);
   }
 
-  function handleCancel() {
+  function handleClose() {
+    setPanelOpen(false);
     setEditingId(null);
     setForm(EMPTY_FORM);
   }
@@ -94,17 +109,10 @@ export function MeetingsPage() {
     if (editingId) {
       updateMeeting.mutate(
         { id: editingId, data: payload },
-        {
-          onSuccess: () => {
-            setEditingId(null);
-            setForm(EMPTY_FORM);
-          },
-        },
+        { onSuccess: handleClose },
       );
     } else {
-      createMeeting.mutate(payload, {
-        onSuccess: () => setForm(EMPTY_FORM),
-      });
+      createMeeting.mutate(payload, { onSuccess: handleClose });
     }
   }
 
@@ -233,89 +241,96 @@ export function MeetingsPage() {
         <div className="p-6 space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-semibold">Meetings</h1>
-            <p className="text-sm text-gray-400">
-              <Link to="/activity" className="underline hover:text-gray-600">
-                Manage from the Activity page to undo changes.
-              </Link>
-            </p>
+            <div className="flex items-center gap-4">
+              <p className="text-sm text-gray-400">
+                <Link to="/activity" className="underline hover:text-gray-600">
+                  Manage from the Activity page to undo changes.
+                </Link>
+              </p>
+              <Button type="button" onClick={handleNew} className="row gap-2">
+                <Plus size={15} /> Create
+              </Button>
+            </div>
           </div>
-
-          <Card>
-            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-              <Field label="Title">
-                <Input
-                  value={form.title}
-                  onChange={handleChange("title")}
-                  placeholder="Weekly sync"
-                  aria-label="Title"
-                  required
-                />
-              </Field>
-              <Field label="Slug">
-                <Input
-                  value={form.slug}
-                  onChange={handleChange("slug")}
-                  placeholder="weekly-sync"
-                  aria-label="Slug"
-                  required
-                />
-              </Field>
-              <Field label="When">
-                <Input
-                  type="datetime-local"
-                  value={form.at}
-                  onChange={handleChange("at")}
-                  aria-label="When"
-                  required
-                />
-              </Field>
-              <Field label="Location">
-                <Input
-                  value={form.location}
-                  onChange={handleChange("location")}
-                  placeholder="Optional location"
-                  aria-label="Location"
-                />
-              </Field>
-              <Field label="Context">
-                <Select
-                  value={form.context_id}
-                  onChange={handleSelectChange("context_id")}
-                  options={contexts.map((c) => ({ value: c.id, label: c.name }))}
-                  placeholder="— no context —"
-                />
-              </Field>
-              <Field label="Project">
-                <Select
-                  value={form.project_id}
-                  onChange={handleSelectChange("project_id")}
-                  options={projects.map((p) => ({ value: p.id, label: p.title }))}
-                  placeholder="— no project —"
-                />
-              </Field>
-              <Field label="Body">
-                <Input
-                  value={form.body}
-                  onChange={handleChange("body")}
-                  placeholder="Optional notes"
-                  aria-label="Body"
-                />
-              </Field>
-              <div className="col-span-2 flex gap-2">
-                <Button type="submit" disabled={!form.title || !form.slug || !form.at}>
-                  {editingId ? "Save" : "Add"}
-                </Button>
-                {editingId && (
-                  <Button type="button" onClick={handleCancel} className="bg-gray-400 hover:bg-gray-500">
-                    Cancel
-                  </Button>
-                )}
-              </div>
-            </form>
-          </Card>
 
           <DataTable rows={meetings} columns={columns} empty="No meetings yet." />
         </div>
+
+        <SidePanel
+          open={panelOpen}
+          onClose={handleClose}
+          title={editingId ? "Edit meeting" : "New meeting"}
+        >
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
+            <Field label="Title">
+              <Input
+                value={form.title}
+                onChange={handleChange("title")}
+                placeholder="Weekly sync"
+                aria-label="Title"
+                required
+              />
+            </Field>
+            <Field label="Slug">
+              <Input
+                value={form.slug}
+                onChange={handleChange("slug")}
+                placeholder="weekly-sync"
+                aria-label="Slug"
+                required
+              />
+            </Field>
+            <Field label="When">
+              <Input
+                type="datetime-local"
+                value={form.at}
+                onChange={handleChange("at")}
+                aria-label="When"
+                required
+              />
+            </Field>
+            <Field label="Location">
+              <Input
+                value={form.location}
+                onChange={handleChange("location")}
+                placeholder="Optional location"
+                aria-label="Location"
+              />
+            </Field>
+            <Field label="Context">
+              <Select
+                value={form.context_id}
+                onChange={handleSelectChange("context_id")}
+                options={contexts.map((c) => ({ value: c.id, label: c.name }))}
+                placeholder="— no context —"
+              />
+            </Field>
+            <Field label="Project">
+              <Select
+                value={form.project_id}
+                onChange={handleSelectChange("project_id")}
+                options={projects.map((p) => ({ value: p.id, label: p.title }))}
+                placeholder="— no project —"
+              />
+            </Field>
+            <Field label="Body">
+              <Input
+                value={form.body}
+                onChange={handleChange("body")}
+                placeholder="Optional notes"
+                aria-label="Body"
+              />
+            </Field>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={!form.title || !form.slug || !form.at}>
+                {editingId ? "Save" : "Add"}
+              </Button>
+              <Button type="button" onClick={handleClose} className="ghost">
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </SidePanel>
       </AppShell>
     </RequireAuth>
   );
@@ -323,6 +338,7 @@ export function MeetingsPage() {
 
 export const meetingsRoute = createRoute({
   getParentRoute: () => rootRoute,
+  validateSearch: editSearch,
   path: "/meetings",
   component: MeetingsPage,
 });

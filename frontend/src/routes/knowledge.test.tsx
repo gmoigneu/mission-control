@@ -77,6 +77,8 @@ it("renders the knowledge page and POSTs when Add is clicked", async () => {
 
   await screen.findByRole("heading", { name: "Knowledge" });
 
+  await userEvent.click(screen.getByRole("button", { name: /create/i }));
+
   await userEvent.type(screen.getByRole("textbox", { name: /title/i }), "Rust Notes");
   await userEvent.type(screen.getByRole("textbox", { name: /slug/i }), "rust-notes");
 

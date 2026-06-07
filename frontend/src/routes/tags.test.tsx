@@ -76,6 +76,8 @@ it("renders the tags page and POSTs when Add is clicked", async () => {
 
   await screen.findByRole("heading", { name: "Tags" });
 
+  await userEvent.click(screen.getByRole("button", { name: /create/i }));
+
   await userEvent.type(screen.getByRole("textbox", { name: /name/i }), "My Tag");
 
   await userEvent.click(screen.getByRole("button", { name: /^add$/i }));

@@ -120,6 +120,8 @@ it("renders the relationships page and POSTs with from/to person ids when Add is
 
   await screen.findByRole("heading", { name: "Relationships" });
 
+  await userEvent.click(screen.getByRole("button", { name: /create/i }));
+
   // Wait for people options to load then select from/to
   await waitFor(() => {
     const selects = screen.getAllByRole("combobox");

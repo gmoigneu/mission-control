@@ -91,6 +91,8 @@ it("renders the people page and POSTs with name/slug; empty optional FK fields a
   // Wait for the page to render (RequireAuth resolves)
   await screen.findByRole("heading", { name: "People" });
 
+  await userEvent.click(screen.getByRole("button", { name: /create/i }));
+
   // Type name and slug
   await userEvent.type(screen.getByRole("textbox", { name: /name/i }), "Jane Doe");
   await userEvent.type(screen.getByRole("textbox", { name: /slug/i }), "jane-doe");

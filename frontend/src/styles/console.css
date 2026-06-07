@@ -342,6 +342,83 @@ a:hover { color: var(--signal-bright); }
 @keyframes fade { from { transform: translateY(4px); } to { transform: none; } }
 .fade { animation: fade 240ms var(--ease) both; }
 
+/* ---------------------------------------------------------------------
+   SLIDE-OVER DRAWER — right-edge panel for create/edit forms
+   --------------------------------------------------------------------- */
+.drawer-backdrop {
+  position: fixed; inset: 0; z-index: 60;
+  display: block; border: 0; padding: 0; cursor: default;
+  background: oklch(0.05 0.02 258 / 0.5);
+  animation: backdrop-in 200ms var(--ease) both;
+}
+@keyframes backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+.drawer-panel {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 61;
+  display: flex; flex-direction: column;
+  width: min(440px, 100vw);
+  background: var(--surface-1);
+  border-left: 1px solid var(--line);
+  box-shadow: var(--shadow-pop);
+  animation: drawer-in 240ms var(--ease) both;
+}
+@keyframes drawer-in { from { transform: translateX(100%); } to { transform: none; } }
+.drawer-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px; border-bottom: 1px solid var(--line-soft); flex-shrink: 0;
+}
+.drawer-body { flex: 1; overflow-y: auto; padding: 20px; }
+
+/* ---------------------------------------------------------------------
+   POPOVER MENU — small dropdown anchored to a trigger (e.g. status badge)
+   --------------------------------------------------------------------- */
+.menu-anchor { position: relative; display: inline-flex; }
+.menu {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 40;
+  display: flex; flex-direction: column; gap: 1px; min-width: 150px;
+  padding: 4px; border-radius: var(--r-sm);
+  background: var(--surface-1); border: 1px solid var(--line);
+  box-shadow: var(--shadow-pop);
+}
+.menu-item {
+  display: flex; align-items: center; gap: 7px;
+  width: 100%; padding: 6px 8px; border: 0; border-radius: var(--r-xs);
+  background: transparent; color: var(--fg-muted); cursor: pointer;
+  font-family: var(--mono); font-size: 11px; text-align: left;
+}
+.menu-item:hover { background: var(--surface-3); color: var(--fg); }
+.menu-item[aria-current="true"] { color: var(--fg); }
+.menu-item:focus-visible { outline: 2px solid var(--signal); outline-offset: -2px; }
+
+/* ---------------------------------------------------------------------
+   MARKDOWN — scoped rendering for descriptions/notes
+   --------------------------------------------------------------------- */
+.md { font-size: 13px; line-height: 1.6; color: var(--fg); }
+.md > :first-child { margin-top: 0; }
+.md > :last-child { margin-bottom: 0; }
+.md h1, .md h2, .md h3 { font-weight: 600; line-height: 1.3; margin: 1em 0 0.4em; }
+.md h1 { font-size: 1.3em; } .md h2 { font-size: 1.15em; } .md h3 { font-size: 1.02em; }
+.md p { margin: 0.5em 0; }
+.md ul, .md ol { margin: 0.5em 0; padding-left: 1.4em; }
+.md li { margin: 0.2em 0; }
+.md li input[type="checkbox"] { margin-right: 6px; }
+.md a { color: var(--signal); text-decoration: underline; }
+.md code {
+  font-family: var(--mono); font-size: 0.88em;
+  background: var(--surface-3); border-radius: var(--r-xs); padding: 1px 5px;
+}
+.md pre {
+  background: var(--surface-3); border: 1px solid var(--line-soft);
+  border-radius: var(--r-sm); padding: 10px 12px; overflow-x: auto; margin: 0.6em 0;
+}
+.md pre code { background: none; padding: 0; }
+.md blockquote {
+  margin: 0.6em 0; padding: 2px 12px;
+  border-left: 3px solid var(--line-bright); color: var(--fg-muted);
+}
+.md table { border-collapse: collapse; margin: 0.6em 0; font-size: 0.95em; }
+.md th, .md td { border: 1px solid var(--line-soft); padding: 5px 9px; text-align: left; }
+.md hr { border: 0; border-top: 1px solid var(--line-soft); margin: 0.8em 0; }
+
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

@@ -79,6 +79,8 @@ it("renders the reviews page and POSTs when Add is clicked", async () => {
 
   await screen.findByRole("heading", { name: "Reviews" });
 
+  await userEvent.click(screen.getByRole("button", { name: /create/i }));
+
   await userEvent.type(screen.getByLabelText(/date/i), "2026-05-25");
   await userEvent.type(screen.getByRole("textbox", { name: /title/i }), "Week 21 review");
 

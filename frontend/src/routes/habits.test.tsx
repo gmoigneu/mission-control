@@ -79,6 +79,8 @@ it("renders the habits page and POSTs when Add is clicked", async () => {
 
   await screen.findByRole("heading", { name: "Habits" });
 
+  await userEvent.click(screen.getByRole("button", { name: /create/i }));
+
   await userEvent.type(screen.getByRole("textbox", { name: /name/i }), "Workout");
   await userEvent.type(screen.getByRole("textbox", { name: /slug/i }), "workout");
 

@@ -1,10 +1,14 @@
 import { createRoute, Link } from "@tanstack/react-router";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "../components/AppShell";
 import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
-import { Button, Card, Field, Input, Select } from "../components/ui";
+import { SidePanel } from "../components/SidePanel";
+import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
+import { useHotkey } from "../lib/useHotkey";
+import { Button, Field, Input, Select } from "../components/ui";
 import { useContexts } from "../features/contexts/api";
 import { useCreateProject, useDeleteProject, useProjects, useUpdateProject } from "../features/projects/api";
 import type { Project } from "../lib/types";
@@ -37,6 +41,7 @@ const EMPTY_FORM: FormState = {
 
 export function ProjectsPage() {
   const { data: projects = [] } = useProjects();
+  useEditFromSearch(projects, handleEdit);
   const { data: contexts = [] } = useContexts();
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
@@ -44,6 +49,8 @@ export function ProjectsPage() {
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  useHotkey("c", handleNew, !panelOpen);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -52,6 +59,12 @@ export function ProjectsPage() {
 
   function handleSelectChange(key: keyof FormState) {
     return (value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleNew() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setPanelOpen(true);
   }
 
   function handleEdit(row: Project) {
@@ -64,9 +77,11 @@ export function ProjectsPage() {
       purpose: row.purpose ?? "",
       body: row.body ?? "",
     });
+    setPanelOpen(true);
   }
 
-  function handleCancel() {
+  function handleClose() {
+    setPanelOpen(false);
     setEditingId(null);
     setForm(EMPTY_FORM);
   }
@@ -84,17 +99,10 @@ export function ProjectsPage() {
     if (editingId) {
       updateProject.mutate(
         { id: editingId, data: payload },
-        {
-          onSuccess: () => {
-            setEditingId(null);
-            setForm(EMPTY_FORM);
-          },
-        },
+        { onSuccess: handleClose },
       );
     } else {
-      createProject.mutate(payload, {
-        onSuccess: () => setForm(EMPTY_FORM),
-      });
+      createProject.mutate(payload, { onSuccess: handleClose });
     }
   }
 
@@ -135,77 +143,84 @@ export function ProjectsPage() {
         >
           <div className="flex items-center justify-between">
             <h1 className="title">Projects</h1>
-            <p className="meta">
-              <Link to="/activity" className="underline">
-                Manage from the Activity page to undo changes.
-              </Link>
-            </p>
+            <div className="flex items-center gap-4">
+              <p className="meta">
+                <Link to="/activity" className="underline">
+                  Manage from the Activity page to undo changes.
+                </Link>
+              </p>
+              <Button type="button" onClick={handleNew} className="row gap-2">
+                <Plus size={15} /> Create
+              </Button>
+            </div>
           </div>
-
-          <Card>
-            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-              <Field label="Context">
-                <Select
-                  value={form.context_id}
-                  onChange={handleSelectChange("context_id")}
-                  options={contexts.map((c) => ({ value: c.id, label: c.name }))}
-                  placeholder="— select context —"
-                />
-              </Field>
-              <Field label="Title">
-                <Input
-                  value={form.title}
-                  onChange={handleChange("title")}
-                  placeholder="My Project"
-                  aria-label="Title"
-                  required
-                />
-              </Field>
-              <Field label="Slug">
-                <Input
-                  value={form.slug}
-                  onChange={handleChange("slug")}
-                  placeholder="my-project"
-                  aria-label="Slug"
-                  required
-                />
-              </Field>
-              <Field label="Status">
-                <Select
-                  value={form.status}
-                  onChange={handleSelectChange("status")}
-                  options={STATUS_OPTIONS}
-                />
-              </Field>
-              <Field label="Purpose">
-                <Input
-                  value={form.purpose}
-                  onChange={handleChange("purpose")}
-                  placeholder="Optional purpose"
-                  aria-label="Purpose"
-                />
-              </Field>
-              <Field label="Body">
-                <Input
-                  value={form.body}
-                  onChange={handleChange("body")}
-                  placeholder="Optional body"
-                  aria-label="Body"
-                />
-              </Field>
-              <div className="col-span-2 flex gap-2">
-                <Button type="submit" disabled={!form.context_id}>{editingId ? "Save" : "Add"}</Button>
-                {editingId && (
-                  <Button type="button" onClick={handleCancel} className="ghost">
-                    Cancel
-                  </Button>
-                )}
-              </div>
-            </form>
-          </Card>
 
           <DataTable rows={projects} columns={columns} empty="No projects yet." />
         </div>
+
+        <SidePanel
+          open={panelOpen}
+          onClose={handleClose}
+          title={editingId ? "Edit project" : "New project"}
+        >
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
+            <Field label="Context">
+              <Select
+                value={form.context_id}
+                onChange={handleSelectChange("context_id")}
+                options={contexts.map((c) => ({ value: c.id, label: c.name }))}
+                placeholder="— select context —"
+              />
+            </Field>
+            <Field label="Title">
+              <Input
+                value={form.title}
+                onChange={handleChange("title")}
+                placeholder="My Project"
+                aria-label="Title"
+                required
+              />
+            </Field>
+            <Field label="Slug">
+              <Input
+                value={form.slug}
+                onChange={handleChange("slug")}
+                placeholder="my-project"
+                aria-label="Slug"
+                required
+              />
+            </Field>
+            <Field label="Status">
+              <Select
+                value={form.status}
+                onChange={handleSelectChange("status")}
+                options={STATUS_OPTIONS}
+              />
+            </Field>
+            <Field label="Purpose">
+              <Input
+                value={form.purpose}
+                onChange={handleChange("purpose")}
+                placeholder="Optional purpose"
+                aria-label="Purpose"
+              />
+            </Field>
+            <Field label="Body">
+              <Input
+                value={form.body}
+                onChange={handleChange("body")}
+                placeholder="Optional body"
+                aria-label="Body"
+              />
+            </Field>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={!form.context_id}>{editingId ? "Save" : "Add"}</Button>
+              <Button type="button" onClick={handleClose} className="ghost">
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </SidePanel>
       </AppShell>
     </RequireAuth>
   );
@@ -213,6 +228,7 @@ export function ProjectsPage() {
 
 export const projectsRoute = createRoute({
   getParentRoute: () => rootRoute,
+  validateSearch: editSearch,
   path: "/projects",
   component: ProjectsPage,
 });
