@@ -97,3 +97,46 @@ async def test_openai_provider_calls_client(monkeypatch):
     assert captured["api_key"] == "sk-test"
     assert captured["model"] == "text-embedding-3-small"
     assert captured["input"] == ["a", "b"]
+
+
+async def test_openrouter_provider_requires_api_key(monkeypatch):
+    monkeypatch.setattr(embedder.settings, "embeddings_provider", "openrouter")
+    monkeypatch.setattr(embedder.settings, "openrouter_api_key", None)
+    with pytest.raises(RuntimeError, match="OPENROUTER_API_KEY"):
+        await embed_texts(["hello"])
+
+
+async def test_openrouter_provider_routes_through_base_url(monkeypatch):
+    """provider=openrouter reuses AsyncOpenAI but with OpenRouter's base_url."""
+    captured: dict = {}
+
+    class _FakeEmbeddings:
+        async def create(self, *, model, input):
+            captured["model"] = model
+            captured["input"] = input
+            data = [types.SimpleNamespace(embedding=[0.4, 0.5, 0.6]) for _ in input]
+            return types.SimpleNamespace(data=data)
+
+    class _FakeAsyncOpenAI:
+        def __init__(self, *, api_key, base_url=None):
+            captured["api_key"] = api_key
+            captured["base_url"] = base_url
+            self.embeddings = _FakeEmbeddings()
+
+    fake_openai = types.ModuleType("openai")
+    fake_openai.AsyncOpenAI = _FakeAsyncOpenAI
+    monkeypatch.setitem(sys.modules, "openai", fake_openai)
+    monkeypatch.setattr(embedder.settings, "embeddings_provider", "openrouter")
+    monkeypatch.setattr(embedder.settings, "openrouter_api_key", "or-test")
+    monkeypatch.setattr(embedder.settings, "openrouter_base_url", "https://openrouter.ai/api/v1")
+    monkeypatch.setattr(
+        embedder.settings, "openrouter_embeddings_model", "openai/text-embedding-3-small"
+    )
+
+    vecs = await embed_texts(["a", "b"])
+
+    assert vecs == [[0.4, 0.5, 0.6], [0.4, 0.5, 0.6]]
+    assert captured["api_key"] == "or-test"
+    assert captured["base_url"] == "https://openrouter.ai/api/v1"
+    assert captured["model"] == "openai/text-embedding-3-small"
+    assert captured["input"] == ["a", "b"]

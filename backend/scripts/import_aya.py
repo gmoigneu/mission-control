@@ -36,6 +36,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import SessionLocal
+from app.models.chunk import Chunk
 from app.models.company import Company
 from app.models.context import Context
 from app.models.journal_entry import JournalEntry
@@ -62,6 +63,54 @@ def slugify(text: str) -> str:
     return _SLUG_RE.sub("-", text.lower()).strip("-") or "unknown"
 
 
+_COMPANY_NOISE = {"null", "none", "n/a", "na", "unknown", "tbd", "-"}
+
+
+def _clean_company(value: Any) -> str | None:
+    """Return a usable company name, or None for junk.
+
+    The vault's bare-format files leak junk into `company:` — literal "null",
+    empty values, and key-like fragments such as "role:" / "email:". Drop those.
+    """
+    if value is None:
+        return None
+    name = str(value).strip().strip("\"'").strip()
+    if not name:
+        return None
+    if name.lower() in _COMPANY_NOISE:
+        return None
+    # key-like fragment, e.g. "role:" / "email:" — a single token ending in ":"
+    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*:", name):
+        return None
+    return name
+
+
+def _resolve_context_id(
+    context_ids: dict[str, uuid.UUID],
+    ctx_val: Any,
+    company_name: str | None = None,
+) -> uuid.UUID | None:
+    """Resolve a person/task to a context id.
+
+    People in the vault tag a *category* (`work`/`personal`) rather than a
+    context slug, so we try, in order:
+      1. any context-tag value that matches a known context slug;
+      2. else the slugified company name matching a context slug
+         (e.g. company "Upsun" → context "upsun");
+      3. else None.
+    """
+    candidates = ctx_val if isinstance(ctx_val, list) else [ctx_val]
+    for c in candidates:
+        slug = str(c).strip() if c is not None else ""
+        if slug and slug in context_ids:
+            return context_ids[slug]
+    if company_name:
+        cslug = slugify(company_name)
+        if cslug in context_ids:
+            return context_ids[cslug]
+    return None
+
+
 def _parse_date(val: Any) -> date | None:
     if not val:
         return None
@@ -86,19 +135,36 @@ def _first_prose_paragraph(body: str) -> str | None:
 
 
 def _extract_section(body: str, heading: str) -> str:
-    """Extract lines under a ## heading until the next ## heading."""
+    """Extract the lines under a heading, concatenating EVERY occurrence.
+
+    Matches the heading at any depth (``##``…``######``) — vault files use both
+    ``##`` and ``###`` for the same section — and, for each match, collects until
+    the next heading whose level is <= that match's level (so nested sub-headings
+    don't end it). Multi-block person files repeat a section across blocks
+    (e.g. work ``## Relationships`` + family ``### Relationships``); all are
+    merged so nothing in a later block is shadowed by an earlier one.
+    """
     lines = body.splitlines()
-    collecting = False
-    result: list[str] = []
-    for line in lines:
-        if re.match(rf"^##\s+{re.escape(heading)}\s*$", line, re.IGNORECASE):
-            collecting = True
+    headings: list[tuple[int, int, str]] = []  # (line_index, level, name)
+    for i, line in enumerate(lines):
+        m = re.match(r"^(#{1,6})\s+(.+?)\s*$", line)
+        if m:
+            headings.append((i, len(m.group(1)), m.group(2).strip().lower()))
+
+    target = heading.lower()
+    chunks: list[str] = []
+    for i, level, name in headings:
+        if name != target:
             continue
-        if collecting:
-            if re.match(r"^##\s+", line):
+        end = len(lines)
+        for j, lvl, _n in headings:
+            if j > i and lvl <= level:
+                end = j
                 break
-            result.append(line)
-    return "\n".join(result).strip()
+        chunk = "\n".join(lines[i + 1:end]).strip()
+        if chunk:
+            chunks.append(chunk)
+    return "\n\n".join(chunks).strip()
 
 
 def _parse_obs_line(line: str) -> tuple[date | None, str, str | None]:
@@ -150,8 +216,11 @@ class Stats:
     journal_entries: int = 0
     knowledge: int = 0
     telos: int = 0
+    stub_people: int = 0
+    dry_run: bool = False
     errors: list[tuple[str, str]] = field(default_factory=list)
     unresolved_links: list[str] = field(default_factory=list)
+    skipped_relationships: list[str] = field(default_factory=list)
     skipped_sections: list[str] = field(default_factory=list)
 
     def report(self) -> None:
@@ -163,9 +232,16 @@ class Stats:
         print(f"  tasks         : {self.tasks}")
         print(f"  observations  : {self.observations}")
         print(f"  relationships : {self.relationships}")
+        print(f"  stub people   : {self.stub_people}  (mentioned-only, no vault file)")
         print(f"  journal       : {self.journal_entries}")
         print(f"  knowledge     : {self.knowledge}")
         print(f"  telos         : {self.telos}")
+        if self.skipped_relationships:
+            print(f"\n  skipped relationship lines ({len(self.skipped_relationships)}):")
+            for s in self.skipped_relationships[:20]:
+                print(f"    {s}")
+            if len(self.skipped_relationships) > 20:
+                print(f"    … and {len(self.skipped_relationships) - 20} more")
         if self.unresolved_links:
             print(f"\n  unresolved links ({len(self.unresolved_links)}):")
             for u in self.unresolved_links[:20]:
@@ -188,6 +264,43 @@ class Stats:
 # ---------------------------------------------------------------------------
 # DB helpers (raw upsert to avoid per-row audit overhead)
 # ---------------------------------------------------------------------------
+
+
+async def _commit(db: AsyncSession, stats: Stats) -> None:
+    """Commit a phase — unless we are in --dry-run, where we only flush so the
+    in-session id maps resolve while the final rollback discards everything."""
+    if stats.dry_run:
+        await db.flush()
+    else:
+        await db.commit()
+
+
+# Importer-owned tables, in FK-safe delete order (children before parents).
+# Chunk holds search embeddings for these subjects — wipe it too so demo
+# embeddings don't linger as orphans (reindex rebuilds it for vault data).
+_RESET_MODELS = (
+    Chunk,
+    Relationship,
+    Observation,
+    Task,
+    Project,
+    Person,
+    Company,
+    Context,
+    JournalEntry,
+    Knowledge,
+    Telos,
+)
+
+
+async def _reset_tables(db: AsyncSession, stats: Stats) -> None:
+    """Wipe the importer-owned tables so a re-import starts clean.
+
+    Leaves user/auth/agent tables untouched.
+    """
+    for model in _RESET_MODELS:
+        await db.execute(sa_delete(model))
+    await _commit(db, stats)
 
 
 async def _upsert_context(db: AsyncSession, slug: str, data: dict) -> Context:
@@ -319,7 +432,7 @@ async def import_contexts(
         except Exception as exc:
             stats.errors.append((str(index_file), str(exc)))
 
-    await db.commit()
+    await _commit(db, stats)
     return context_ids
 
 
@@ -338,7 +451,7 @@ async def import_companies(
             post = _load_person_frontmatter(pfile)
             if post is None:
                 continue
-            company_name = str(post.get("company") or "").strip()
+            company_name = _clean_company(post.get("company"))
             if company_name:
                 cslug = slugify(company_name)
                 company_names[cslug] = company_name
@@ -354,7 +467,7 @@ async def import_companies(
         except Exception as exc:
             stats.errors.append((f"company:{cslug}", str(exc)))
 
-    await db.commit()
+    await _commit(db, stats)
     return company_ids
 
 
@@ -444,18 +557,20 @@ async def import_people(
             first_met = _parse_date(post.get("first_met"))
 
             # company_id
-            company_name = str(post.get("company") or "").strip()
+            company_name = _clean_company(post.get("company"))
             company_id: uuid.UUID | None = None
             if company_name:
                 cslug = slugify(company_name)
                 company_id = company_ids.get(cslug)
 
-            # primary_context_id — field may be "context" or "contexts"
-            ctx_val = post.get("context") or post.get("contexts") or ""
-            if isinstance(ctx_val, list):
-                ctx_val = ctx_val[0] if ctx_val else ""
-            ctx_slug = str(ctx_val).strip()
-            primary_context_id: uuid.UUID | None = context_ids.get(ctx_slug)
+            # primary_context_id — field may be "context" or "contexts" (a
+            # category like "work"); fall back to company→context matching.
+            ctx_val = post.get("contexts")
+            if ctx_val is None:
+                ctx_val = post.get("context") or ""
+            primary_context_id: uuid.UUID | None = _resolve_context_id(
+                context_ids, ctx_val, company_name
+            )
 
             # summary from ## Context section
             summary = _extract_section(post.content or "", "Context") or None
@@ -476,7 +591,7 @@ async def import_people(
         except Exception as exc:
             stats.errors.append((str(pfile), str(exc)))
 
-    await db.commit()
+    await _commit(db, stats)
     return person_ids
 
 
@@ -529,7 +644,7 @@ async def import_projects(
             except Exception as exc:
                 stats.errors.append((str(pfile), str(exc)))
 
-    await db.commit()
+    await _commit(db, stats)
 
 
 async def import_tasks(
@@ -626,7 +741,7 @@ async def import_tasks(
         except Exception as exc:
             stats.errors.append((str(tfile), str(exc)))
 
-    await db.commit()
+    await _commit(db, stats)
 
 
 async def import_observations(
@@ -693,7 +808,103 @@ async def import_observations(
         except Exception as exc:
             stats.errors.append((str(pfile), str(exc)))
 
-    await db.commit()
+    await _commit(db, stats)
+
+
+# Relationship types whose target is descriptive, not another person — the
+# edge is captured elsewhere (employment → company_id) so we skip + log them.
+_REL_SKIP_TYPES = {"employee_context", "employment", "employee", "context"}
+
+# [Label](02.people/<slug>.md) — captures (label, slug).
+_PERSON_LINK_RE = re.compile(r"\[([^\]]+)\]\((?:02\.people/)?([^/)]+)\.md\)")
+
+
+def _looks_like_person_name(s: str) -> bool:
+    """Heuristic: is this target a person's name (worth its own Person row)?
+
+    Rejects vague placeholders ("name unknown"), descriptive phrases
+    ("Legal & Corporate Services. Reporting line unknown"), and fragments with
+    digits or stray colons. Names are short, capitalized, period-free.
+    """
+    s = s.strip().rstrip(".").strip()
+    if not s or not s[0].isupper():
+        return False
+    low = s.lower()
+    if "unknown" in low or low in {"n/a", "na", "tbd", "none", "name", "someone"}:
+        return False
+    if any(ch.isdigit() for ch in s):
+        return False
+    if ". " in s or ":" in s:
+        return False
+    return len(s.split()) <= 5
+
+
+def _parse_rel_line(line: str) -> tuple[str, str, str | None] | None:
+    """Parse a relationship bullet into (rel_type, targets_text, context_clause).
+
+    Handles, e.g.:
+      - 2026-01-01: parent_of: Tommy Host; context: in primary school.
+      - reports_to: [dana](02.people/dana.md); context: my manager.
+    Returns None if there is no `type:` separator.
+    """
+    raw = line.lstrip("- ").strip()
+    m = re.match(r"^\d{4}-\d{2}-\d{2}:\s*(.+)$", raw, re.DOTALL)
+    if m:
+        raw = m.group(1).strip()
+    colon = raw.find(":")
+    if colon == -1:
+        return None
+    rel_type = raw[:colon].strip().lower().replace(" ", "_")
+    rest = raw[colon + 1:].strip()
+
+    parts = rest.split(";")
+    targets_text = parts[0].strip()
+    context_clause: str | None = None
+    for seg in parts[1:]:
+        cm = re.match(r"(?i)^\s*context:\s*(.+)$", seg)
+        if cm:
+            context_clause = cm.group(1).strip()
+    return rel_type, targets_text, context_clause
+
+
+async def _find_or_create_person(
+    db: AsyncSession, slug: str, name: str, summary: str | None
+) -> tuple[Person, bool]:
+    """Return (person, created). Summary is only set on creation."""
+    result = await db.execute(select(Person).where(Person.slug == slug))
+    obj = result.scalar_one_or_none()
+    if obj is not None:
+        return obj, False
+    obj = Person(id=uuid.uuid4(), slug=slug, name=name, summary=summary)
+    db.add(obj)
+    return obj, True
+
+
+async def _add_edge(
+    db: AsyncSession, from_id: uuid.UUID, to_id: uuid.UUID, rel_type: str, stats: Stats
+) -> None:
+    """Create a person→person edge, deduped by the unique (from, to, type)."""
+    if to_id == from_id:
+        return
+    existing = (
+        await db.execute(
+            select(Relationship).where(
+                Relationship.from_person_id == from_id,
+                Relationship.to_person_id == to_id,
+                Relationship.type == rel_type,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is None:
+        db.add(
+            Relationship(
+                id=uuid.uuid4(),
+                from_person_id=from_id,
+                to_person_id=to_id,
+                type=rel_type,
+            )
+        )
+    stats.relationships += 1
 
 
 async def import_relationships(
@@ -704,19 +915,18 @@ async def import_relationships(
     context_ids: dict[str, uuid.UUID],
 ) -> None:
     """
-    Parse ## Relationships sections.
+    Parse Relationships sections into person→person edges.
 
-    Supported line formats (both seen in the vault):
-      - YYYY-MM-DD: <type>: [Name](02.people/<slug>.md); ...
-      - YYYY-MM-DD: <type>: Free text (no link — skip, log unresolved)
-      - YYYY-MM-DD: Free text (no type separator — skip)
+    A target that links to a vault person (``[x](02.people/x.md)``) edges to that
+    existing person. A plain-name target (children, spouses, friends with no
+    file) becomes its own Person row — slug from the name, the ``; context:``
+    clause as its summary — and gets an edge. A bullet may list several
+    comma-separated names. Descriptive / placeholder targets are skipped and
+    logged (see ``stats.skipped_relationships``).
     """
     people_dir = vault / "02.people"
     if not people_dir.exists():
         return
-
-    # Regex to find wiki-style links like (02.people/<slug>.md)
-    LINK_RE = re.compile(r"\((?:02\.people/)?([^/)]+)\.md\)")
 
     for pfile in sorted(people_dir.glob("*.md")):
         try:
@@ -728,77 +938,64 @@ async def import_relationships(
             if from_id is None:
                 continue
 
-            body_text = post.content or ""
-            section = _extract_section(body_text, "Relationships")
+            section = _extract_section(post.content or "", "Relationships")
             if not section:
                 continue
 
             # Clear existing relationships from this person (idempotent)
             await db.execute(
-                sa_delete(Relationship).where(
-                    Relationship.from_person_id == from_id,
-                )
+                sa_delete(Relationship).where(Relationship.from_person_id == from_id)
             )
 
             for line in section.splitlines():
                 line = line.strip()
                 if not line or not line.startswith("-"):
                     continue
-                raw = line.lstrip("- ").strip()
-
-                # Strip optional leading date
-                m = re.match(r"^\d{4}-\d{2}-\d{2}:\s*(.+)$", raw)
-                if m:
-                    raw = m.group(1).strip()
-
-                # Try to split type: rest
-                colon_idx = raw.find(":")
-                if colon_idx == -1:
-                    # No type found — skip
+                parsed = _parse_rel_line(line)
+                if parsed is None:
                     continue
-                rel_type = raw[:colon_idx].strip().lower().replace(" ", "_")
-                rest = raw[colon_idx + 1:].strip()
-
-                # Find linked slugs
-                link_matches = LINK_RE.findall(rest)
-                if not link_matches:
-                    # No resolvable link — note as unresolved
-                    stats.unresolved_links.append(
-                        f"{from_slug} → {rel_type}: {rest[:80]}"
-                    )
+                rel_type, targets_text, context_clause = parsed
+                if rel_type in _REL_SKIP_TYPES:
+                    stats.skipped_relationships.append(f"{from_slug}: {line[:100]}")
                     continue
 
-                for to_slug in link_matches:
-                    to_id = person_ids.get(to_slug)
-                    if to_id is None:
-                        stats.unresolved_links.append(
-                            f"{from_slug} → {rel_type} → {to_slug} (not found)"
-                        )
+                links = _PERSON_LINK_RE.findall(targets_text)
+                if links:
+                    for _label, to_slug in links:
+                        to_id = person_ids.get(to_slug)
+                        if to_id is None:
+                            stats.unresolved_links.append(
+                                f"{from_slug} → {rel_type} → {to_slug} (link target missing)"
+                            )
+                            continue
+                        await _add_edge(db, from_id, to_id, rel_type, stats)
+                    continue
+
+                # Plain-name target(s) → one Person + one edge each.
+                summary = context_clause if (
+                    context_clause and "](" not in context_clause
+                ) else None
+                for raw_name in targets_text.split(","):
+                    nm = raw_name.strip().rstrip(".").strip()
+                    if not _looks_like_person_name(nm):
+                        if nm:
+                            stats.skipped_relationships.append(
+                                f"{from_slug} → {rel_type}: {nm[:60]}"
+                            )
                         continue
-                    # Upsert by unique constraint (from, to, type)
-                    result = await db.execute(
-                        select(Relationship).where(
-                            Relationship.from_person_id == from_id,
-                            Relationship.to_person_id == to_id,
-                            Relationship.type == rel_type,
-                        )
-                    )
-                    existing = result.scalar_one_or_none()
-                    if existing is None:
-                        rel = Relationship(
-                            id=uuid.uuid4(),
-                            from_person_id=from_id,
-                            to_person_id=to_id,
-                            type=rel_type,
-                        )
-                        db.add(rel)
-                    stats.relationships += 1
+                    nslug = slugify(nm)
+                    person, created = await _find_or_create_person(db, nslug, nm, summary)
+                    await db.flush()
+                    if created:
+                        stats.stub_people += 1
+                        person_ids[nslug] = person.id
+                    await _add_edge(db, from_id, person.id, rel_type, stats)
 
             await db.flush()
         except Exception as exc:
             stats.errors.append((str(pfile), str(exc)))
 
-    await db.commit()
+    await _commit(db, stats)
 
 
 async def import_journal(
@@ -852,7 +1049,7 @@ async def import_journal(
         except Exception as exc:
             stats.errors.append((str(jfile), str(exc)))
 
-    await db.commit()
+    await _commit(db, stats)
 
 
 async def import_knowledge(db: AsyncSession, vault: Path, stats: Stats) -> None:
@@ -870,18 +1067,27 @@ async def import_knowledge(db: AsyncSession, vault: Path, stats: Stats) -> None:
         sub_dir = knowledge_dir / sub
         if not sub_dir.exists():
             continue
-        for kfile in sorted(sub_dir.glob("*.md")):
+        # rglob: knowledge files live in nested subfolders (e.g. wiki/ai/…).
+        for kfile in sorted(sub_dir.rglob("*.md")):
             try:
-                post = frontmatter.load(str(kfile))
-                slug_val = str(post.get("slug") or "").strip()
+                try:
+                    post = frontmatter.load(str(kfile))
+                    slug_val = str(post.get("slug") or "").strip()
+                    title = str(post.get("title") or kfile.stem).strip()
+                    body = post.content or None
+                except Exception:
+                    # Malformed frontmatter — ingest the raw file body-only
+                    # rather than dropping the note entirely.
+                    slug_val = ""
+                    title = kfile.stem
+                    body = kfile.read_text(encoding="utf-8", errors="replace") or None
+
                 slug = slug_val or slugify(kfile.stem)
                 if slug in seen_slugs:
-                    # Disambiguate duplicate slugs across raw/ and wiki/
-                    slug = slugify(f"{sub}-{kfile.stem}")
+                    # Disambiguate by full relative path (nested stems can clash)
+                    rel = kfile.relative_to(knowledge_dir).with_suffix("")
+                    slug = slugify(str(rel))
                 seen_slugs.add(slug)
-
-                title = str(post.get("title") or kfile.stem).strip()
-                body = post.content or None
 
                 await _upsert_knowledge(db, slug, {"title": title, "body": body})
                 await db.flush()
@@ -889,7 +1095,7 @@ async def import_knowledge(db: AsyncSession, vault: Path, stats: Stats) -> None:
             except Exception as exc:
                 stats.errors.append((str(kfile), str(exc)))
 
-    await db.commit()
+    await _commit(db, stats)
 
 
 # ---------------------------------------------------------------------------
@@ -972,7 +1178,7 @@ async def import_telos(db: AsyncSession, vault: Path, stats: Stats) -> None:
             stats.telos += 1
 
     await db.flush()
-    await db.commit()
+    await _commit(db, stats)
 
 
 # ---------------------------------------------------------------------------
@@ -1053,7 +1259,7 @@ async def reindex_all(
         except Exception:
             pass
 
-    await db.commit()
+    await _commit(db, stats)
     print("Reindex complete.")
 
 
@@ -1062,12 +1268,23 @@ async def reindex_all(
 # ---------------------------------------------------------------------------
 
 
-async def import_vault(db: AsyncSession, vault_path: Path, *, reindex: bool = True) -> Stats:
+async def import_vault(
+    db: AsyncSession,
+    vault_path: Path,
+    *,
+    reindex: bool = True,
+    dry_run: bool = False,
+    reset: bool = False,
+) -> Stats:
     """
     Run the full import pipeline against the vault at vault_path.
     Returns the Stats object (useful for tests).
+
+    - dry_run: parse and stage everything, then roll back (zero net writes);
+      search reindex is skipped.
+    - reset: wipe the importer-owned tables before importing (clean re-import).
     """
-    stats = Stats()
+    stats = Stats(dry_run=dry_run)
 
     # Sections we know have no DB table yet
     stats.skipped_sections.extend([
@@ -1076,6 +1293,12 @@ async def import_vault(db: AsyncSession, vault_path: Path, *, reindex: bool = Tr
         "99.system / tone (no table)",
         "99.system / telos (no table)",
     ])
+
+    if dry_run:
+        print("(dry-run: no rows will be persisted)")
+    if reset:
+        print("Resetting importer-owned tables …")
+        await _reset_tables(db, stats)
 
     print(f"Importing from {vault_path} …")
 
@@ -1107,15 +1330,22 @@ async def import_vault(db: AsyncSession, vault_path: Path, *, reindex: bool = Tr
     await import_telos(db, vault_path, stats)
     print(f"  telos: {stats.telos}")
 
-    if reindex:
+    if reindex and not dry_run:
         await reindex_all(db, stats, context_ids, company_ids, person_ids)
+
+    if dry_run:
+        await db.rollback()
 
     return stats
 
 
-async def _main(vault_path: Path) -> None:
+async def _main(
+    vault_path: Path, *, dry_run: bool, reset: bool, reindex: bool
+) -> None:
     async with SessionLocal() as db:
-        stats = await import_vault(db, vault_path)
+        stats = await import_vault(
+            db, vault_path, reindex=reindex, dry_run=dry_run, reset=reset
+        )
     stats.report()
 
 
@@ -1127,13 +1357,35 @@ def main() -> None:
         default=Path("/Users/nls/brain/aya"),
         help="Path to the aya vault directory",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Parse and report, but roll back (persist nothing). Skips reindex.",
+    )
+    parser.add_argument(
+        "--reset",
+        action="store_true",
+        help="Wipe importer-owned tables before importing (clean re-import).",
+    )
+    parser.add_argument(
+        "--no-reindex",
+        action="store_true",
+        help="Skip the search reindex step.",
+    )
     args = parser.parse_args()
 
     if not args.vault.exists():
         print(f"ERROR: vault path does not exist: {args.vault}", file=sys.stderr)
         sys.exit(1)
 
-    asyncio.run(_main(args.vault))
+    asyncio.run(
+        _main(
+            args.vault,
+            dry_run=args.dry_run,
+            reset=args.reset,
+            reindex=not args.no_reindex,
+        )
+    )
 
 
 if __name__ == "__main__":
