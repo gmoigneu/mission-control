@@ -23,3 +23,5 @@ attachments/
 
 # OS
 .DS_Store
+
+graphify-out/cost.json
