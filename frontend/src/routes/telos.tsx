@@ -6,6 +6,7 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input, Select } from "../components/ui";
 import {
@@ -36,6 +37,7 @@ const EMPTY_FORM: FormState = { kind: "goal", title: "", body: "", parent_id: ""
 
 export function TelosPage() {
   const { data: items = [] } = useTelos();
+  useEditFromSearch(items, handleEdit);
   const createTelos = useCreateTelos();
   const updateTelos = useUpdateTelos();
   const deleteTelos = useDeleteTelos();
@@ -200,6 +202,7 @@ export function TelosPage() {
 
 export const telosRoute = createRoute({
   getParentRoute: () => rootRoute,
+  validateSearch: editSearch,
   path: "/telos",
   component: TelosPage,
 });

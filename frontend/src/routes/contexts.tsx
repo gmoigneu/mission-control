@@ -8,6 +8,7 @@ import { StatusBadge, contextTint } from "../components/console";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input, Select } from "../components/ui";
 import { useContexts, useCreateContext, useDeleteContext, useUpdateContext } from "../features/contexts/api";
@@ -34,6 +35,7 @@ const EMPTY_FORM: FormState = {
 
 export function ContextsPage() {
   const { data: contexts = [] } = useContexts();
+  useEditFromSearch(contexts, handleEdit);
   const createContext = useCreateContext();
   const updateContext = useUpdateContext();
   const deleteContext = useDeleteContext();
@@ -222,6 +224,7 @@ export function ContextsPage() {
 
 export const contextsRoute = createRoute({
   getParentRoute: () => rootRoute,
+  validateSearch: editSearch,
   path: "/contexts",
   component: ContextsPage,
 });

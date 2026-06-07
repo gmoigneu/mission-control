@@ -92,3 +92,58 @@ it("renders audit entries and POSTs to revert when Undo is clicked", async () =>
     expect(revertCall).toBeDefined();
   });
 });
+
+/** Render the Activity page alongside stub /tasks and /people/$slug routes so
+ * entity links resolve to real hrefs. */
+function renderActivityWithLinks(entries: unknown[]) {
+  const fetchMock = vi.fn(async (url: string) => {
+    if (String(url).includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), { status: 200 });
+    }
+    if (String(url).includes("/audit")) {
+      return new Response(JSON.stringify(entries), { status: 200 });
+    }
+    return new Response(JSON.stringify({}), { status: 200 });
+  });
+  vi.stubGlobal("fetch", fetchMock);
+
+  const root = createRootRoute();
+  const activity = createRoute({ getParentRoute: () => root, path: "/activity", component: ActivityPage });
+  const login = createRoute({ getParentRoute: () => root, path: "/login", component: () => <div>login</div> });
+  const tasks = createRoute({ getParentRoute: () => root, path: "/tasks", component: () => <div>tasks</div> });
+  const person = createRoute({
+    getParentRoute: () => root,
+    path: "/people/$slug",
+    component: () => <div>person</div>,
+  });
+  const history = createMemoryHistory({ initialEntries: ["/activity"] });
+  const router = createRouter({ routeTree: root.addChildren([activity, login, tasks, person]), history });
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
+}
+
+it("shows the entity name and deep-links editable entities to ?edit", async () => {
+  renderActivityWithLinks([
+    { ...AUDIT_ENTRY, id: "a2", entity_type: "task", entity_id: "t1", after: { title: "Ship v2" } },
+  ]);
+
+  await screen.findByRole("heading", { name: "Activity" });
+  const link = await screen.findByRole("link", { name: "Ship v2" });
+  const href = link.getAttribute("href") ?? "";
+  expect(href).toContain("/tasks");
+  expect(href).toContain("edit=t1");
+});
+
+it("links a person to its detail page by slug", async () => {
+  renderActivityWithLinks([
+    { ...AUDIT_ENTRY, id: "a3", entity_type: "person", entity_id: "p1", after: { name: "Ada Lovelace", slug: "ada" } },
+  ]);
+
+  await screen.findByRole("heading", { name: "Activity" });
+  const link = await screen.findByRole("link", { name: "Ada Lovelace" });
+  expect(link.getAttribute("href")).toContain("/people/ada");
+});

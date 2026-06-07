@@ -6,6 +6,7 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
 import { SubjectPicker } from "../components/SubjectPicker";
 import { Button, Field, Input, Select } from "../components/ui";
@@ -59,6 +60,7 @@ function buildPayload(form: FormState) {
 
 export function ObservationsPage() {
   const { data: observations = [] } = useObservations();
+  useEditFromSearch(observations, handleEdit);
   const createObservation = useCreateObservation();
   const updateObservation = useUpdateObservation();
   const deleteObservation = useDeleteObservation();
@@ -237,6 +239,7 @@ export function ObservationsPage() {
 
 export const observationsRoute = createRoute({
   getParentRoute: () => rootRoute,
+  validateSearch: editSearch,
   path: "/observations",
   component: ObservationsPage,
 });

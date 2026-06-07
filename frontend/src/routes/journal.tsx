@@ -6,6 +6,7 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input } from "../components/ui";
 import {
@@ -35,6 +36,7 @@ function emptyForm(): FormState {
 
 export function JournalPage() {
   const { data: entries = [] } = useJournalEntries();
+  useEditFromSearch(entries, handleEdit);
   const createEntry = useCreateJournalEntry();
   const updateEntry = useUpdateJournalEntry();
   const deleteEntry = useDeleteJournalEntry();
@@ -217,6 +219,7 @@ export function JournalPage() {
 
 export const journalRoute = createRoute({
   getParentRoute: () => rootRoute,
+  validateSearch: editSearch,
   path: "/journal",
   component: JournalPage,
 });

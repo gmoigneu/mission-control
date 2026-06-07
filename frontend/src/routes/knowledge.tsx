@@ -6,6 +6,7 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input } from "../components/ui";
 import {
@@ -27,6 +28,7 @@ const EMPTY_FORM: FormState = { title: "", slug: "", body: "" };
 
 export function KnowledgePage() {
   const { data: knowledge = [] } = useKnowledge();
+  useEditFromSearch(knowledge, handleEdit);
   const createKnowledge = useCreateKnowledge();
   const updateKnowledge = useUpdateKnowledge();
   const deleteKnowledge = useDeleteKnowledge();
@@ -168,6 +170,7 @@ export function KnowledgePage() {
 
 export const knowledgeRoute = createRoute({
   getParentRoute: () => rootRoute,
+  validateSearch: editSearch,
   path: "/knowledge",
   component: KnowledgePage,
 });

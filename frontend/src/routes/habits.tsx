@@ -6,6 +6,7 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input, Select } from "../components/ui";
 import {
@@ -40,6 +41,7 @@ function todayISO(): string {
 
 export function HabitsPage() {
   const { data: habits = [] } = useHabits();
+  useEditFromSearch(habits, handleEdit);
   const createHabit = useCreateHabit();
   const updateHabit = useUpdateHabit();
   const deleteHabit = useDeleteHabit();
@@ -218,6 +220,7 @@ export function HabitsPage() {
 
 export const habitsRoute = createRoute({
   getParentRoute: () => rootRoute,
+  validateSearch: editSearch,
   path: "/habits",
   component: HabitsPage,
 });

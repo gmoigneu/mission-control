@@ -6,6 +6,7 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input, Select } from "../components/ui";
 import { useContexts } from "../features/contexts/api";
@@ -40,6 +41,7 @@ const EMPTY_FORM: FormState = {
 
 export function MeetingsPage() {
   const { data: meetings = [] } = useMeetings();
+  useEditFromSearch(meetings, handleEdit);
   const { data: contexts = [] } = useContexts();
   const { data: projects = [] } = useProjects();
   const { data: people = [] } = usePeople();
@@ -336,6 +338,7 @@ export function MeetingsPage() {
 
 export const meetingsRoute = createRoute({
   getParentRoute: () => rootRoute,
+  validateSearch: editSearch,
   path: "/meetings",
   component: MeetingsPage,
 });

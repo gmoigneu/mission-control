@@ -13,6 +13,7 @@ import { DataTable } from "../components/DataTable";
 import { Markdown } from "../components/Markdown";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input, Select, Textarea } from "../components/ui";
 import { useContexts } from "../features/contexts/api";
@@ -188,6 +189,7 @@ function groupTasks(tasks: Task[], groupBy: GroupBy, today: string): Group[] {
 
 export function TasksPage() {
   const { data: tasks = [] } = useTasks();
+  useEditFromSearch(tasks, handleEdit);
   const { data: contexts = [] } = useContexts();
   const { data: projects = [] } = useProjects();
   const createTask = useCreateTask();
@@ -747,6 +749,7 @@ function BoardCard({
 
 export const tasksRoute = createRoute({
   getParentRoute: () => rootRoute,
+  validateSearch: editSearch,
   path: "/tasks",
   component: TasksPage,
 });

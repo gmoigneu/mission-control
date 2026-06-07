@@ -6,6 +6,7 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input } from "../components/ui";
 import { useCreateTone, useDeleteTone, useTones, useUpdateTone } from "../features/tones/api";
@@ -23,6 +24,7 @@ const EMPTY_FORM: FormState = { name: "", slug: "", description: "", sample: "" 
 
 export function TonesPage() {
   const { data: tones = [] } = useTones();
+  useEditFromSearch(tones, handleEdit);
   const createTone = useCreateTone();
   const updateTone = useUpdateTone();
   const deleteTone = useDeleteTone();
@@ -175,6 +177,7 @@ export function TonesPage() {
 
 export const tonesRoute = createRoute({
   getParentRoute: () => rootRoute,
+  validateSearch: editSearch,
   path: "/tones",
   component: TonesPage,
 });

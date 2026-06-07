@@ -6,6 +6,7 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input, Select } from "../components/ui";
 import {
@@ -51,6 +52,7 @@ function buildPayload(form: FormState) {
 
 export function ReviewsPage() {
   const { data: reviews = [] } = useReviews();
+  useEditFromSearch(reviews, handleEdit);
   const createReview = useCreateReview();
   const updateReview = useUpdateReview();
   const deleteReview = useDeleteReview();
@@ -219,6 +221,7 @@ export function ReviewsPage() {
 
 export const reviewsRoute = createRoute({
   getParentRoute: () => rootRoute,
+  validateSearch: editSearch,
   path: "/reviews",
   component: ReviewsPage,
 });

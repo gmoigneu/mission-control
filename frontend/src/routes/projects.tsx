@@ -6,6 +6,7 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input, Select } from "../components/ui";
 import { useContexts } from "../features/contexts/api";
@@ -40,6 +41,7 @@ const EMPTY_FORM: FormState = {
 
 export function ProjectsPage() {
   const { data: projects = [] } = useProjects();
+  useEditFromSearch(projects, handleEdit);
   const { data: contexts = [] } = useContexts();
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
@@ -226,6 +228,7 @@ export function ProjectsPage() {
 
 export const projectsRoute = createRoute({
   getParentRoute: () => rootRoute,
+  validateSearch: editSearch,
   path: "/projects",
   component: ProjectsPage,
 });

@@ -6,6 +6,7 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input } from "../components/ui";
 import { useCreateTag, useDeleteTag, useTags, useUpdateTag } from "../features/tags/api";
@@ -21,6 +22,7 @@ const EMPTY_FORM: FormState = { name: "", kind: "" };
 
 export function TagsPage() {
   const { data: tags = [] } = useTags();
+  useEditFromSearch(tags, handleEdit);
   const createTag = useCreateTag();
   const updateTag = useUpdateTag();
   const deleteTag = useDeleteTag();
@@ -158,6 +160,7 @@ export function TagsPage() {
 
 export const tagsRoute = createRoute({
   getParentRoute: () => rootRoute,
+  validateSearch: editSearch,
   path: "/tags",
   component: TagsPage,
 });

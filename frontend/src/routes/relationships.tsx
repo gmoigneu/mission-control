@@ -6,6 +6,7 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input, Select } from "../components/ui";
 import { useContexts } from "../features/contexts/api";
@@ -58,6 +59,7 @@ function buildPayload(form: FormState, isEdit: boolean) {
 
 export function RelationshipsPage() {
   const { data: relationships = [] } = useRelationships();
+  useEditFromSearch(relationships, handleEdit);
   const { data: people = [] } = usePeople();
   const { data: contexts = [] } = useContexts();
   const createRelationship = useCreateRelationship();
@@ -238,6 +240,7 @@ export function RelationshipsPage() {
 
 export const relationshipsRoute = createRoute({
   getParentRoute: () => rootRoute,
+  validateSearch: editSearch,
   path: "/relationships",
   component: RelationshipsPage,
 });

@@ -6,6 +6,7 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input } from "../components/ui";
 import { useCompanies, useCreateCompany, useDeleteCompany, useUpdateCompany } from "../features/companies/api";
@@ -23,6 +24,7 @@ const EMPTY_FORM: FormState = { name: "", slug: "", domain: "", notes: "" };
 
 export function CompaniesPage() {
   const { data: companies = [] } = useCompanies();
+  useEditFromSearch(companies, handleEdit);
   const createCompany = useCreateCompany();
   const updateCompany = useUpdateCompany();
   const deleteCompany = useDeleteCompany();
@@ -182,6 +184,7 @@ export function CompaniesPage() {
 
 export const companiesRoute = createRoute({
   getParentRoute: () => rootRoute,
+  validateSearch: editSearch,
   path: "/companies",
   component: CompaniesPage,
 });
