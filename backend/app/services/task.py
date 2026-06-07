@@ -30,6 +30,17 @@ async def get_task(db: AsyncSession, task_id: uuid.UUID) -> Task | None:
     return await db.get(Task, task_id)
 
 
+async def search_tasks(db: AsyncSession, q: str, *, limit: int = 10) -> list[Task]:
+    """Title substring lookup — reliable without the search index."""
+    stmt = (
+        select(Task)
+        .where(Task.title.ilike(f"%{q.strip()}%"))
+        .order_by(Task.created_at.desc())
+        .limit(limit)
+    )
+    return list((await db.execute(stmt)).scalars().all())
+
+
 async def create_task(db: AsyncSession, data: TaskCreate, *, surface: str = "api") -> Task:
     obj = Task(**data.model_dump())
     db.add(obj)

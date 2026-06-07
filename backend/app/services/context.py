@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit.serialize import model_to_dict
@@ -28,6 +28,18 @@ async def count_contexts(db: AsyncSession) -> int:
 
 async def get_context(db: AsyncSession, context_id: uuid.UUID) -> Context | None:
     return await db.get(Context, context_id)
+
+
+async def search_contexts(db: AsyncSession, q: str, *, limit: int = 10) -> list[Context]:
+    """Name/slug substring lookup — reliable without the search index."""
+    pattern = f"%{q.strip()}%"
+    stmt = (
+        select(Context)
+        .where(or_(Context.name.ilike(pattern), Context.slug.ilike(pattern)))
+        .order_by(Context.name)
+        .limit(limit)
+    )
+    return list((await db.execute(stmt)).scalars().all())
 
 
 async def create_context(db: AsyncSession, data: ContextCreate, *, surface: str = "api") -> Context:

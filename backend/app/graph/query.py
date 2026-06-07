@@ -30,10 +30,15 @@ async def connection_path(run: Runner, from_id: str, to_id: str) -> list[dict]:
 
 
 async def neighbors(run: Runner, person_id: str) -> list[dict]:
-    """Return all nodes directly connected to a Person (any relationship type)."""
+    """Return all nodes directly connected to a Person (any relationship type).
+
+    ``rel`` is the human-meaningful label: the relationship's ``type`` property
+    (e.g. ``partner``, ``family``) when present, falling back to the Cypher edge
+    label (``KNOWS``, ``WORKS_AT``, ...) for edges that carry no ``type``.
+    """
     return await run(
         "MATCH (p:Person {id: $id})-[r]-(n) "
-        "RETURN n.id AS id, labels(n)[0] AS label, type(r) AS rel, "
+        "RETURN n.id AS id, labels(n)[0] AS label, coalesce(r.type, type(r)) AS rel, "
         "coalesce(n.name, n.title, n.slug) AS label_text",
         {"id": person_id},
     )
@@ -66,7 +71,8 @@ _NODE_DETAIL = (
     "OPTIONAL MATCH (n)-[r]-(m) "
     "RETURN labels(n)[0] AS label, properties(n) AS props, "
     "collect(CASE WHEN m IS NULL THEN NULL ELSE {"
-    "rel: type(r), dir: CASE WHEN startNode(r) = n THEN 'out' ELSE 'in' END, "
+    "rel: coalesce(r.type, type(r)), "
+    "dir: CASE WHEN startNode(r) = n THEN 'out' ELSE 'in' END, "
     "id: m.id, label: labels(m)[0], "
     "name: coalesce(m.name, m.title, m.slug, m.id)} END) AS rels"
 )

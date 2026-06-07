@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit.serialize import model_to_dict
@@ -16,7 +16,7 @@ async def list_people(
     db: AsyncSession, *, limit: int | None = None, offset: int = 0
 ) -> list[Person]:
     stmt = apply_window(
-        select(Person).order_by(Person.created_at), limit=limit, offset=offset
+        select(Person).order_by(func.lower(Person.name)), limit=limit, offset=offset
     )
     result = await db.execute(stmt)
     return list(result.scalars().all())
@@ -28,6 +28,23 @@ async def count_people(db: AsyncSession) -> int:
 
 async def get_person(db: AsyncSession, person_id: uuid.UUID) -> Person | None:
     return await db.get(Person, person_id)
+
+
+async def get_person_by_slug(db: AsyncSession, slug: str) -> Person | None:
+    result = await db.execute(select(Person).where(Person.slug == slug))
+    return result.scalar_one_or_none()
+
+
+async def search_people(db: AsyncSession, q: str, *, limit: int = 10) -> list[Person]:
+    """Name/slug substring lookup — reliable without the search index."""
+    pattern = f"%{q.strip()}%"
+    stmt = (
+        select(Person)
+        .where(or_(Person.name.ilike(pattern), Person.slug.ilike(pattern)))
+        .order_by(func.lower(Person.name))
+        .limit(limit)
+    )
+    return list((await db.execute(stmt)).scalars().all())
 
 
 async def create_person(db: AsyncSession, data: PersonCreate, *, surface: str = "api") -> Person:

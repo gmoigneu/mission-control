@@ -12,10 +12,11 @@ async def test_search_ranks_person_first_and_type_filter(client, db):
     await login(client, db, email=email, password="pw")
 
     # Create a person whose summary overlaps strongly with the query.
+    person_slug = f"search-person-{uuid.uuid4()}"
     person_resp = await client.post(
         "/people",
         json={
-            "slug": f"search-person-{uuid.uuid4()}",
+            "slug": person_slug,
             "name": "Alice Engineer",
             "summary": "Senior Python backend engineer",
         },
@@ -41,6 +42,9 @@ async def test_search_ranks_person_first_and_type_filter(client, db):
     assert len(results) >= 1
     assert results[0]["subject_type"] == "person"
     assert results[0]["subject_id"] == person_id
+    # Results carry the entity's display name and slug for linking/rendering.
+    assert results[0]["name"] == "Alice Engineer"
+    assert results[0]["slug"] == person_slug
 
     # Search with type filter context — person must NOT appear.
     filtered_resp = await client.get("/search?q=python+engineer&types=context")

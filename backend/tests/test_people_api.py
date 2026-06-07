@@ -33,3 +33,23 @@ async def test_get_missing_person_404(client, db):
     import uuid
 
     assert (await client.get(f"/people/{uuid.uuid4()}")).status_code == 404
+
+
+async def test_get_person_by_slug(client, db):
+    await login(client, db)
+    await client.post("/people", json={"slug": "magalie-pentier", "name": "Magalie Pentier"})
+
+    found = await client.get("/people/by-slug/magalie-pentier")
+    assert found.status_code == 200
+    assert found.json()["name"] == "Magalie Pentier"
+
+    assert (await client.get("/people/by-slug/nope")).status_code == 404
+
+
+async def test_people_listed_by_name_case_insensitive(client, db):
+    await login(client, db)
+    for slug, name in [("charlie", "Charlie"), ("alice", "alice"), ("bob", "Bob")]:
+        await client.post("/people", json={"slug": slug, "name": name})
+
+    names = [p["name"] for p in (await client.get("/people")).json()]
+    assert names == ["alice", "Bob", "Charlie"]

@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit.serialize import model_to_dict
@@ -28,6 +28,18 @@ async def count_projects(db: AsyncSession) -> int:
 
 async def get_project(db: AsyncSession, project_id: uuid.UUID) -> Project | None:
     return await db.get(Project, project_id)
+
+
+async def search_projects(db: AsyncSession, q: str, *, limit: int = 10) -> list[Project]:
+    """Title/slug substring lookup — reliable without the search index."""
+    pattern = f"%{q.strip()}%"
+    stmt = (
+        select(Project)
+        .where(or_(Project.title.ilike(pattern), Project.slug.ilike(pattern)))
+        .order_by(Project.title)
+        .limit(limit)
+    )
+    return list((await db.execute(stmt)).scalars().all())
 
 
 async def create_project(db: AsyncSession, data: ProjectCreate, *, surface: str = "api") -> Project:

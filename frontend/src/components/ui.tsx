@@ -1,5 +1,6 @@
 import type {
   ButtonHTMLAttributes,
+  CSSProperties,
   InputHTMLAttributes,
   ReactNode,
   TextareaHTMLAttributes,
@@ -32,6 +33,30 @@ export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
       className={`input ${className}`}
       {...rest}
     />
+  );
+}
+
+/** Small uppercase label chip. Defaults to a subtle outlined style matching the
+ * existing inline `.badge` usages; pass `style` to tint (e.g. status colors). */
+export function Badge({
+  children,
+  className = "",
+  style,
+  title,
+}: {
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+  title?: string;
+}) {
+  return (
+    <span
+      className={`badge ${className}`}
+      title={title}
+      style={{ border: "1px solid var(--line)", color: "var(--fg-dim)", ...style }}
+    >
+      {children}
+    </span>
   );
 }
 

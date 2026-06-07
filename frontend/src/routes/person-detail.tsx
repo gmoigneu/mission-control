@@ -7,7 +7,7 @@ import { useCompanies } from "../features/companies/api";
 import { useContexts } from "../features/contexts/api";
 import { useNeighbors } from "../features/graph/api";
 import { useObservations } from "../features/observations/api";
-import { usePeople } from "../features/people/api";
+import { usePersonBySlug } from "../features/people/api";
 import type { Observation, Person } from "../lib/types";
 import { rootRoute } from "./root";
 
@@ -130,11 +130,9 @@ function PersonDetailContent({
 
 export function PersonDetailPage() {
   const { slug } = personDetailRoute.useParams();
-  const { data: people = [], isLoading } = usePeople();
+  const { data: person, isLoading } = usePersonBySlug(slug);
   const { data: companies = [] } = useCompanies();
   const { data: contexts = [] } = useContexts();
-
-  const person = people.find((p) => p.slug === slug);
 
   let body: React.ReactNode;
   if (isLoading) {
