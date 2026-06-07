@@ -367,3 +367,39 @@ export interface EntityLinkCreate {
   to_id: string;
   kind?: string;
 }
+
+// ─── Graph explorer ──────────────────────────────────────────────────────────
+export interface GraphFullNode {
+  id: string;
+  label: string;
+  name: string;
+  props: Record<string, unknown>;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  type: string;
+  props: Record<string, unknown>;
+}
+
+export interface GraphSnapshot {
+  nodes: GraphFullNode[];
+  edges: GraphEdge[];
+  truncated: boolean;
+}
+
+export interface GraphRel {
+  rel: string;
+  dir: "in" | "out";
+  id: string;
+  label: string;
+  name: string;
+}
+
+export interface GraphNodeDetail {
+  id: string;
+  label: string;
+  props: Record<string, unknown>;
+  rels: GraphRel[];
+}

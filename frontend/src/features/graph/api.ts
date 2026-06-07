@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "../../lib/api";
-import type { GraphNode } from "../../lib/types";
+import type { GraphNode, GraphNodeDetail, GraphSnapshot } from "../../lib/types";
 
 interface GraphQueryBody {
   intent: string;
@@ -20,5 +20,36 @@ export function useNeighbors(personId: string | undefined) {
     enabled: !!personId,
     queryFn: () =>
       graphQuery<GraphNode[]>({ intent: "neighbors", params: { person_id: personId! } }),
+  });
+}
+
+/** Fetch the whole graph snapshot, optionally narrowed to one context slug. */
+export function useGraphSnapshot(context?: string) {
+  return useQuery({
+    queryKey: ["graph", "full", context ?? ""],
+    queryFn: () =>
+      apiFetch<GraphSnapshot>(
+        context ? `/graph/full?context=${encodeURIComponent(context)}` : "/graph/full",
+      ),
+  });
+}
+
+/** Fetch a single node's properties + relationships for the inspector panel. */
+export function useNodeDetail(nodeId: string | undefined) {
+  return useQuery({
+    queryKey: ["graph", "node", nodeId ?? ""],
+    enabled: !!nodeId,
+    queryFn: () => apiFetch<GraphNodeDetail>(`/graph/node/${nodeId ?? ""}`),
+  });
+}
+
+/** Trigger a full Neo4j projection rebuild, then refresh graph queries. */
+export function useRebuildGraph() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiFetch<unknown>("/admin/rebuild-graph", { method: "POST" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["graph"] });
+    },
   });
 }

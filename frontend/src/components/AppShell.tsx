@@ -18,6 +18,7 @@ import {
   Link2,
   Loader2,
   Menu,
+  Network,
   MessageSquareQuote,
   Mic,
   Moon,
@@ -85,6 +86,7 @@ const NAV: NavEntry[] = [
   { key: "entity-links", label: "Entity Links", to: "/entity-links", Icon: Link2 },
   { divider: true },
   { key: "search", label: "Search", to: "/search", Icon: Search },
+  { key: "graph", label: "Graph", to: "/graph", Icon: Network },
   { key: "activity", label: "Activity", to: "/activity", Icon: Activity },
   { key: "settings", label: "Settings", to: "/settings", Icon: Settings },
 ];

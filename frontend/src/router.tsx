@@ -23,6 +23,7 @@ import { entityTagsRoute } from "./routes/entity-tags";
 import { entityLinksRoute } from "./routes/entity-links";
 import { activityRoute } from "./routes/activity";
 import { searchRoute } from "./routes/search";
+import { graphRoute } from "./routes/graph";
 import { settingsRoute } from "./routes/settings";
 import { placeholderRoute } from "./routes/placeholder";
 
@@ -50,6 +51,7 @@ const routeTree = rootRoute.addChildren([
   entityLinksRoute,
   activityRoute,
   searchRoute,
+  graphRoute,
   settingsRoute,
   placeholderRoute,
 ]);
