@@ -40,6 +40,7 @@ import {
   Users,
 } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { Markdown } from "./Markdown";
 import { useLogout, useMe } from "../lib/auth";
 import { useFocusTrap } from "../lib/useFocusTrap";
 import {
@@ -1027,7 +1028,7 @@ function AyaPanel({ onClose }: { onClose: () => void }) {
                   color: "var(--fg-muted)",
                 }}
               >
-                {m.text}
+                <Markdown>{m.text}</Markdown>
               </div>
               {m.writes && m.runId && (
                 <WritesCard
