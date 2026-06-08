@@ -21,6 +21,10 @@ pgdata/
 neo4jdata/
 attachments/
 
+# Database dumps
+*.sql.gz
+*.dump
+
 # OS
 .DS_Store
 

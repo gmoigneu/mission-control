@@ -1,0 +1,28 @@
+# Example snippet for the global Caddy running directly on the host (not in the
+# stack). Caddy terminates TLS (automatic Let's Encrypt) and reverse-proxies to
+# the published stack ports:
+#
+#   42001 -> frontend (nginx: serves the SPA)
+#   42002 -> api      (FastAPI)
+#
+# The app is served from a single domain: /api/* goes to the API, everything
+# else to the SPA. Same-origin, so sessions/cookies work without any CORS.
+#
+# Add this to your global /etc/caddy/Caddyfile and `caddy reload`. Keep the
+# domain in sync with WEBAUTHN_RP_ID / RP_ORIGIN.
+
+missioncontrol.nls.io {
+	encode zstd gzip
+
+	# API at /api. handle_path strips the matched /api prefix before forwarding,
+	# so the backend receives /health, /contexts, etc. (it serves routes at the
+	# root, with no /api prefix).
+	handle_path /api/* {
+		reverse_proxy localhost:42002
+	}
+
+	# Everything else: the frontend SPA.
+	handle {
+		reverse_proxy localhost:42001
+	}
+}

@@ -1,0 +1,121 @@
+# Mission Control — Portainer stack
+#
+# Deploy via Portainer → Stacks → Add stack (Git repository or Web editor).
+# Set the environment variables from deploy/stack.env.example in the Portainer
+# "Environment variables" section (SESSION_SECRET and the INITIAL_USER_* / NEO4J
+# values are required).
+#
+# Public host ports:
+#   42001 -> frontend (nginx: serves the SPA and proxies /api -> api)
+#   42002 -> api      (FastAPI, direct access for API clients/integrations)
+# A global Caddy on the host terminates TLS and reverse-proxies to these ports
+# (see deploy/Caddyfile.global.example). Postgres and Neo4j stay internal.
+
+x-backend-env: &backend-env
+  ENVIRONMENT: production
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-mc}:${POSTGRES_PASSWORD:-mc}@postgres:5432/${POSTGRES_DB:-mc}
+  NEO4J_URI: bolt://neo4j:7687
+  NEO4J_USER: ${NEO4J_USER:-neo4j}
+  NEO4J_PASSWORD: ${NEO4J_PASSWORD:?set NEO4J_PASSWORD}
+  SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET}
+  EMBEDDINGS_PROVIDER: ${EMBEDDINGS_PROVIDER:-fake}
+  LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+  OPENROUTER_MODEL: ${OPENROUTER_MODEL:-deepseek/deepseek-v4-flash}
+  OPENROUTER_EMBEDDINGS_MODEL: ${OPENROUTER_EMBEDDINGS_MODEL:-openai/text-embedding-3-small}
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mc}
+      POSTGRES_DB: ${POSTGRES_DB:-mc}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mc}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  neo4j:
+    image: neo4j:5-community
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:?set NEO4J_PASSWORD}
+    volumes:
+      - neo4jdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  api:
+    image: ghcr.io/gmoigneu/mission-control-api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      <<: *backend-env
+      INITIAL_USER_EMAIL: ${INITIAL_USER_EMAIL:-}
+      INITIAL_USER_PASSWORD: ${INITIAL_USER_PASSWORD:-}
+      WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID:-localhost}
+      WEBAUTHN_RP_NAME: ${WEBAUTHN_RP_NAME:-Mission Control}
+      WEBAUTHN_RP_ORIGIN: ${WEBAUTHN_RP_ORIGIN:-http://localhost:42001}
+    ports:
+      - "42002:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  worker:
+    image: ghcr.io/gmoigneu/mission-control-api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    # Override the image ENTRYPOINT (entrypoint.sh runs the API regardless of
+    # args); the worker must run its own module instead.
+    entrypoint: ["uv", "run", "python", "-m", "app.graph.worker"]
+    environment:
+      <<: *backend-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+  search-worker:
+    image: ghcr.io/gmoigneu/mission-control-api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    entrypoint: ["uv", "run", "python", "-m", "app.search.worker"]
+    environment:
+      <<: *backend-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+  frontend:
+    image: ghcr.io/gmoigneu/mission-control-frontend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "42001:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  neo4jdata:
