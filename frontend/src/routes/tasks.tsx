@@ -1,7 +1,9 @@
 import { createRoute, Link } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { Plus, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AppShell } from "../components/AppShell";
+import { BottomSheet } from "../components/BottomSheet";
+import { useIsMobile } from "../lib/useIsMobile";
 import {
   PriorityIcon,
   STATUS,
@@ -206,6 +208,10 @@ export function TasksPage() {
   const [contextFilter, setContextFilter] = useState<string>("");
   const [projectFilter, setProjectFilter] = useState<string>("");
   const [showCompleted, setShowCompleted] = useState(false);
+  const isMobile = useIsMobile();
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const activeFilterCount =
+    (contextFilter ? 1 : 0) + (projectFilter ? 1 : 0) + (showCompleted ? 1 : 0);
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
@@ -337,21 +343,70 @@ export function TasksPage() {
     { header: "Due", cell: (row: Task) => row.due ?? "" },
   ];
 
+  // Filter controls, shared between the desktop inline row and the mobile sheet.
+  // `full` makes each control span its container (for the stacked sheet layout).
+  function renderFilters(full: boolean) {
+    const w: React.CSSProperties = full ? { width: "100%" } : FILTER_WIDTH;
+    return (
+      <>
+        {view === "list" && (
+          <Field label="Group by">
+            <div style={w}>
+              <Select
+                value={groupBy}
+                onChange={(value) => setGroupBy(value as GroupBy)}
+                options={GROUP_OPTIONS}
+              />
+            </div>
+          </Field>
+        )}
+        <Field label="Context filter">
+          <div style={w}>
+            <Select
+              value={contextFilter}
+              onChange={setContextFilter}
+              options={contexts.map((c) => ({ value: c.id, label: c.name }))}
+              placeholder="All contexts"
+            />
+          </div>
+        </Field>
+        <Field label="Project filter">
+          <div style={w}>
+            <Select
+              value={projectFilter}
+              onChange={setProjectFilter}
+              options={projects.map((p) => ({ value: p.id, label: p.title }))}
+              placeholder="All projects"
+            />
+          </div>
+        </Field>
+        <Button
+          type="button"
+          aria-pressed={showCompleted}
+          className={showCompleted ? "primary" : "ghost"}
+          onClick={() => setShowCompleted((v) => !v)}
+        >
+          Show completed
+        </Button>
+      </>
+    );
+  }
+
   return (
     <RequireAuth>
       <AppShell>
         <div
+          className="page"
           style={{
-            padding: "24px 32px",
             display: "flex",
             flexDirection: "column",
             gap: 24,
           }}
         >
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h1 className="title">Tasks</h1>
             <div className="flex items-center gap-4">
-              <p className="meta">
+              <p className="meta desktop-only">
                 <Link to="/activity" className="underline">
                   Manage from the Activity page to undo changes.
                 </Link>
@@ -376,46 +431,29 @@ export function TasksPage() {
                 </Button>
               ))}
             </div>
-            {view === "list" && (
-              <Field label="Group by">
-                <div style={FILTER_WIDTH}>
-                  <Select
-                    value={groupBy}
-                    onChange={(value) => setGroupBy(value as GroupBy)}
-                    options={GROUP_OPTIONS}
-                  />
-                </div>
-              </Field>
+            {isMobile ? (
+              <Button
+                type="button"
+                className="ghost row gap-2"
+                onClick={() => setFiltersOpen(true)}
+              >
+                <SlidersHorizontal size={15} /> Filters
+                {activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+              </Button>
+            ) : (
+              renderFilters(false)
             )}
-            <Field label="Context filter">
-              <div style={FILTER_WIDTH}>
-                <Select
-                  value={contextFilter}
-                  onChange={setContextFilter}
-                  options={contexts.map((c) => ({ value: c.id, label: c.name }))}
-                  placeholder="All contexts"
-                />
-              </div>
-            </Field>
-            <Field label="Project filter">
-              <div style={FILTER_WIDTH}>
-                <Select
-                  value={projectFilter}
-                  onChange={setProjectFilter}
-                  options={projects.map((p) => ({ value: p.id, label: p.title }))}
-                  placeholder="All projects"
-                />
-              </div>
-            </Field>
-            <Button
-              type="button"
-              aria-pressed={showCompleted}
-              className={showCompleted ? "primary" : "ghost"}
-              onClick={() => setShowCompleted((v) => !v)}
-            >
-              Show completed
-            </Button>
           </div>
+
+          {isMobile && (
+            <BottomSheet
+              open={filtersOpen}
+              onClose={() => setFiltersOpen(false)}
+              title="Filters"
+            >
+              {renderFilters(true)}
+            </BottomSheet>
+          )}
 
           {view === "list" ? (
             <ListView

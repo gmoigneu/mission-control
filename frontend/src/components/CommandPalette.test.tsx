@@ -58,10 +58,10 @@ function renderShell() {
 }
 
 async function openPalette(user: ReturnType<typeof userEvent.setup>) {
-  // Wait for the shell (and its top-bar trigger) to mount.
-  const trigger = await screen.findByText("Capture anything…");
-  await user.click(trigger);
-  return screen.getByRole("dialog", { name: "Command palette" });
+  // Wait for the shell to mount, then open the palette via the ⌘K shortcut.
+  await screen.findByRole("button", { name: "Voice capture" });
+  await user.keyboard("{Meta>}k{/Meta}");
+  return screen.findByRole("dialog", { name: "Command palette" });
 }
 
 it("opens the command palette as an aria-modal dialog and focuses the input", async () => {

@@ -61,7 +61,9 @@ services:
   worker:
     profiles: ["deploy"]
     build: ./backend
-    command: uv run python -m app.graph.worker
+    # entrypoint.sh runs the API regardless of args, so override the entrypoint
+    # (not command) to start the worker module.
+    entrypoint: ["uv", "run", "python", "-m", "app.graph.worker"]
     environment:
       ENVIRONMENT: production
       DATABASE_URL: postgresql+asyncpg://mc:mc@postgres:5432/mc
@@ -82,7 +84,7 @@ services:
   search-worker:
     profiles: ["deploy"]
     build: ./backend
-    command: uv run python -m app.search.worker
+    entrypoint: ["uv", "run", "python", "-m", "app.search.worker"]
     environment:
       ENVIRONMENT: production
       DATABASE_URL: postgresql+asyncpg://mc:mc@postgres:5432/mc
@@ -95,21 +97,14 @@ services:
       postgres:
         condition: service_healthy
 
-  caddy:
+  frontend:
     profiles: ["deploy"]
     build: ./frontend
     ports:
       - "80:80"
-      # - "443:443"  # uncomment for automatic TLS with a real domain
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
     depends_on:
       - api
 
 volumes:
   pgdata:
   neo4jdata:
-  caddy_data:
-  caddy_config:
