@@ -135,8 +135,8 @@ export function ContextsPage() {
     <RequireAuth>
       <AppShell>
         <div
+          className="page"
           style={{
-            padding: "24px 32px",
             display: "flex",
             flexDirection: "column",
             gap: 24,

@@ -103,8 +103,8 @@ export function InboxPage() {
   return (
     <RequireAuth>
       <AppShell>
-        <div className="p-6 space-y-6">
-          <div className="flex items-center justify-between">
+        <div className="page space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h1 className="text-xl font-semibold">Inbox</h1>
             <div className="flex items-center gap-4">
               <p className="text-sm text-gray-400">

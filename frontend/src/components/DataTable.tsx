@@ -29,7 +29,8 @@ export function DataTable<T extends { id: string }>({
       </p>
     );
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+    <div className="hscroll">
+    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", minWidth: "max-content" }}>
       <thead>
         <tr style={{ borderBottom: "1px solid var(--line-soft)" }}>
           {columns.map((c) => (
@@ -80,5 +81,6 @@ export function DataTable<T extends { id: string }>({
         ))}
       </tbody>
     </table>
+    </div>
   );
 }

@@ -43,6 +43,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Markdown } from "./Markdown";
 import { useLogout, useMe } from "../lib/auth";
 import { useFocusTrap } from "../lib/useFocusTrap";
+import { AYA_OVERLAY_QUERY, useMediaQuery } from "../lib/useIsMobile";
 import {
   type AgentWrite,
   invalidateForWrites,
@@ -682,6 +683,8 @@ function CommandPalette({
           aria-label="Results"
           style={{
             overflowY: "auto",
+            overflowX: "hidden",
+            minWidth: 0,
             flex: 1,
             display: "flex",
             flexDirection: "column",
@@ -715,6 +718,8 @@ function CommandPalette({
                 gap: 8,
                 marginBottom: 4,
                 opacity: isPending ? 0.7 : 1,
+                minWidth: 0,
+                overflowWrap: "anywhere",
               }}
             >
               {isPending ? (
@@ -1131,11 +1136,16 @@ export function AppShell({ children }: { children: ReactNode }) {
   });
   const [ayaOpen, setAyaOpen] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
+      // Below the dock breakpoint Aya is a full-screen overlay — never auto-open
+      // it on load; it should only appear on an explicit tap.
+      if (window.matchMedia(AYA_OVERLAY_QUERY).matches) return false;
       const saved = localStorage.getItem("mc-aya-open");
       return saved !== null ? saved === "true" : true;
     }
     return true;
   });
+  // When the dock is hidden (≤1100px), present Aya as a full-screen overlay.
+  const ayaOverlay = useMediaQuery(AYA_OVERLAY_QUERY);
   const [mobileNav, setMobileNav] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsJustClosed = useRef(false);
@@ -1157,8 +1167,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Sync ayaOpen to localStorage so the panel's open/closed choice survives
   // the AppShell remount that route navigation triggers.
   useEffect(() => {
+    // Only persist the dock's open/closed choice on desktop; the mobile overlay
+    // is transient and shouldn't clobber the desktop preference.
+    if (ayaOverlay) return;
     localStorage.setItem("mc-aya-open", String(ayaOpen));
-  }, [ayaOpen]);
+  }, [ayaOpen, ayaOverlay]);
 
   // Global ⌘K
   useEffect(() => {
@@ -1251,45 +1264,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        {/* Cmd-K capture trigger */}
-        <button
-          onClick={() => setCaptureOpen(true)}
-          className="capture-trigger row gap-2"
-          style={{
-            flex: 1,
-            maxWidth: 520,
-            margin: "0 auto",
-            background: "var(--bg-deep)",
-            border: "1px solid var(--line)",
-            borderRadius: "var(--r-md)",
-            padding: "8px 12px",
-            cursor: "text",
-            color: "var(--fg-faint)",
-          }}
-        >
-          <Sparkles
-            size={16}
-            strokeWidth={1.6}
-            style={{ color: "var(--signal)", flexShrink: 0 }}
-          />
-          <span
-            style={{ flex: 1, textAlign: "left", fontSize: 13 }}
-          >
-            Capture anything…
-          </span>
-          <span
-            className="badge desktop-only"
-            style={{
-              border: "1px solid var(--line)",
-              color: "var(--fg-dim)",
-            }}
-          >
-            ⌘K
-          </span>
-        </button>
-
         {/* Action buttons */}
-        <div className="row gap-1" style={{ flexShrink: 0 }}>
+        <div className="row gap-1" style={{ flexShrink: 0, marginLeft: "auto" }}>
           <button
             className="iconbtn"
             title="Voice capture"
@@ -1432,14 +1408,19 @@ export function AppShell({ children }: { children: ReactNode }) {
         {children}
       </main>
 
-      {/* ===== Docked Aya ===== */}
-      {showDock && (
+      {/* ===== Aya: docked on desktop, full-screen overlay on mobile/tablet ===== */}
+      {ayaOpen && !ayaOverlay && (
         <aside
-          className="aya-dock desktop-only"
+          className="aya-dock"
           style={{ overflow: "hidden", gridColumn: 3, gridRow: 2 }}
         >
           <AyaPanel onClose={() => setAyaOpen(false)} />
         </aside>
+      )}
+      {ayaOpen && ayaOverlay && (
+        <div className="aya-mobile">
+          <AyaPanel onClose={() => setAyaOpen(false)} />
+        </div>
       )}
 
       {/* ===== Mobile bottom nav ===== */}

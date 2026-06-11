@@ -277,7 +277,7 @@ function Dashboard() {
           style={{
             maxWidth: 1180,
             margin: "0 auto",
-            padding: "28px 32px 80px",
+            padding: "28px clamp(14px, 4vw, 32px) 80px",
           }}
         >
           {/* ── Hero ─────────────────────────────────────────────────── */}
@@ -395,6 +395,8 @@ function Dashboard() {
                         <span
                           style={{
                             flex: 1,
+                            minWidth: 0,
+                            overflowWrap: "anywhere",
                             fontSize: 13.5,
                             textDecoration: isDone ? "line-through" : "none",
                             color: isDone ? "var(--fg-dim)" : "var(--fg)",
@@ -402,13 +404,15 @@ function Dashboard() {
                         >
                           {t.title}
                         </span>
-                        <PriorityDot priority={t.priority} />
-                        {ctx && (
-                          <ContextChip tint={contextTint(ctx)}>
-                            {ctx.name}
-                          </ContextChip>
-                        )}
-                        {dueChip(t.due, isOverdue)}
+                        <div className="task-row-meta">
+                          <PriorityDot priority={t.priority} />
+                          {ctx && (
+                            <ContextChip tint={contextTint(ctx)}>
+                              {ctx.name}
+                            </ContextChip>
+                          )}
+                          {dueChip(t.due, isOverdue)}
+                        </div>
                       </div>
                     );
                   })}
