@@ -28,14 +28,20 @@ async def run_agent(
     surface: str,
     user_input: str,
     *,
+    conversation_id: uuid.UUID | None = None,
+    history: list[dict] | None = None,
     max_steps: int = 12,
 ) -> AgentResult:
     """Run the agent loop for one user turn.
 
+    ``history`` seeds the conversation so far (prior turns' transcripts) — the
+    model sees it for context, but it is *not* re-stored on this run, so the
+    thread never duplicates. ``conversation_id`` links this run to its thread.
+
     The *caller* must ``await db.commit()`` after this returns so that all
     writes (agent_run row + entity rows + audit rows) land in one transaction.
     """
-    run = AgentRun(surface=surface, input=user_input)
+    run = AgentRun(surface=surface, input=user_input, conversation_id=conversation_id)
     db.add(run)
     await db.flush()  # get run.id
 
@@ -47,7 +53,11 @@ async def run_agent(
     # persona is saved or it is disabled, so behaviour is unchanged out of box.
     persona = await get_persona(db)
     system = compose_system(persona, surface)
-    messages: list[dict] = [{"role": "user", "content": user_input}]
+    # Seed prior turns for context; remember where this turn starts so only the
+    # new portion is persisted as this run's transcript.
+    seed = list(history or [])
+    seed_len = len(seed)
+    messages: list[dict] = [*seed, {"role": "user", "content": user_input}]
     reply = "I wasn't able to complete that request."
     all_tool_calls: list[dict] = []
 
@@ -100,6 +110,10 @@ async def run_agent(
 
         # max_steps reached without a text reply → use fallback already set above
 
+        # Record Aya's final reply as the closing assistant message so replayed
+        # history includes her answers (not just the user's turns + tool calls).
+        messages.append({"role": "assistant", "content": reply})
+
         # Collect audit rows written during this run
         stmt = (
             select(AuditLog)
@@ -117,8 +131,11 @@ async def run_agent(
             for a in audit_rows
         ]
 
-        run.transcript = messages
+        # Persist only this turn's portion (exclude seeded history) so the thread
+        # reconstructs cleanly from concatenated run transcripts.
+        run.transcript = messages[seed_len:]
         run.tool_calls = all_tool_calls
+        run.reply = reply
         run.status = "ok"
         await db.flush()
 
@@ -127,7 +144,7 @@ async def run_agent(
     except Exception as exc:
         run.status = "error"
         run.error = str(exc)
-        run.transcript = messages
+        run.transcript = messages[seed_len:]
         run.tool_calls = all_tool_calls
         await db.flush()
         raise
