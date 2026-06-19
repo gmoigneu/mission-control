@@ -95,6 +95,8 @@ async def reconstruct_messages(
         .order_by(AuditLog.created_at)
     )
     for audit in (await db.execute(audit_stmt)).scalars().all():
+        if audit.agent_run_id is None:
+            continue
         writes_by_run.setdefault(audit.agent_run_id, []).append(
             {
                 "id": str(audit.id),
