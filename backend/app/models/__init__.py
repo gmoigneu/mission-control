@@ -22,6 +22,7 @@ from app.models.review import Review  # noqa: F401
 from app.models.tag import Tag  # noqa: F401
 from app.models.task import Task  # noqa: F401
 from app.models.task_link import TaskLink  # noqa: F401
+from app.models.telegram_chat import TelegramChat  # noqa: F401
 from app.models.telos import Telos  # noqa: F401
 from app.models.tone import Tone  # noqa: F401
 from app.models.user import AppUser  # noqa: F401

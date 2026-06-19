@@ -11,11 +11,13 @@ from app.agent.openai_auth import (
 )
 from app.agent.persona_store import SEED_PERSONA, upsert_persona
 from app.agent.token_store import get_credential, upsert_credential
+from app.config import settings
 from app.db import SessionLocal
 from app.demo_seed import seed_demo
 from app.models.user import AppUser
 from app.security import hash_password
 from app.services.auth import get_user_by_email
+from app.telegram import client as telegram_client
 
 cli = typer.Typer(help="mission-control backend admin CLI")
 
@@ -135,6 +137,66 @@ def auth_status() -> None:
     async def _run() -> None:
         async with SessionLocal() as db:
             await _auth_status(db)
+
+    asyncio.run(_run())
+
+
+telegram_cli = typer.Typer(help="Manage the Telegram bot webhook")
+cli.add_typer(telegram_cli, name="telegram")
+
+# nginx proxies /api/ to the backend (see frontend/nginx.conf), so the public
+# webhook lands on /telegram/webhook here.
+_WEBHOOK_PATH = "/api/telegram/webhook"
+
+
+def _webhook_url(base_url: str | None) -> str:
+    base = base_url or settings.telegram_webhook_base_url
+    if not base:
+        raise typer.BadParameter(
+            "Set TELEGRAM_WEBHOOK_BASE_URL or pass --base-url (e.g. https://mc.example.com)"
+        )
+    return base.rstrip("/") + _WEBHOOK_PATH
+
+
+@telegram_cli.command("set-webhook")
+def telegram_set_webhook(
+    base_url: str | None = typer.Option(None, help="Public base URL of the deployment"),
+) -> None:
+    """Register the bot's webhook with Telegram (uses TELEGRAM_WEBHOOK_SECRET)."""
+    if not telegram_client.is_configured():
+        raise typer.BadParameter("TELEGRAM_BOT_TOKEN is not configured")
+    if not settings.telegram_webhook_secret:
+        raise typer.BadParameter("TELEGRAM_WEBHOOK_SECRET is not configured")
+    url = _webhook_url(base_url)
+
+    async def _run() -> None:
+        await telegram_client.set_webhook(url, settings.telegram_webhook_secret)
+
+    asyncio.run(_run())
+    typer.echo(f"Webhook set to {url}")
+
+
+@telegram_cli.command("delete-webhook")
+def telegram_delete_webhook() -> None:
+    """Remove the bot's webhook (e.g. to switch back to local polling)."""
+
+    async def _run() -> None:
+        await telegram_client.delete_webhook()
+
+    asyncio.run(_run())
+    typer.echo("Webhook deleted")
+
+
+@telegram_cli.command("webhook-info")
+def telegram_webhook_info() -> None:
+    """Show Telegram's current webhook registration for this bot."""
+
+    async def _run() -> None:
+        info = await telegram_client.get_webhook_info()
+        typer.echo(f"url: {info.get('url') or '(none)'}")
+        typer.echo(f"pending_update_count: {info.get('pending_update_count', 0)}")
+        if info.get("last_error_message"):
+            typer.echo(f"last_error: {info['last_error_message']}")
 
     asyncio.run(_run())
 

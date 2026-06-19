@@ -28,6 +28,7 @@ from app.api import (
     tags,
     task_links,
     tasks,
+    telegram,
     telos,
     tones,
     webauthn,
@@ -93,6 +94,7 @@ def create_app() -> FastAPI:
     app.include_router(admin.router)
     app.include_router(search.router)
     app.include_router(graph.router)
+    app.include_router(telegram.router)
     return app
 
 
