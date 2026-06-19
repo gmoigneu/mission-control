@@ -9,6 +9,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.agent import run_agent
+from app.agent.conversation_store import (
+    build_history_messages,
+    create_conversation,
+    get_or_create_current,
+    reconstruct_messages,
+)
 from app.agent.persona_store import (
     DEFAULT_PERSONA,
     get_persona,
@@ -22,6 +28,7 @@ from app.db import get_db
 from app.deps import get_current_user
 from app.models.agent_persona import AgentPersona
 from app.models.audit import AuditLog
+from app.models.user import AppUser
 from app.schemas.agent_persona import PersonaOut, PersonaUpdate
 
 router = APIRouter(
@@ -37,6 +44,7 @@ router = APIRouter(
 
 class ChatRequest(BaseModel):
     message: str
+    conversation_id: uuid.UUID | None = None
 
 
 class CaptureRequest(BaseModel):
@@ -47,6 +55,19 @@ class AgentResponse(BaseModel):
     agent_run_id: uuid.UUID
     reply: str
     writes: list[dict]
+    conversation_id: uuid.UUID | None = None
+
+
+class ConversationMessage(BaseModel):
+    role: str  # user | assistant
+    text: str
+    writes: list[dict] = []
+    run_id: uuid.UUID | None = None
+
+
+class ConversationOut(BaseModel):
+    id: uuid.UUID
+    messages: list[ConversationMessage]
 
 
 # ---------------------------------------------------------------------------
@@ -56,15 +77,53 @@ class AgentResponse(BaseModel):
 @router.post("/chat", response_model=AgentResponse)
 async def agent_chat(
     payload: ChatRequest,
+    user: AppUser = Depends(get_current_user),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> AgentResponse:
-    result = await run_agent(db, "chat", payload.message)
+    # Resolve the target thread (the caller's chosen one, else the current one),
+    # then seed the whole conversation so far so the model keeps context.
+    if payload.conversation_id is not None:
+        conversation_id = payload.conversation_id
+    else:
+        conversation_id = (await get_or_create_current(db, user.id)).id
+
+    history = await build_history_messages(db, conversation_id)
+    result = await run_agent(
+        db, "chat", payload.message, conversation_id=conversation_id, history=history
+    )
     await db.commit()
     return AgentResponse(
         agent_run_id=result.agent_run_id,
         reply=result.reply,
         writes=result.writes,
+        conversation_id=conversation_id,
     )
+
+
+@router.get("/conversation/current", response_model=ConversationOut)
+async def get_current_conversation_route(
+    user: AppUser = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> ConversationOut:
+    """The user's active thread + its messages (lazily creating one if none)."""
+    conv = await get_or_create_current(db, user.id)
+    await db.commit()
+    messages = await reconstruct_messages(db, conv.id)
+    return ConversationOut(
+        id=conv.id,
+        messages=[ConversationMessage(**m) for m in messages],
+    )
+
+
+@router.post("/conversation/new", response_model=ConversationOut)
+async def new_conversation_route(
+    user: AppUser = Depends(get_current_user),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> ConversationOut:
+    """Start a fresh thread; it becomes the user's current conversation."""
+    conv = await create_conversation(db, user.id)
+    await db.commit()
+    return ConversationOut(id=conv.id, messages=[])
 
 
 @router.post("/capture", response_model=AgentResponse)

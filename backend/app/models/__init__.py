@@ -1,3 +1,4 @@
+from app.models.agent_conversation import AgentConversation  # noqa: F401
 from app.models.agent_persona import AgentPersona  # noqa: F401
 from app.models.agent_run import AgentRun  # noqa: F401
 from app.models.audit import AuditLog  # noqa: F401

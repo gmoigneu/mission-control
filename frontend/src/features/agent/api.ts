@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "../../lib/api";
@@ -16,7 +16,26 @@ export interface AgentResponse {
   agent_run_id: string;
   reply: string;
   writes: AgentWrite[];
+  conversation_id: string | null;
 }
+
+/** A single rendered turn in a thread, as returned by /agent/conversation/*. */
+export interface ConversationMessage {
+  role: "user" | "assistant";
+  text: string;
+  writes: AgentWrite[];
+  run_id: string | null;
+  /** Client-only: a failed turn that was never persisted server-side. */
+  error?: boolean;
+}
+
+export interface Conversation {
+  id: string;
+  messages: ConversationMessage[];
+}
+
+/** React Query key for the user's current (server-tracked) thread. */
+export const CONVERSATION_KEY = ["agent", "conversation", "current"] as const;
 
 // ─── Entity type → query key map ──────────────────────────────────────────────
 // Mirrors (and extends) the map in src/features/audit/api.ts.
@@ -53,13 +72,37 @@ export function invalidateForWrites(qc: QueryClient, writes: AgentWrite[]) {
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
+/**
+ * The user's current conversation, lazily created server-side. Lives in the
+ * app-wide query cache, so it survives route changes and is shared across every
+ * mount of the Aya window (and resumes the same thread on other devices).
+ */
+export function useCurrentConversation() {
+  return useQuery({
+    queryKey: CONVERSATION_KEY,
+    queryFn: () => apiFetch<Conversation>("/agent/conversation/current"),
+  });
+}
+
 export function useChat() {
   return useMutation({
-    mutationFn: (payload: { message: string }) =>
+    mutationFn: (payload: { message: string; conversation_id?: string | null }) =>
       apiFetch<AgentResponse>("/agent/chat", {
         method: "POST",
         body: JSON.stringify(payload),
       }),
+  });
+}
+
+/** Start a fresh thread; it becomes current and replaces the cached one. */
+export function useNewConversation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<Conversation>("/agent/conversation/new", { method: "POST" }),
+    onSuccess: (data) => {
+      qc.setQueryData(CONVERSATION_KEY, data);
+    },
   });
 }
 

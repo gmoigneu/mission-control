@@ -10,13 +10,14 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import { AppShell } from "./AppShell";
+import { AyaProvider } from "../features/agent/AyaContext";
 
 afterEach(() => {
   vi.restoreAllMocks();
   localStorage.clear();
 });
 
-/** Render AppShell behind the providers it needs (router + react-query). */
+/** Render AppShell behind the providers it needs (router + react-query + Aya). */
 function renderAppShell() {
   const fetchMock = vi.fn(async (url: string) => {
     if (String(url).includes("/auth/me")) {
@@ -52,34 +53,29 @@ function renderAppShell() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <RouterProvider router={router} />
+      <AyaProvider>
+        <RouterProvider router={router} />
+      </AyaProvider>
     </QueryClientProvider>,
   );
 }
 
-it("starts with the Aya panel open by default", async () => {
+it("renders the Aya toggle in the top bar, closed by default", async () => {
   renderAppShell();
-  // The dock is open: its close control is present, the topbar re-open control is not.
-  expect(await screen.findByLabelText("Close Aya")).toBeInTheDocument();
-  expect(screen.queryByLabelText("Open Aya")).toBeNull();
+  const toggle = await screen.findByLabelText("Toggle Aya");
+  expect(toggle).toBeInTheDocument();
+  // The quake window lives at the route root, not in AppShell — AppShell only
+  // exposes the toggle, which reflects the (closed) shared state.
+  expect(toggle).toHaveAttribute("aria-pressed", "false");
 });
 
-it("restores the closed Aya panel from localStorage on mount (survives navigation remount)", async () => {
-  // A prior page closed the panel; navigating remounts AppShell. The closed
-  // choice must be honored instead of resetting to the default-open state.
-  localStorage.setItem("mc-aya-open", "false");
+it("flips the shared Aya open state when the toggle is clicked", async () => {
   renderAppShell();
+  const toggle = await screen.findByLabelText("Toggle Aya");
 
-  expect(await screen.findByLabelText("Open Aya")).toBeInTheDocument();
-  expect(screen.queryByLabelText("Close Aya")).toBeNull();
-});
+  await userEvent.click(toggle);
+  expect(toggle).toHaveAttribute("aria-pressed", "true");
 
-it("persists the closed state to localStorage when the panel is closed", async () => {
-  renderAppShell();
-
-  await userEvent.click(await screen.findByLabelText("Close Aya"));
-
-  expect(localStorage.getItem("mc-aya-open")).toBe("false");
-  // And the panel is actually closed in the DOM.
-  expect(await screen.findByLabelText("Open Aya")).toBeInTheDocument();
+  await userEvent.click(toggle);
+  expect(toggle).toHaveAttribute("aria-pressed", "false");
 });

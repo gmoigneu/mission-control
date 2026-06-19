@@ -26,7 +26,6 @@ import {
   PanelLeft,
   PanelRight,
   Search,
-  Send,
   Settings,
   Share2,
   Sparkles,
@@ -40,18 +39,14 @@ import {
   Users,
 } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { Markdown } from "./Markdown";
 import { useLogout, useMe } from "../lib/auth";
 import { useFocusTrap } from "../lib/useFocusTrap";
-import { AYA_OVERLAY_QUERY, useMediaQuery } from "../lib/useIsMobile";
 import {
-  type AgentWrite,
   invalidateForWrites,
   useCapture,
-  useChat,
   useRevertRun,
 } from "../features/agent/api";
-import { usePersona } from "../features/persona/api";
+import { useAya } from "../features/agent/AyaContext";
 
 // ─── Nav definition ───────────────────────────────────────────────────────────
 
@@ -799,319 +794,6 @@ function CommandPalette({
   );
 }
 
-// ─── Chat message types ───────────────────────────────────────────────────────
-
-interface ChatMessage {
-  role: "user" | "assistant";
-  text: string;
-  writes?: AgentWrite[];
-  runId?: string;
-  error?: boolean;
-  reverted?: boolean;
-}
-
-const DEFAULT_GREETING = "Hi G — I’m Aya. Tell me what to do, and I’ll act on your data.";
-
-function WritesCard({
-  writes,
-  runId,
-  reverted,
-  onReverted,
-}: {
-  writes: AgentWrite[];
-  runId: string;
-  reverted: boolean;
-  onReverted: () => void;
-}) {
-  const qc = useQueryClient();
-  const revert = useRevertRun();
-
-  async function handleUndo() {
-    await revert.mutateAsync(runId);
-    invalidateForWrites(qc, writes);
-    onReverted();
-  }
-
-  return (
-    <div
-      className="card"
-      style={{
-        marginTop: 6,
-        padding: "8px 10px",
-        background: "var(--surface-2)",
-        border: "1px solid var(--line)",
-        borderRadius: "var(--r-sm)",
-        fontSize: 12,
-        color: "var(--fg-dim)",
-      }}
-    >
-      <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: reverted ? 0 : 8 }}>
-        {writes.map((w) => (
-          <span key={w.id} className="row gap-1" style={{ gap: 5 }}>
-            <span className="spark" style={{ fontSize: 11 }}>✦</span>
-            <span style={{ color: "var(--fg-muted)" }}>
-              {w.action} {w.entity_type.replace("_", " ")}
-            </span>
-          </span>
-        ))}
-      </div>
-      {!reverted ? (
-        <button
-          className="btn ghost sm"
-          onClick={() => void handleUndo()}
-          disabled={revert.isPending}
-          style={{ display: "flex", alignItems: "center", gap: 4 }}
-        >
-          {revert.isPending ? (
-            <Loader2 size={11} strokeWidth={1.6} style={{ animation: "spin 1s linear infinite" }} />
-          ) : (
-            <Undo2 size={11} strokeWidth={1.6} />
-          )}
-          Undo
-        </button>
-      ) : (
-        <span style={{ fontSize: 11, color: "var(--fg-faint)", fontStyle: "italic" }}>
-          Reverted
-        </span>
-      )}
-    </div>
-  );
-}
-
-function AyaPanel({ onClose }: { onClose: () => void }) {
-  // Conversation turns only. The opening greeting is derived from the persona
-  // at render time so it stays in sync without a setState-in-effect.
-  const [conversation, setConversation] = useState<ChatMessage[]>([]);
-  const [msg, setMsg] = useState("");
-  const [revertedIds, setRevertedIds] = useState<Set<string>>(new Set());
-  const transcriptRef = useRef<HTMLDivElement>(null);
-  const qc = useQueryClient();
-  const chat = useChat();
-  const { data: persona } = usePersona();
-
-  const ayaName = persona?.name?.trim() || "Aya";
-  const greeting = persona?.greeting?.trim() || DEFAULT_GREETING;
-
-  const messages: ChatMessage[] = useMemo(
-    () =>
-      conversation.length === 0
-        ? [{ role: "assistant", text: greeting }]
-        : conversation,
-    [conversation, greeting],
-  );
-
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    if (transcriptRef.current) {
-      transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
-    }
-  }, [messages]);
-
-  async function handleSend() {
-    const text = msg.trim();
-    if (!text || chat.isPending) return;
-    setMsg("");
-    // Seed the greeting into the conversation on the first turn so it stays
-    // pinned at the top of the transcript.
-    setConversation((prev) =>
-      prev.length === 0
-        ? [{ role: "assistant", text: greeting }, { role: "user", text }]
-        : [...prev, { role: "user", text }],
-    );
-    try {
-      const res = await chat.mutateAsync({ message: text });
-      setConversation((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          text: res.reply,
-          writes: res.writes.length > 0 ? res.writes : undefined,
-          runId: res.agent_run_id,
-        },
-      ]);
-      invalidateForWrites(qc, res.writes);
-    } catch {
-      setConversation((prev) => [
-        ...prev,
-        { role: "assistant", text: "Something went wrong. Please try again.", error: true },
-      ]);
-    }
-  }
-
-  return (
-    <div
-      style={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        background: "var(--surface-1)",
-        borderLeft: "1px solid var(--line-soft)",
-      }}
-    >
-      {/* Header */}
-      <div
-        className="row gap-2"
-        style={{
-          padding: "12px 14px",
-          borderBottom: "1px solid var(--line-soft)",
-          flexShrink: 0,
-        }}
-      >
-        <span className="aya-orb" />
-        <span
-          className="serif"
-          style={{ fontSize: 15, fontWeight: 460, flex: 1 }}
-        >
-          {ayaName}
-        </span>
-        <span className="meta" style={{ color: "var(--fg-faint)", fontSize: 11 }}>
-          {chat.isPending ? "thinking…" : "idle"}
-        </span>
-        <button
-          className="iconbtn"
-          onClick={onClose}
-          title="Close Aya"
-          aria-label="Close Aya"
-        >
-          <span
-            style={{
-              fontSize: 16,
-              lineHeight: 1,
-              color: "var(--fg-dim)",
-              fontFamily: "var(--mono)",
-            }}
-          >
-            ×
-          </span>
-        </button>
-      </div>
-
-      {/* Transcript */}
-      <div
-        ref={transcriptRef}
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "16px 14px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-        }}
-      >
-        {messages.map((m, i) =>
-          m.role === "user" ? (
-            <div
-              key={i}
-              style={{
-                alignSelf: "flex-end",
-                maxWidth: "88%",
-                background: "var(--surface-3)",
-                border: "1px solid var(--line)",
-                borderRadius: "var(--r-md) var(--r-md) 0 var(--r-md)",
-                padding: "9px 13px",
-                fontSize: 13,
-                lineHeight: 1.5,
-                color: "var(--fg)",
-              }}
-            >
-              {m.text}
-            </div>
-          ) : (
-            <div key={i} style={{ alignSelf: "flex-start", maxWidth: "88%" }}>
-              <div
-                style={{
-                  background: m.error
-                    ? "oklch(0.40 0.08 25 / 0.15)"
-                    : "linear-gradient(135deg, var(--signal-ghost), oklch(0.80 0.13 215 / 0.06))",
-                  border: m.error
-                    ? "1px solid oklch(0.55 0.12 25 / 0.4)"
-                    : "1px solid var(--signal-ghost)",
-                  borderRadius: "0 var(--r-md) var(--r-md) var(--r-md)",
-                  padding: "10px 13px",
-                  fontSize: 13,
-                  lineHeight: 1.5,
-                  color: "var(--fg-muted)",
-                }}
-              >
-                <Markdown>{m.text}</Markdown>
-              </div>
-              {m.writes && m.runId && (
-                <WritesCard
-                  writes={m.writes}
-                  runId={m.runId}
-                  reverted={revertedIds.has(m.runId)}
-                  onReverted={() =>
-                    setRevertedIds((prev) => new Set([...prev, m.runId!]))
-                  }
-                />
-              )}
-            </div>
-          ),
-        )}
-        {/* Thinking indicator */}
-        {chat.isPending && (
-          <div
-            style={{
-              alignSelf: "flex-start",
-              background:
-                "linear-gradient(135deg, var(--signal-ghost), oklch(0.80 0.13 215 / 0.06))",
-              border: "1px solid var(--signal-ghost)",
-              borderRadius: "0 var(--r-md) var(--r-md) var(--r-md)",
-              padding: "10px 16px",
-            }}
-          >
-            <span className="dots" style={{ color: "var(--signal)" }}>
-              <span />
-              <span />
-              <span />
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Composer */}
-      <div
-        style={{
-          padding: "10px 12px",
-          borderTop: "1px solid var(--line-soft)",
-          flexShrink: 0,
-          display: "flex",
-          gap: 8,
-          alignItems: "flex-end",
-        }}
-      >
-        <input
-          className="input"
-          placeholder="Message Aya…"
-          value={msg}
-          onChange={(e) => setMsg(e.target.value)}
-          disabled={chat.isPending}
-          style={{ flex: 1 }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              void handleSend();
-            }
-          }}
-        />
-        <button
-          className="iconbtn"
-          onClick={() => void handleSend()}
-          disabled={!msg.trim() || chat.isPending}
-          title="Send"
-          aria-label="Send"
-          style={{
-            opacity: !msg.trim() || chat.isPending ? 0.4 : 1,
-            flexShrink: 0,
-          }}
-        >
-          <Send size={15} strokeWidth={1.6} />
-        </button>
-      </div>
-    </div>
-  );
-}
-
 // ─── AppShell ──────────────────────────────────────────────────────────────────
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -1134,18 +816,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
     return true;
   });
-  const [ayaOpen, setAyaOpen] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      // Below the dock breakpoint Aya is a full-screen overlay — never auto-open
-      // it on load; it should only appear on an explicit tap.
-      if (window.matchMedia(AYA_OVERLAY_QUERY).matches) return false;
-      const saved = localStorage.getItem("mc-aya-open");
-      return saved !== null ? saved === "true" : true;
-    }
-    return true;
-  });
-  // When the dock is hidden (≤1100px), present Aya as a full-screen overlay.
-  const ayaOverlay = useMediaQuery(AYA_OVERLAY_QUERY);
+  // Aya is a bottom "quake" window mounted once at the route root; AppShell only
+  // holds the buttons that toggle it, via shared context.
+  const aya = useAya();
   const [mobileNav, setMobileNav] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsJustClosed = useRef(false);
@@ -1163,15 +836,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem("mc-nav-open", String(navOpen));
   }, [navOpen]);
-
-  // Sync ayaOpen to localStorage so the panel's open/closed choice survives
-  // the AppShell remount that route navigation triggers.
-  useEffect(() => {
-    // Only persist the dock's open/closed choice on desktop; the mobile overlay
-    // is transient and shouldn't clobber the desktop preference.
-    if (ayaOverlay) return;
-    localStorage.setItem("mc-aya-open", String(ayaOpen));
-  }, [ayaOpen, ayaOverlay]);
 
   // Global ⌘K
   useEffect(() => {
@@ -1200,11 +864,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     setMobileNav(false);
   }
 
-  const showDock = ayaOpen;
   const userInitial = me.data?.email?.[0]?.toUpperCase() ?? me.data?.name?.[0]?.toUpperCase() ?? "?";
 
-  const gridCols =
-    (navOpen ? "232px" : "60px") + " 1fr" + (showDock ? " 372px" : "");
+  const gridCols = (navOpen ? "232px" : "60px") + " 1fr";
 
   return (
     <div
@@ -1288,17 +950,16 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <Settings size={18} strokeWidth={1.6} />
           </button>
-          {!showDock && (
-            <button
-              className="iconbtn"
-              title="Open Aya"
-              aria-label="Open Aya"
-              onClick={() => setAyaOpen(true)}
-              style={{ color: "var(--signal)" }}
-            >
-              <Sparkles size={18} strokeWidth={1.6} />
-            </button>
-          )}
+          <button
+            className="iconbtn"
+            title="Toggle Aya (Ctrl+`)"
+            aria-label="Toggle Aya"
+            aria-pressed={aya.open}
+            onClick={aya.toggle}
+            style={{ color: "var(--signal)" }}
+          >
+            <Sparkles size={18} strokeWidth={1.6} />
+          </button>
           {/* Avatar / user menu */}
           <div style={{ position: "relative" }}>
             <button
@@ -1408,20 +1069,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         {children}
       </main>
 
-      {/* ===== Aya: docked on desktop, full-screen overlay on mobile/tablet ===== */}
-      {ayaOpen && !ayaOverlay && (
-        <aside
-          className="aya-dock"
-          style={{ overflow: "hidden", gridColumn: 3, gridRow: 2 }}
-        >
-          <AyaPanel onClose={() => setAyaOpen(false)} />
-        </aside>
-      )}
-      {ayaOpen && ayaOverlay && (
-        <div className="aya-mobile">
-          <AyaPanel onClose={() => setAyaOpen(false)} />
-        </div>
-      )}
+      {/* Aya itself is the bottom quake window, mounted once at the route root
+          (see routes/root.tsx) so it survives navigation. */}
 
       {/* ===== Mobile bottom nav ===== */}
       <nav className="bottomnav mobile-only">
@@ -1453,8 +1102,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         <BottomItemComp
           Icon={Sparkles}
           label="Aya"
-          active={false}
-          onClick={() => setAyaOpen(true)}
+          active={aya.open}
+          onClick={aya.openAya}
         />
       </nav>
 
