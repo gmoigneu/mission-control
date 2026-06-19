@@ -57,6 +57,13 @@ SURFACE_MECHANICS: dict[str, str] = {
         "create_company. Habits done -> log_habit.\n"
         "Only when a fragment fits nowhere, drop it into the inbox with capture_to_inbox."
     ),
+    "telegram": (
+        "You're replying inside Telegram, a mobile chat app. Read and act on their "
+        "data using tools, resolving entities with the find_* tools before updating, "
+        "linking, or observing them. " + _RELATIONSHIP_RULE + " Replies show as plain "
+        "text (no markdown rendering), so keep them short and skip heavy formatting — "
+        "a sentence or two, plain bullets at most."
+    ),
 }
 _DEFAULT_MECHANICS = SURFACE_MECHANICS["chat"]
 

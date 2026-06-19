@@ -56,6 +56,29 @@ class Settings(BaseSettings):
     # Embeddings via OpenRouter (EMBEDDINGS_PROVIDER=openrouter). Must output
     # vectors of `embeddings_dim` (1536) to match the chunk.embedding column.
     openrouter_embeddings_model: str = "openai/text-embedding-3-small"
+    # ── Telegram gateway (optional remote access via a bot) ──────────────────
+    # The bot is disabled unless a token is set. Inbound updates arrive on the
+    # webhook route; Telegram authenticates them by echoing telegram_webhook_secret
+    # in the X-Telegram-Bot-Api-Secret-Token header. telegram_allowed_chat_ids is a
+    # comma-separated allowlist of chat ids permitted to talk to the bot (this is
+    # the access boundary for a single-user app — see app/telegram/gateway.py).
+    # telegram_webhook_base_url is the backend's public base URL used to register
+    # the webhook; the effective URL is "{base}/api/telegram/webhook" because nginx
+    # proxies /api/ to the backend (see frontend/nginx.conf).
+    telegram_bot_token: str | None = None
+    telegram_webhook_secret: str | None = None
+    telegram_allowed_chat_ids: str = ""
+    telegram_webhook_base_url: str | None = None
+
+    @property
+    def telegram_allowed_chat_id_set(self) -> set[int]:
+        """Parse the comma-separated allowlist into a set of chat ids."""
+        ids: set[int] = set()
+        for part in self.telegram_allowed_chat_ids.split(","):
+            part = part.strip()
+            if part:
+                ids.add(int(part))
+        return ids
 
     @model_validator(mode="after")
     def _require_secure_secret_in_prod(self) -> "Settings":

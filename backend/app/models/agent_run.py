@@ -16,7 +16,7 @@ class AgentRun(Base):
     __tablename__ = "agent_run"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    surface: Mapped[str] = mapped_column(String)  # chat|capture|voice
+    surface: Mapped[str] = mapped_column(String)  # chat|capture|voice|telegram
     input: Mapped[str] = mapped_column(Text)
     # The chat thread this run belongs to. Null for capture/voice (one-shot) runs.
     conversation_id: Mapped[uuid.UUID | None] = mapped_column(
