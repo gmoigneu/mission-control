@@ -1,5 +1,6 @@
 import { createRoute, Link } from "@tanstack/react-router";
 import { Check, Edit2, Plus } from "lucide-react";
+import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
 import { AppShell } from "../components/AppShell";
 import { ConfirmButton } from "../components/ConfirmButton";
@@ -114,6 +115,20 @@ function cellLabel(row: ReviewRow, day: string, value: number | boolean | null):
     : `${row.label} on ${day}: ${value} of 5`;
 }
 
+function reviewCellStyle(row: ReviewRow, value: number | boolean | null): CSSProperties {
+  const background =
+    row.type === "boolean"
+      ? value
+        ? "var(--st-done)"
+        : "var(--surface-2)"
+      : scoreBackground(value as number | null, row.tint);
+
+  return {
+    "--habit-review-cell-bg": background,
+    "--habit-review-cell-color": value ? "var(--fg)" : "var(--fg-faint)",
+  } as CSSProperties;
+}
+
 function HabitReviewGrid({
   days,
   rows,
@@ -174,9 +189,10 @@ function HabitReviewGrid({
                   {days.map((day) => {
                     const value = row.values.get(day) ?? null;
                     return (
-                      <td key={`${row.id}-${day}`} style={{ padding: 0 }}>
+                      <td key={`${row.id}-${day}`} className="habit-review-cell">
                         <button
                           type="button"
+                          className="habit-review-cell-button"
                           aria-label={cellLabel(row, day, value)}
                           title={cellLabel(row, day, value)}
                           onClick={() => {
@@ -193,26 +209,7 @@ function HabitReviewGrid({
                             const current = typeof value === "number" ? value : -1;
                             onLogHabit(row.habit, day, current >= 5 ? 0 : current + 1);
                           }}
-                          style={{
-                            width: 24,
-                            height: 22,
-                            borderRadius: 5,
-                            border: "1px solid var(--line-soft)",
-                            background:
-                              row.type === "boolean"
-                                ? value
-                                  ? "var(--st-done)"
-                                  : "var(--surface-2)"
-                                : scoreBackground(value as number | null, row.tint),
-                            color: value ? "var(--fg)" : "var(--fg-faint)",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            padding: 0,
-                            cursor: "pointer",
-                            fontSize: 12,
-                            fontVariantNumeric: "tabular-nums",
-                          }}
+                          style={reviewCellStyle(row, value)}
                         >
                           {row.type === "boolean" ? (
                             value ? <Check size={12} strokeWidth={2.5} /> : ""
