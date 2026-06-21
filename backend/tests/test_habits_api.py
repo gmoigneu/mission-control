@@ -49,6 +49,33 @@ async def test_get_missing_habit_404(client, db):
     assert (await client.get(f"/habits/{uuid.uuid4()}")).status_code == 404
 
 
+async def test_habits_list_pagination_headers(client, db):
+    await login(client, db)
+
+    for i in range(3):
+        created = await client.post(
+            "/habits", json={"slug": f"paged-habit-{i}", "name": f"Paged Habit {i}"}
+        )
+        assert created.status_code == 201
+    inactive = await client.post(
+        "/habits", json={"slug": "paged-habit-inactive", "name": "Inactive", "active": False}
+    )
+    assert inactive.status_code == 201
+
+    first = await client.get("/habits?active=true&limit=2&offset=0")
+    assert first.status_code == 200
+    assert len(first.json()) == 2
+    assert first.headers["X-Total-Count"] == "3"
+    assert first.headers["X-Limit"] == "2"
+    assert first.headers["X-Offset"] == "0"
+    assert first.headers["X-Next-Offset"] == "2"
+
+    last = await client.get("/habits?active=true&limit=2&offset=2")
+    assert last.status_code == 200
+    assert len(last.json()) == 1
+    assert "X-Next-Offset" not in last.headers
+
+
 async def test_habit_logs_and_streak(client, db):
     await login(client, db)
 
@@ -95,6 +122,46 @@ async def test_habit_logs_and_streak(client, db):
     got_score = await client.get(f"/habits/{score_id}")
     assert got_score.json()["logged_today"] is True
     assert got_score.json()["today_score"] == 4
+
+
+async def test_habits_list_includes_stats(client, db):
+    await login(client, db)
+
+    today = date.today()
+    boolean_habit = await client.post(
+        "/habits", json={"slug": "list-stats-boolean", "name": "List stats boolean"}
+    )
+    boolean_id = boolean_habit.json()["id"]
+    for offset in (0, 1):
+        resp = await client.post(
+            f"/habits/{boolean_id}/logs",
+            json={"date": (today - timedelta(days=offset)).isoformat(), "done": True},
+        )
+        assert resp.status_code == 201
+
+    score_habit = await client.post(
+        "/habits",
+        json={
+            "slug": "list-stats-score",
+            "name": "List stats score",
+            "tracking_type": "score",
+        },
+    )
+    score_id = score_habit.json()["id"]
+    resp = await client.post(
+        f"/habits/{score_id}/logs", json={"date": today.isoformat(), "score": 5}
+    )
+    assert resp.status_code == 201
+
+    listing = await client.get("/habits")
+    assert listing.status_code == 200
+    rows = {row["id"]: row for row in listing.json()}
+    assert rows[boolean_id]["streak"] == 2
+    assert rows[boolean_id]["logged_today"] is True
+    assert rows[boolean_id]["today_score"] is None
+    assert rows[score_id]["streak"] == 1
+    assert rows[score_id]["logged_today"] is True
+    assert rows[score_id]["today_score"] == 5
 
 
 async def test_score_habit_logs_and_history(client, db):
