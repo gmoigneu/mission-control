@@ -5,7 +5,7 @@ import { DEFAULT_PAGE_SIZE, type Page, parsePageInfo } from "../../lib/paginatio
 import type { AuditEntry } from "../../lib/types";
 
 /** Maps backend entity_type singular → frontend query key (plural). */
-export const ENTITY_TYPE_TO_KEY: Record<string, string> = {
+const ENTITY_TYPE_TO_KEY: Record<string, string> = {
   context: "contexts",
   project: "projects",
   company: "companies",

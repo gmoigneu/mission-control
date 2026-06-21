@@ -11,7 +11,7 @@ import type {
   JournalEntryUpdate,
 } from "../../lib/types";
 
-export const journalResource = resource<JournalEntry, JournalEntryCreate, JournalEntryUpdate>(
+const journalResource = resource<JournalEntry, JournalEntryCreate, JournalEntryUpdate>(
   "/journal-entries",
 );
 

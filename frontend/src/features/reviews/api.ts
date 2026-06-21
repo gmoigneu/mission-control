@@ -2,7 +2,7 @@ import { makeResourceHooks } from "../../lib/hooks";
 import { resource } from "../../lib/resource";
 import type { Review, ReviewCreate, ReviewUpdate } from "../../lib/types";
 
-export const reviewsResource = resource<Review, ReviewCreate, ReviewUpdate>("/reviews");
+const reviewsResource = resource<Review, ReviewCreate, ReviewUpdate>("/reviews");
 
 export const {
   useList: useReviews,

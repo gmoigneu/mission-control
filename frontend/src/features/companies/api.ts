@@ -5,7 +5,7 @@ import { makeResourceHooks } from "../../lib/hooks";
 import { resource } from "../../lib/resource";
 import type { Company } from "../../lib/types";
 
-export const companiesResource = resource<Company, Partial<Company>, Partial<Company>>("/companies");
+const companiesResource = resource<Company, Partial<Company>, Partial<Company>>("/companies");
 
 export const {
   useList: useCompanies,

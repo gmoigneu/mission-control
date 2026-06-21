@@ -5,7 +5,7 @@ import { apiFetch } from "../../lib/api";
 import { resource } from "../../lib/resource";
 import type { Habit, HabitCreate, HabitLog, HabitLogCreate, HabitUpdate } from "../../lib/types";
 
-export const habitsResource = resource<Habit, HabitCreate, HabitUpdate>("/habits");
+const habitsResource = resource<Habit, HabitCreate, HabitUpdate>("/habits");
 
 export const {
   useList: useHabits,

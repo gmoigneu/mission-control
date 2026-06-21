@@ -2,7 +2,7 @@ import { makeResourceHooks } from "../../lib/hooks";
 import { resource } from "../../lib/resource";
 import type { EntityTag, EntityTagCreate } from "../../lib/types";
 
-export const entityTagsResource = resource<EntityTag, EntityTagCreate, EntityTagCreate>(
+const entityTagsResource = resource<EntityTag, EntityTagCreate, EntityTagCreate>(
   "/entity-tags",
 );
 

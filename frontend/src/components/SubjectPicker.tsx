@@ -5,8 +5,7 @@ import { useProjects } from "../features/projects/api";
 import { useTasks } from "../features/tasks/api";
 import { type Option, Select } from "./ui";
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const SUBJECT_TYPES = ["person", "project", "context", "task", "company"];
+const SUBJECT_TYPES = ["person", "project", "context", "task", "company"];
 
 export function SubjectPicker({
   type,

@@ -9,7 +9,7 @@ interface GraphQueryBody {
 }
 
 /** Run a structured graph query against the backend `/graph/query` endpoint. */
-export function graphQuery<T>(body: GraphQueryBody): Promise<T> {
+function graphQuery<T>(body: GraphQueryBody): Promise<T> {
   return apiFetch<T>("/graph/query", { method: "POST", body: JSON.stringify(body) });
 }
 

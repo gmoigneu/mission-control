@@ -2,7 +2,7 @@ import { makeResourceHooks } from "../../lib/hooks";
 import { resource } from "../../lib/resource";
 import type { Observation, ObservationCreate, ObservationUpdate } from "../../lib/types";
 
-export const observationsResource = resource<Observation, ObservationCreate, ObservationUpdate>(
+const observationsResource = resource<Observation, ObservationCreate, ObservationUpdate>(
   "/observations",
 );
 
