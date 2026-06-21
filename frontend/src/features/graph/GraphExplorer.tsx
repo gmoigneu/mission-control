@@ -2,6 +2,7 @@ import cytoscape from "cytoscape";
 import type { Core } from "cytoscape";
 import fcose from "cytoscape-fcose";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ConfirmButton } from "../../components/ConfirmButton";
 import { useContexts } from "../contexts/api";
 import { useGraphSnapshot, useNodeDetail, useRebuildGraph } from "./api";
 import { GraphControls } from "./GraphControls";
@@ -122,7 +123,10 @@ export function GraphExplorer() {
       )}
       {isEmpty && (
         <div role="status">
-          The graph is empty. <button onClick={() => rebuild.mutate()}>Rebuild graph</button>
+          The graph is empty.{" "}
+          <ConfirmButton onConfirm={() => rebuild.mutate()} disabled={rebuild.isPending}>
+            Rebuild graph
+          </ConfirmButton>
         </div>
       )}
 

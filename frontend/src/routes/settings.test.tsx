@@ -147,6 +147,8 @@ it("POSTs to reset when Reset to default is clicked", async () => {
 
   await screen.findByRole("heading", { name: "Soul" });
   await userEvent.click(screen.getByRole("button", { name: /reset to default/i }));
+  expect(calls.some(([url]) => String(url).includes("/agent/persona/reset"))).toBe(false);
+  await userEvent.click(screen.getByRole("button", { name: /confirm/i }));
 
   await waitFor(() => {
     const reset = calls.find(([url]) => String(url).includes("/agent/persona/reset"));
