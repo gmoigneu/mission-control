@@ -68,6 +68,7 @@ function WritesCard({
       </div>
       {!reverted ? (
         <button
+          type="button"
           className="btn ghost sm"
           onClick={() => void handleUndo()}
           disabled={revert.isPending}
@@ -256,6 +257,7 @@ function AyaQuakeInner() {
             {chat.isPending ? "thinking…" : "idle"}
           </span>
           <button
+            type="button"
             className="iconbtn"
             onClick={() => void handleNew()}
             disabled={newConv.isPending}
@@ -264,7 +266,13 @@ function AyaQuakeInner() {
           >
             <Plus size={16} strokeWidth={1.6} />
           </button>
-          <button className="iconbtn" onClick={closeAya} title="Close Aya (Esc)" aria-label="Close Aya">
+          <button
+            type="button"
+            className="iconbtn"
+            onClick={closeAya}
+            title="Close Aya (Esc)"
+            aria-label="Close Aya"
+          >
             <span
               style={{
                 fontSize: 16,
@@ -366,6 +374,7 @@ function AyaQuakeInner() {
             }}
           />
           <button
+            type="button"
             className="iconbtn"
             onClick={() => void handleSend()}
             disabled={!msg.trim() || chat.isPending}

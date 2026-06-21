@@ -7,9 +7,10 @@ import type {
 } from "react";
 
 export function Button(props: ButtonHTMLAttributes<HTMLButtonElement>) {
-  const { className = "", ...rest } = props;
+  const { className = "", type = "button", ...rest } = props;
   return (
     <button
+      type={type}
       className={`btn ${className}`}
       {...rest}
     />

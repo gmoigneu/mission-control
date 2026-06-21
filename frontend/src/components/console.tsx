@@ -442,9 +442,13 @@ export function EmptyState({
         {title}
       </div>
       <div className="row gap-2">
-        {cta && <button className="btn primary sm">{cta}</button>}
+        {cta && (
+          <button type="button" className="btn primary sm">
+            {cta}
+          </button>
+        )}
         {onAsk && (
-          <button className="btn ghost sm" onClick={onAsk}>
+          <button type="button" className="btn ghost sm" onClick={onAsk}>
             <Sparkles size={13} />
             Ask Aya
           </button>

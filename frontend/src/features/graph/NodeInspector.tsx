@@ -28,7 +28,7 @@ export function NodeInspector({ detail, loading, onSelectNode, onClose }: NodeIn
         overflowY: "auto",
       }}
     >
-      <button onClick={onClose} aria-label="Close details" style={{ float: "right" }}>
+      <button type="button" onClick={onClose} aria-label="Close details" style={{ float: "right" }}>
         ×
       </button>
 
@@ -58,6 +58,7 @@ export function NodeInspector({ detail, loading, onSelectNode, onClose }: NodeIn
             {detail.rels.map((r) => (
               <li key={`${r.rel}-${r.id}`}>
                 <button
+                  type="button"
                   onClick={() => onSelectNode(r.id)}
                   style={{ textAlign: "left", width: "100%" }}
                 >

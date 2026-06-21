@@ -118,7 +118,10 @@ export function GraphExplorer() {
       {snapshot.isLoading && <div role="status">Loading graph…</div>}
       {snapshot.isError && (
         <div role="alert">
-          Couldn't load the graph. <button onClick={() => snapshot.refetch()}>Retry</button>
+          Couldn't load the graph.{" "}
+          <button type="button" onClick={() => snapshot.refetch()}>
+            Retry
+          </button>
         </div>
       )}
       {isEmpty && (

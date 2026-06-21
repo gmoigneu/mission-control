@@ -151,6 +151,7 @@ function NavItemComp({
   const { Icon: IconComp } = entry;
   return (
     <button
+      type="button"
       onClick={onClick}
       className={"nav-item row gap-3" + (active ? " active" : "")}
       title={!open ? entry.label : ""}
@@ -204,6 +205,7 @@ function BottomItemComp({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className="col"
       style={{
@@ -261,6 +263,7 @@ function Toggle2({
         const IconComp = i === 0 ? iconA : iconB;
         return (
           <button
+            type="button"
             key={opt}
             onClick={() => onChange(opt)}
             className="row gap-1"
@@ -472,6 +475,7 @@ function AvatarMenu({
           {email}
         </div>
         <button
+          type="button"
           onClick={onLogout}
           style={{
             display: "block",
@@ -689,6 +693,7 @@ function CommandPalette({
           {/* Primary: capture with Aya */}
           {query.trim() && (
             <button
+              type="button"
               id="cmdk-action-capture"
               role="option"
               aria-selected={activeId === "cmdk-action-capture"}
@@ -728,6 +733,7 @@ function CommandPalette({
           {/* Secondary: search */}
           {query.trim() && (
             <button
+              type="button"
               id="cmdk-action-search"
               role="option"
               aria-selected={activeId === "cmdk-action-search"}
@@ -761,6 +767,7 @@ function CommandPalette({
             const selected = activeId === optionId;
             return (
               <button
+                type="button"
                 key={entry.key}
                 id={optionId}
                 role="option"
@@ -905,6 +912,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           }}
         >
           <button
+            type="button"
             className="iconbtn mobile-only"
             onClick={() => setMobileNav((v) => !v)}
             aria-label="Open navigation"
@@ -929,6 +937,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Action buttons */}
         <div className="row gap-1" style={{ flexShrink: 0, marginLeft: "auto" }}>
           <button
+            type="button"
             className="iconbtn"
             title="Voice capture"
             aria-label="Voice capture"
@@ -937,6 +946,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Mic size={18} strokeWidth={1.6} />
           </button>
           <button
+            type="button"
             className="iconbtn"
             title="Settings"
             aria-label="Settings"
@@ -951,6 +961,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Settings size={18} strokeWidth={1.6} />
           </button>
           <button
+            type="button"
             className="iconbtn"
             title="Toggle Aya (Ctrl+`)"
             aria-label="Toggle Aya"
@@ -963,6 +974,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {/* Avatar / user menu */}
           <div style={{ position: "relative" }}>
             <button
+              type="button"
               className="avatar-btn"
               title={me.data?.email ?? "Account"}
               aria-label="Account menu"
@@ -1033,6 +1045,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           ),
         )}
         <button
+          type="button"
           className="navrail-toggle desktop-only"
           onClick={() => setNavOpen((v) => !v)}
           title="Collapse"
@@ -1087,6 +1100,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           onClick={() => goTo("/tasks")}
         />
         <button
+          type="button"
           className="bottom-fab"
           onClick={() => setCaptureOpen(true)}
           aria-label="Capture"
@@ -1155,6 +1169,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span style={{ flex: 1, fontSize: 13 }}>{t.text}</span>
             {t.undo ? (
               <button
+                type="button"
                 className="btn ghost sm"
                 onClick={async () => {
                   dismissToast(t.id);
