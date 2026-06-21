@@ -32,19 +32,21 @@ export function useAudit() {
 async function fetchAuditPage(
   limit: number,
   offset: number,
+  agentRunsOnly = false,
 ): Promise<Page<AuditEntry>> {
   const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (agentRunsOnly) params.set("agent_runs_only", "true");
   const { data, headers } = await apiFetchWithHeaders<AuditEntry[]>(
     `/audit?${params.toString()}`,
   );
   return { items: data, page: parsePageInfo(headers, { limit, offset, count: data.length }) };
 }
 
-export function useAuditPage(offset = 0, limit = DEFAULT_PAGE_SIZE) {
+export function useAuditPage(offset = 0, limit = DEFAULT_PAGE_SIZE, agentRunsOnly = false) {
   const enabled = useAuthenticatedQueryEnabled();
   return useQuery({
-    queryKey: ["audit", "page", { limit, offset }],
-    queryFn: () => fetchAuditPage(limit, offset),
+    queryKey: ["audit", "page", { limit, offset, agentRunsOnly }],
+    queryFn: () => fetchAuditPage(limit, offset, agentRunsOnly),
     enabled,
     placeholderData: (prev) => prev,
   });

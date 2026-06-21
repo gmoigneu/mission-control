@@ -22,6 +22,7 @@ async def list_audit(  # noqa: B008
     offset: int = Query(default=0, ge=0),
     entity_type: str | None = None,
     surface: str | None = None,
+    agent_runs_only: bool = False,
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     base = select(AuditLog)
@@ -29,6 +30,8 @@ async def list_audit(  # noqa: B008
         base = base.where(AuditLog.entity_type == entity_type)
     if surface is not None:
         base = base.where(AuditLog.surface == surface)
+    if agent_runs_only:
+        base = base.where(AuditLog.agent_run_id.is_not(None))
 
     total = await count_rows(db, base)
     set_pagination_headers(response, total=total, page=Page(limit=limit, offset=offset))

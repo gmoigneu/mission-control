@@ -18,6 +18,7 @@ from app.models.observation import Observation  # noqa: F401
 from app.models.outbox import OutboxEvent  # noqa: F401
 from app.models.person import Person  # noqa: F401
 from app.models.planning_message import PlanningMessage  # noqa: F401
+from app.models.proactive_run import ProactiveRun  # noqa: F401
 from app.models.project import Project  # noqa: F401
 from app.models.relationship import Relationship  # noqa: F401
 from app.models.review import Review  # noqa: F401
