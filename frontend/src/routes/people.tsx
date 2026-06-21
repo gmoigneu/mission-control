@@ -20,7 +20,7 @@ import {
   useUpdatePerson,
 } from "../features/people/api";
 import { DEFAULT_PAGE_SIZE } from "../lib/pagination";
-import type { Person } from "../lib/types";
+import type { Company, Person } from "../lib/types";
 import { rootRoute } from "./root";
 
 interface FormState {
@@ -73,7 +73,13 @@ function buildPayload(form: FormState, isEdit: boolean) {
 
 export function PeoplePage() {
   const [offset, setOffset] = useState(0);
-  const { data: peoplePage } = usePeoplePage({ limit: DEFAULT_PAGE_SIZE, offset });
+  const [search, setSearch] = useState("");
+  const query = search.trim();
+  const { data: peoplePage } = usePeoplePage({
+    limit: DEFAULT_PAGE_SIZE,
+    offset,
+    ...(query ? { q: query } : {}),
+  });
   const people = peoplePage?.items ?? [];
   const { data: companies = [] } = useCompanies();
   const { data: contexts = [] } = useContexts();
@@ -93,6 +99,11 @@ export function PeoplePage() {
 
   function handleSelectChange(key: keyof FormState) {
     return (value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setOffset(0);
+    setSearch(e.target.value);
   }
 
   function handleNew() {
@@ -136,7 +147,22 @@ export function PeoplePage() {
     }
   }
 
-  const companyMap = Object.fromEntries(companies.map((c) => [c.id, c.name]));
+  const companyMap = Object.fromEntries(companies.map((c) => [c.id, c]));
+
+  function renderCompany(companyId: string | null) {
+    if (!companyId) return "";
+    const company = companyMap[companyId] as Company | undefined;
+    if (!company) return companyId;
+    return (
+      <Link
+        to="/companies/$slug"
+        params={{ slug: company.slug }}
+        className="underline hover:text-gray-600"
+      >
+        {company.name}
+      </Link>
+    );
+  }
 
   const columns = [
     {
@@ -153,7 +179,7 @@ export function PeoplePage() {
     },
     { header: "Slug", cell: (row: Person) => row.slug },
     { header: "Role", cell: (row: Person) => row.role ?? "" },
-    { header: "Company", cell: (row: Person) => (row.company_id ? (companyMap[row.company_id] ?? row.company_id) : "") },
+    { header: "Company", cell: (row: Person) => renderCompany(row.company_id) },
     {
       header: "Actions",
       cell: (row: Person) => (
@@ -196,7 +222,21 @@ export function PeoplePage() {
             </div>
           </div>
 
-          <DataTable rows={people} columns={columns} empty="No people yet." />
+          <form role="search" className="row gap-2" onSubmit={(e) => e.preventDefault()}>
+            <Input
+              type="search"
+              value={search}
+              onChange={handleSearchChange}
+              placeholder="Search people"
+              aria-label="Search people"
+            />
+          </form>
+
+          <DataTable
+            rows={people}
+            columns={columns}
+            empty={query ? `No people match "${query}".` : "No people yet."}
+          />
           {peoplePage && <Pagination page={peoplePage.page} onChange={setOffset} />}
         </div>
 

@@ -20,8 +20,7 @@ const TYPE_META: Record<string, { label: string; Icon: ComponentType<{ size?: nu
   task: { label: "Task", Icon: SquareCheckBig },
 };
 
-/** Link a result to its entity. People deep-link to the detail page; other types
- * have no detail route yet, so they link to their list page. */
+/** Link a result to its entity when a detail route exists. */
 function EntityLink({
   row,
   className,
@@ -43,7 +42,11 @@ function EntityLink({
         </Link>
       );
     case "company":
-      return (
+      return row.slug ? (
+        <Link to="/companies/$slug" params={{ slug: row.slug }} className={className}>
+          {children}
+        </Link>
+      ) : (
         <Link to="/companies" className={className}>
           {children}
         </Link>

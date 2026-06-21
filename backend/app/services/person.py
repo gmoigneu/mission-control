@@ -12,18 +12,44 @@ from app.services.pagination import apply_window, count_rows
 ENTITY = "person"
 
 
-async def list_people(
-    db: AsyncSession, *, limit: int | None = None, offset: int = 0
-) -> list[Person]:
-    stmt = apply_window(
-        select(Person).order_by(func.lower(Person.name)), limit=limit, offset=offset
+def _search_filter(q: str):
+    pattern = f"%{q.strip()}%"
+    return or_(
+        Person.name.ilike(pattern),
+        Person.slug.ilike(pattern),
+        Person.role.ilike(pattern),
+        Person.email.ilike(pattern),
+        Person.linkedin.ilike(pattern),
+        Person.summary.ilike(pattern),
     )
+
+
+def _list_stmt(q: str | None = None, company_id: uuid.UUID | None = None):
+    stmt = select(Person)
+    if company_id:
+        stmt = stmt.where(Person.company_id == company_id)
+    if q and q.strip():
+        stmt = stmt.where(_search_filter(q))
+    return stmt.order_by(func.lower(Person.name))
+
+
+async def list_people(
+    db: AsyncSession,
+    *,
+    q: str | None = None,
+    company_id: uuid.UUID | None = None,
+    limit: int | None = None,
+    offset: int = 0,
+) -> list[Person]:
+    stmt = apply_window(_list_stmt(q, company_id), limit=limit, offset=offset)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
 
-async def count_people(db: AsyncSession) -> int:
-    return await count_rows(db, select(Person))
+async def count_people(
+    db: AsyncSession, *, q: str | None = None, company_id: uuid.UUID | None = None
+) -> int:
+    return await count_rows(db, _list_stmt(q, company_id))
 
 
 async def get_person(db: AsyncSession, person_id: uuid.UUID) -> Person | None:
@@ -36,14 +62,8 @@ async def get_person_by_slug(db: AsyncSession, slug: str) -> Person | None:
 
 
 async def search_people(db: AsyncSession, q: str, *, limit: int = 10) -> list[Person]:
-    """Name/slug substring lookup — reliable without the search index."""
-    pattern = f"%{q.strip()}%"
-    stmt = (
-        select(Person)
-        .where(or_(Person.name.ilike(pattern), Person.slug.ilike(pattern)))
-        .order_by(func.lower(Person.name))
-        .limit(limit)
-    )
+    """Substring lookup across person text fields — reliable without the search index."""
+    stmt = _list_stmt(q).limit(limit)
     return list((await db.execute(stmt)).scalars().all())
 
 

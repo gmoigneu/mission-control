@@ -191,3 +191,48 @@ it("paginates: clicking Next requests the next offset", async () => {
   });
   await screen.findByText("Beta");
 });
+
+it("searches people through the list API", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    const u = String(url);
+    calls.push([u, init]);
+    if (u.includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
+        status: 200,
+      });
+    }
+    if ((u.includes("/companies") || u.includes("/contexts")) && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify([]), { status: 200 });
+    }
+    if (u.includes("/people") && (!init?.method || init.method === "GET")) {
+      const body = u.includes("q=bie") ? [person("fabien", "Fabien Potencier")] : [];
+      return new Response(JSON.stringify(body), {
+        status: 200,
+        headers: {
+          "X-Total-Count": String(body.length),
+          "X-Limit": "50",
+          "X-Offset": "0",
+        },
+      });
+    }
+    return new Response(JSON.stringify([]), { status: 200 });
+  });
+
+  renderPeople(fetchMock);
+
+  await screen.findByRole("heading", { name: "People" });
+  await userEvent.type(screen.getByRole("searchbox", { name: /search people/i }), "bie");
+
+  await waitFor(() => {
+    expect(
+      calls.some(
+        ([url, init]) =>
+          url.includes("/people") &&
+          url.includes("q=bie") &&
+          (!init?.method || init.method === "GET"),
+      ),
+    ).toBe(true);
+  });
+  await screen.findByText("Fabien Potencier");
+});

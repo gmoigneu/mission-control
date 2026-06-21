@@ -95,3 +95,50 @@ it("renders the companies page and POSTs when Add is clicked", async () => {
     expect(body.slug).toBe("acme-corp");
   });
 });
+
+it("searches companies through the list API", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    const u = String(url);
+    calls.push([u, init]);
+    if (u.includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
+        status: 200,
+      });
+    }
+    if (u.includes("/companies") && (!init?.method || init.method === "GET")) {
+      const body = u.includes("q=upsun")
+        ? [
+            {
+              id: "c1",
+              slug: "upsun",
+              name: "Upsun",
+              domain: "upsun.com",
+              notes: null,
+              created_at: "2026-01-01T00:00:00Z",
+              updated_at: "2026-01-01T00:00:00Z",
+            },
+          ]
+        : [];
+      return new Response(JSON.stringify(body), { status: 200 });
+    }
+    return new Response(JSON.stringify({}), { status: 200 });
+  });
+
+  renderCompanies(fetchMock);
+
+  await screen.findByRole("heading", { name: "Companies" });
+  await userEvent.type(screen.getByRole("searchbox", { name: /search companies/i }), "upsun");
+
+  await waitFor(() => {
+    expect(
+      calls.some(
+        ([url, init]) =>
+          url.includes("/companies") &&
+          url.includes("q=upsun") &&
+          (!init?.method || init.method === "GET"),
+      ),
+    ).toBe(true);
+  });
+  await screen.findByRole("link", { name: "Upsun" });
+});

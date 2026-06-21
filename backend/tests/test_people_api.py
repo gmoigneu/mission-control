@@ -53,3 +53,49 @@ async def test_people_listed_by_name_case_insensitive(client, db):
 
     names = [p["name"] for p in (await client.get("/people")).json()]
     assert names == ["alice", "Bob", "Charlie"]
+
+
+async def test_people_list_can_search_across_fields(client, db):
+    await login(client, db)
+    await client.post(
+        "/people",
+        json={
+            "slug": "fabien-potencier",
+            "name": "Fabien Potencier",
+            "role": "Founder",
+            "email": "fabien@example.com",
+            "summary": "Symfony creator",
+        },
+    )
+    await client.post(
+        "/people",
+        json={
+            "slug": "alice-engineer",
+            "name": "Alice Engineer",
+            "role": "Platform lead",
+            "email": "alice@example.com",
+            "summary": "Works on billing",
+        },
+    )
+
+    partial_name = await client.get("/people?q=bie")
+    assert partial_name.status_code == 200
+    assert [p["slug"] for p in partial_name.json()] == ["fabien-potencier"]
+    assert partial_name.headers["X-Total-Count"] == "1"
+
+    other_field = await client.get("/people?q=platform")
+    assert other_field.status_code == 200
+    assert [p["slug"] for p in other_field.json()] == ["alice-engineer"]
+
+
+async def test_people_list_can_filter_by_company(client, db):
+    await login(client, db)
+    company = await client.post("/companies", json={"slug": "acme", "name": "Acme"})
+    company_id = company.json()["id"]
+    await client.post("/people", json={"slug": "ada", "name": "Ada", "company_id": company_id})
+    await client.post("/people", json={"slug": "bob", "name": "Bob"})
+
+    listing = await client.get(f"/people?company_id={company_id}")
+    assert listing.status_code == 200
+    assert [p["slug"] for p in listing.json()] == ["ada"]
+    assert listing.headers["X-Total-Count"] == "1"

@@ -8,6 +8,7 @@ import { peopleRoute } from "./routes/people";
 import { personDetailRoute } from "./routes/person-detail";
 import { tasksRoute } from "./routes/tasks";
 import { companiesRoute } from "./routes/companies";
+import { companyDetailRoute } from "./routes/company-detail";
 import { habitsRoute } from "./routes/habits";
 import { meetingsRoute } from "./routes/meetings";
 import { knowledgeRoute } from "./routes/knowledge";
@@ -36,6 +37,7 @@ const routeTree = rootRoute.addChildren([
   personDetailRoute,
   tasksRoute,
   companiesRoute,
+  companyDetailRoute,
   habitsRoute,
   meetingsRoute,
   knowledgeRoute,

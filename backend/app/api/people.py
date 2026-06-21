@@ -1,6 +1,7 @@
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.pagination import Page, page_params, set_pagination_headers
@@ -15,12 +16,16 @@ router = APIRouter(prefix="/people", tags=["people"], dependencies=[Depends(get_
 @router.get("", response_model=list[PersonOut])
 async def list_people(
     response: Response,
+    q: Annotated[str | None, Query()] = None,
+    company_id: Annotated[uuid.UUID | None, Query()] = None,
     page: Page = Depends(page_params),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    total = await svc.count_people(db)
+    total = await svc.count_people(db, q=q, company_id=company_id)
     set_pagination_headers(response, total=total, page=page)
-    return await svc.list_people(db, limit=page.limit, offset=page.offset)
+    return await svc.list_people(
+        db, q=q, company_id=company_id, limit=page.limit, offset=page.offset
+    )
 
 
 @router.post("", response_model=PersonOut, status_code=status.HTTP_201_CREATED)
