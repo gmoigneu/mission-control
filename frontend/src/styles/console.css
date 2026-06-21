@@ -529,8 +529,141 @@ a:hover { color: var(--signal-bright); }
 /* ---------------------------------------------------------------------
    SHELL
    --------------------------------------------------------------------- */
-.shell { position: relative; z-index: 1; }
-.topbar { grid-row: 1; }
+.shell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: var(--shell-nav-width, 232px) 1fr;
+  grid-template-rows: 56px 1fr;
+  height: 100vh;
+  overflow: hidden;
+}
+.topbar {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line-soft);
+  background: color-mix(in oklch, var(--surface-1) 88%, transparent);
+  backdrop-filter: blur(8px);
+  position: relative;
+  z-index: 40;
+}
+.topbar-brand {
+  width: var(--topbar-brand-width, 216px);
+  flex-shrink: 0;
+}
+.topbar-title {
+  font-size: 16px;
+  font-weight: 460;
+  letter-spacing: 0;
+}
+.topbar-actions {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.iconbtn.signal { color: var(--signal); }
+.avatar-anchor { position: relative; }
+
+.leftnav {
+  grid-column: 1;
+  grid-row: 2;
+  border-right: 1px solid var(--line-soft);
+  background: var(--surface-1);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 10px;
+}
+.leftnav-divider { margin: 10px 8px; }
+.nav-item {
+  width: 100%;
+  border-radius: var(--r-sm);
+  border: 0;
+  cursor: pointer;
+  background: transparent;
+  color: var(--fg-dim);
+  margin-bottom: 1px;
+  text-align: left;
+  position: relative;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.nav-item-open {
+  padding: 8px 12px;
+  justify-content: flex-start;
+}
+.nav-item-closed {
+  padding: 9px;
+  justify-content: center;
+}
+.nav-item.active {
+  background: var(--surface-3);
+  color: var(--fg);
+}
+.nav-item-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+.nav-item.active .nav-item-label { font-weight: 600; }
+.nav-item-indicator {
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 2.5px;
+  border-radius: var(--r-pill);
+  background: var(--signal);
+}
+.navrail-toggle-offset { margin-top: 8px; }
+.shell-main {
+  grid-column: 2;
+  grid-row: 2;
+  overflow: auto;
+  min-width: 0;
+  position: relative;
+  background: var(--bg);
+}
+.bottom-item {
+  align-items: center;
+  gap: 3px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--fg-dim);
+  padding: 4px 10px;
+}
+.bottom-item.active { color: var(--signal); }
+.bottom-item span {
+  font-size: 12px;
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+}
+.toast-stack {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+.toast {
+  background: var(--surface-3);
+  border: 1px solid var(--line-bright);
+  border-radius: var(--r-md);
+  padding: 10px 12px 10px 14px;
+  box-shadow: var(--shadow-pop);
+  align-items: center;
+  min-width: 240px;
+}
+.toast-message {
+  flex: 1;
+  font-size: 13px;
+}
+.toast-success-icon { color: var(--st-done); }
 
 /* ---------------------------------------------------------------------
    FOCUS VISIBILITY (WCAG 2.4.7)

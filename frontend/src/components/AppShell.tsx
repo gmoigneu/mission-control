@@ -39,6 +39,7 @@ import {
   Users,
 } from "lucide-react";
 import {
+  type CSSProperties,
   type ReactNode,
   useEffect,
   useEffectEvent,
@@ -158,38 +159,17 @@ function NavItemComp({
     <button
       type="button"
       onClick={onClick}
-      className={"nav-item row gap-3" + (active ? " active" : "")}
+      className={
+        "nav-item row gap-3" +
+        (active ? " active" : "") +
+        (open ? " nav-item-open" : " nav-item-closed")
+      }
       title={!open ? entry.label : ""}
-      style={{
-        width: "100%",
-        padding: open ? "8px 12px" : "9px",
-        borderRadius: "var(--r-sm)",
-        border: 0,
-        cursor: "pointer",
-        justifyContent: open ? "flex-start" : "center",
-        background: active ? "var(--surface-3)" : "transparent",
-        color: active ? "var(--fg)" : "var(--fg-dim)",
-        marginBottom: 1,
-        textAlign: "left",
-        position: "relative",
-      }}
     >
-      {active && (
-        <span
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 8,
-            bottom: 8,
-            width: 2.5,
-            borderRadius: 9,
-            background: "var(--signal)",
-          }}
-        />
-      )}
+      {active && <span className="nav-item-indicator" />}
       <IconComp size={17} strokeWidth={1.6} />
       {open && (
-        <span style={{ fontSize: 13, fontWeight: active ? 600 : 500 }}>
+        <span className="nav-item-label">
           {entry.label}
         </span>
       )}
@@ -212,27 +192,10 @@ function BottomItemComp({
     <button
       type="button"
       onClick={onClick}
-      className="col"
-      style={{
-        alignItems: "center",
-        gap: 3,
-        border: 0,
-        background: "transparent",
-        cursor: "pointer",
-        color: active ? "var(--signal)" : "var(--fg-dim)",
-        padding: "4px 10px",
-      }}
+      className={"bottom-item col" + (active ? " active" : "")}
     >
       <IconComp size={20} strokeWidth={1.6} />
-      <span
-        style={{
-          fontSize: 12,
-          fontFamily: "var(--mono)",
-          letterSpacing: "0.04em",
-        }}
-      >
-        {label}
-      </span>
+      <span>{label}</span>
     </button>
   );
 }
@@ -771,6 +734,274 @@ function CommandPalette({
   );
 }
 
+function TopBar({
+  navOpen,
+  email,
+  userInitial,
+  ayaOpen,
+  avatarMenuOpen,
+  settingsOpen,
+  theme,
+  onSetTheme,
+  onSetNavOpen,
+  onToggleMobileNav,
+  onVoiceCapture,
+  onToggleSettings,
+  onToggleAya,
+  onToggleAvatarMenu,
+  onCloseAvatarMenu,
+  onLogout,
+  onCloseSettings,
+}: {
+  navOpen: boolean;
+  email: string;
+  userInitial: string;
+  ayaOpen: boolean;
+  avatarMenuOpen: boolean;
+  settingsOpen: boolean;
+  theme: string;
+  onSetTheme: (theme: string) => void;
+  onSetNavOpen: (open: boolean) => void;
+  onToggleMobileNav: () => void;
+  onVoiceCapture: () => void;
+  onToggleSettings: () => void;
+  onToggleAya: () => void;
+  onToggleAvatarMenu: () => void;
+  onCloseAvatarMenu: () => void;
+  onLogout: () => void;
+  onCloseSettings: () => void;
+}) {
+  const brandStyle = {
+    "--topbar-brand-width": navOpen ? "216px" : "auto",
+  } as CSSProperties;
+
+  return (
+    <header className="topbar">
+      <div className="row gap-3 topbar-brand" style={brandStyle}>
+        <button
+          type="button"
+          className="iconbtn mobile-only"
+          onClick={onToggleMobileNav}
+          aria-label="Open navigation"
+        >
+          <Menu size={18} strokeWidth={1.6} />
+        </button>
+        <div className="row gap-2">
+          <Logo />
+          <span className="serif desktop-only topbar-title">
+            Mission Control
+          </span>
+        </div>
+      </div>
+
+      <div className="row gap-1 topbar-actions">
+        <button
+          type="button"
+          className="iconbtn"
+          title="Voice capture"
+          aria-label="Voice capture"
+          onClick={onVoiceCapture}
+        >
+          <Mic size={18} strokeWidth={1.6} />
+        </button>
+        <button
+          type="button"
+          className="iconbtn"
+          title="Settings"
+          aria-label="Settings"
+          onClick={onToggleSettings}
+        >
+          <Settings size={18} strokeWidth={1.6} />
+        </button>
+        <button
+          type="button"
+          className="iconbtn signal"
+          title="Toggle Aya (Ctrl+`)"
+          aria-label="Toggle Aya"
+          aria-pressed={ayaOpen}
+          onClick={onToggleAya}
+        >
+          <Sparkles size={18} strokeWidth={1.6} />
+        </button>
+        <div className="avatar-anchor">
+          <button
+            type="button"
+            className="avatar-btn"
+            title={email || "Account"}
+            aria-label="Account menu"
+            onClick={onToggleAvatarMenu}
+          >
+            <Avatar initials={userInitial} size={30} />
+          </button>
+          {avatarMenuOpen && (
+            <AvatarMenu
+              email={email}
+              onClose={onCloseAvatarMenu}
+              onLogout={onLogout}
+            />
+          )}
+        </div>
+      </div>
+
+      {settingsOpen && (
+        <SettingsPopover
+          theme={theme}
+          setTheme={onSetTheme}
+          navOpen={navOpen}
+          setNavOpen={onSetNavOpen}
+          close={onCloseSettings}
+        />
+      )}
+    </header>
+  );
+}
+
+function SideNav({
+  pathname,
+  navOpen,
+  mobileNav,
+  onNavigate,
+  onToggleNavOpen,
+}: {
+  pathname: string;
+  navOpen: boolean;
+  mobileNav: boolean;
+  onNavigate: (to: string) => void;
+  onToggleNavOpen: () => void;
+}) {
+  return (
+    <nav className={"leftnav " + (mobileNav ? "mobile-open" : "")}>
+      {NAV.map((n, i) =>
+        "divider" in n && n.divider ? (
+          <div key={i} className="hr leftnav-divider" />
+        ) : (
+          <NavItemComp
+            key={(n as Extract<NavEntry, { divider?: false }>).key}
+            entry={n as Extract<NavEntry, { divider?: false }>}
+            active={
+              (n as Extract<NavEntry, { divider?: false }>).to === "/"
+                ? pathname === "/"
+                : pathname.startsWith(
+                    (n as Extract<NavEntry, { divider?: false }>).to,
+                  )
+            }
+            open={navOpen}
+            onClick={() =>
+              onNavigate((n as Extract<NavEntry, { divider?: false }>).to)
+            }
+          />
+        ),
+      )}
+      <button
+        type="button"
+        className="navrail-toggle navrail-toggle-offset desktop-only"
+        onClick={onToggleNavOpen}
+        title="Collapse"
+      >
+        {navOpen ? (
+          <PanelLeft size={16} strokeWidth={1.6} />
+        ) : (
+          <PanelRight size={16} strokeWidth={1.6} />
+        )}
+        {navOpen && <span>Collapse</span>}
+      </button>
+    </nav>
+  );
+}
+
+function MobileBottomNav({
+  pathname,
+  ayaOpen,
+  onNavigate,
+  onCapture,
+  onOpenAya,
+}: {
+  pathname: string;
+  ayaOpen: boolean;
+  onNavigate: (to: string) => void;
+  onCapture: () => void;
+  onOpenAya: () => void;
+}) {
+  return (
+    <nav className="bottomnav mobile-only">
+      <BottomItemComp
+        Icon={LayoutDashboard}
+        label="Today"
+        active={pathname === "/"}
+        onClick={() => onNavigate("/")}
+      />
+      <BottomItemComp
+        Icon={SquareCheckBig}
+        label="Tasks"
+        active={pathname.startsWith("/tasks")}
+        onClick={() => onNavigate("/tasks")}
+      />
+      <button
+        type="button"
+        className="bottom-fab"
+        onClick={onCapture}
+        aria-label="Capture"
+      >
+        <Sparkles size={22} strokeWidth={1.6} />
+      </button>
+      <BottomItemComp
+        Icon={NotebookPen}
+        label="Journal"
+        active={pathname.startsWith("/journal")}
+        onClick={() => onNavigate("/journal")}
+      />
+      <BottomItemComp
+        Icon={Sparkles}
+        label="Aya"
+        active={ayaOpen}
+        onClick={onOpenAya}
+      />
+    </nav>
+  );
+}
+
+function ToastStack({
+  toasts,
+  onDismiss,
+}: {
+  toasts: Toast[];
+  onDismiss: (id: number) => void;
+}) {
+  return (
+    <div className="toast-stack">
+      {toasts.map((t) => (
+        <div key={t.id} className="toast rise row gap-3">
+          {t.undo && (
+            <span className="spark">
+              <Sparkles size={14} strokeWidth={1.6} />
+            </span>
+          )}
+          <span className="toast-message">{t.text}</span>
+          {t.undo ? (
+            <button
+              type="button"
+              className="btn ghost sm"
+              onClick={async () => {
+                onDismiss(t.id);
+                if (t.onUndo) await t.onUndo();
+              }}
+            >
+              <Undo2 size={12} strokeWidth={1.6} />
+              Undo
+            </button>
+          ) : (
+            <Check
+              size={15}
+              strokeWidth={1.6}
+              className="toast-success-icon"
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── AppShell ──────────────────────────────────────────────────────────────────
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -843,192 +1074,51 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const userInitial = me.data?.email?.[0]?.toUpperCase() ?? me.data?.name?.[0]?.toUpperCase() ?? "?";
 
-  const gridCols = (navOpen ? "232px" : "60px") + " 1fr";
+  const shellStyle = {
+    "--shell-nav-width": navOpen ? "232px" : "60px",
+  } as CSSProperties;
 
   return (
-    <div
-      className="shell"
-      style={{
-        display: "grid",
-        gridTemplateColumns: gridCols,
-        gridTemplateRows: "56px 1fr",
-        height: "100vh",
-        overflow: "hidden",
-      }}
-    >
-      {/* ===== Top bar ===== */}
-      <header
-        className="topbar"
-        style={{
-          gridColumn: "1 / -1",
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
-          padding: "0 16px",
-          borderBottom: "1px solid var(--line-soft)",
-          background:
-            "color-mix(in oklch, var(--surface-1) 88%, transparent)",
-          backdropFilter: "blur(8px)",
-          position: "relative",
-          zIndex: 40,
+    <div className="shell" style={shellStyle}>
+      <TopBar
+        navOpen={navOpen}
+        email={me.data?.email ?? ""}
+        userInitial={userInitial}
+        ayaOpen={aya.open}
+        avatarMenuOpen={avatarMenuOpen}
+        settingsOpen={settingsOpen}
+        theme={theme}
+        onSetTheme={setTheme}
+        onSetNavOpen={setNavOpen}
+        onToggleMobileNav={() => setMobileNav((v) => !v)}
+        onVoiceCapture={() => addToast({ text: "Listening…", undo: false })}
+        onToggleSettings={() => {
+          if (settingsJustClosed.current) {
+            settingsJustClosed.current = false;
+            return;
+          }
+          setSettingsOpen((v) => !v);
         }}
-      >
-        {/* Logo + title */}
-        <div
-          className="row gap-3"
-          style={{
-            width: navOpen ? 216 : "auto",
-            flexShrink: 0,
-          }}
-        >
-          <button
-            type="button"
-            className="iconbtn mobile-only"
-            onClick={() => setMobileNav((v) => !v)}
-            aria-label="Open navigation"
-          >
-            <Menu size={18} strokeWidth={1.6} />
-          </button>
-          <div className="row gap-2">
-            <Logo />
-            <span
-              className="serif desktop-only"
-              style={{
-                fontSize: 16,
-                fontWeight: 460,
-                letterSpacing: "-0.01em",
-              }}
-            >
-              Mission Control
-            </span>
-          </div>
-        </div>
-
-        {/* Action buttons */}
-        <div className="row gap-1" style={{ flexShrink: 0, marginLeft: "auto" }}>
-          <button
-            type="button"
-            className="iconbtn"
-            title="Voice capture"
-            aria-label="Voice capture"
-            onClick={() => addToast({ text: "Listening…", undo: false })}
-          >
-            <Mic size={18} strokeWidth={1.6} />
-          </button>
-          <button
-            type="button"
-            className="iconbtn"
-            title="Settings"
-            aria-label="Settings"
-            onClick={() => {
-              if (settingsJustClosed.current) {
-                settingsJustClosed.current = false;
-                return;
-              }
-              setSettingsOpen((v) => !v);
-            }}
-          >
-            <Settings size={18} strokeWidth={1.6} />
-          </button>
-          <button
-            type="button"
-            className="iconbtn"
-            title="Toggle Aya (Ctrl+`)"
-            aria-label="Toggle Aya"
-            aria-pressed={aya.open}
-            onClick={aya.toggle}
-            style={{ color: "var(--signal)" }}
-          >
-            <Sparkles size={18} strokeWidth={1.6} />
-          </button>
-          {/* Avatar / user menu */}
-          <div style={{ position: "relative" }}>
-            <button
-              type="button"
-              className="avatar-btn"
-              title={me.data?.email ?? "Account"}
-              aria-label="Account menu"
-              onClick={() => setAvatarMenuOpen((v) => !v)}
-            >
-              <Avatar initials={userInitial} size={30} />
-            </button>
-            {avatarMenuOpen && (
-              <AvatarMenu
-                email={me.data?.email ?? ""}
-                onClose={() => setAvatarMenuOpen(false)}
-                onLogout={() => {
-                  setAvatarMenuOpen(false);
-                  logout.mutate();
-                }}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Settings popover */}
-        {settingsOpen && (
-          <SettingsPopover
-            theme={theme}
-            setTheme={setTheme}
-            navOpen={navOpen}
-            setNavOpen={setNavOpen}
-            close={() => {
-              settingsJustClosed.current = true;
-              setSettingsOpen(false);
-            }}
-          />
-        )}
-      </header>
-
-      {/* ===== Left nav ===== */}
-      <nav
-        className={"leftnav " + (mobileNav ? "mobile-open" : "")}
-        style={{
-          gridColumn: 1,
-          gridRow: 2,
-          borderRight: "1px solid var(--line-soft)",
-          background: "var(--surface-1)",
-          overflowY: "auto",
-          overflowX: "hidden",
-          padding: "12px 10px",
+        onToggleAya={aya.toggle}
+        onToggleAvatarMenu={() => setAvatarMenuOpen((v) => !v)}
+        onCloseAvatarMenu={() => setAvatarMenuOpen(false)}
+        onLogout={() => {
+          setAvatarMenuOpen(false);
+          logout.mutate();
         }}
-      >
-        {NAV.map((n, i) =>
-          "divider" in n && n.divider ? (
-            <div key={i} className="hr" style={{ margin: "10px 8px" }} />
-          ) : (
-            <NavItemComp
-              key={(n as Extract<NavEntry, { divider?: false }>).key}
-              entry={n as Extract<NavEntry, { divider?: false }>}
-              active={
-                (n as Extract<NavEntry, { divider?: false }>).to === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(
-                      (n as Extract<NavEntry, { divider?: false }>).to,
-                    )
-              }
-              open={navOpen}
-              onClick={() =>
-                goTo((n as Extract<NavEntry, { divider?: false }>).to)
-              }
-            />
-          ),
-        )}
-        <button
-          type="button"
-          className="navrail-toggle desktop-only"
-          onClick={() => setNavOpen((v) => !v)}
-          title="Collapse"
-          style={{ marginTop: 8 }}
-        >
-          {navOpen ? (
-            <PanelLeft size={16} strokeWidth={1.6} />
-          ) : (
-            <PanelRight size={16} strokeWidth={1.6} />
-          )}
-          {navOpen && <span style={{ fontSize: 12 }}>Collapse</span>}
-        </button>
-      </nav>
+        onCloseSettings={() => {
+          settingsJustClosed.current = true;
+          setSettingsOpen(false);
+        }}
+      />
+
+      <SideNav
+        pathname={pathname}
+        navOpen={navOpen}
+        mobileNav={mobileNav}
+        onNavigate={goTo}
+        onToggleNavOpen={() => setNavOpen((v) => !v)}
+      />
 
       {/* Nav scrim (mobile) */}
       {mobileNav && (
@@ -1041,58 +1131,18 @@ export function AppShell({ children }: { children: ReactNode }) {
         />
       )}
 
-      {/* ===== Content ===== */}
-      <main
-        style={{
-          gridColumn: 2,
-          gridRow: 2,
-          overflow: "auto",
-          minWidth: 0,
-          position: "relative",
-          background: "var(--bg)",
-        }}
-      >
-        {children}
-      </main>
+      <main className="shell-main">{children}</main>
 
       {/* Aya itself is the bottom quake window, mounted once at the route root
           (see routes/root.tsx) so it survives navigation. */}
 
-      {/* ===== Mobile bottom nav ===== */}
-      <nav className="bottomnav mobile-only">
-        <BottomItemComp
-          Icon={LayoutDashboard}
-          label="Today"
-          active={pathname === "/"}
-          onClick={() => goTo("/")}
-        />
-        <BottomItemComp
-          Icon={SquareCheckBig}
-          label="Tasks"
-          active={pathname.startsWith("/tasks")}
-          onClick={() => goTo("/tasks")}
-        />
-        <button
-          type="button"
-          className="bottom-fab"
-          onClick={() => setCaptureOpen(true)}
-          aria-label="Capture"
-        >
-          <Sparkles size={22} strokeWidth={1.6} />
-        </button>
-        <BottomItemComp
-          Icon={NotebookPen}
-          label="Journal"
-          active={pathname.startsWith("/journal")}
-          onClick={() => goTo("/journal")}
-        />
-        <BottomItemComp
-          Icon={Sparkles}
-          label="Aya"
-          active={aya.open}
-          onClick={aya.openAya}
-        />
-      </nav>
+      <MobileBottomNav
+        pathname={pathname}
+        ayaOpen={aya.open}
+        onNavigate={goTo}
+        onCapture={() => setCaptureOpen(true)}
+        onOpenAya={aya.openAya}
+      />
 
       {/* ===== Command palette ===== */}
       {captureOpen && (
@@ -1105,63 +1155,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         />
       )}
 
-      {/* ===== Toasts ===== */}
-      <div
-        className="toast-stack"
-        style={{
-          position: "fixed",
-          bottom: 22,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 90,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-          alignItems: "center",
-        }}
-      >
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            className="toast rise row gap-3"
-            style={{
-              background: "var(--surface-3)",
-              border: "1px solid var(--line-bright)",
-              borderRadius: "var(--r-md)",
-              padding: "10px 12px 10px 14px",
-              boxShadow: "var(--shadow-pop)",
-              alignItems: "center",
-              minWidth: 240,
-            }}
-          >
-            {t.undo && (
-              <span className="spark">
-                <Sparkles size={14} strokeWidth={1.6} />
-              </span>
-            )}
-            <span style={{ flex: 1, fontSize: 13 }}>{t.text}</span>
-            {t.undo ? (
-              <button
-                type="button"
-                className="btn ghost sm"
-                onClick={async () => {
-                  dismissToast(t.id);
-                  if (t.onUndo) await t.onUndo();
-                }}
-              >
-                <Undo2 size={12} strokeWidth={1.6} />
-                Undo
-              </button>
-            ) : (
-              <Check
-                size={15}
-                strokeWidth={1.6}
-                style={{ color: "var(--st-done)" }}
-              />
-            )}
-          </div>
-        ))}
-      </div>
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }
