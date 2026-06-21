@@ -1,6 +1,6 @@
 import { createRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Check, Flame } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AppShell } from "../components/AppShell";
 import {
   AISpark,
@@ -199,34 +199,30 @@ function HabitRow({
 
 // ─── Dashboard ──────────────────────────────────────────────────────────────────
 
+type CheckInMetric = "mood" | "energy" | "productivity";
+
 export function Dashboard() {
   const navigate = useNavigate();
+  const today = todayISO();
   const me = useMe();
   const { data: tasks = [] } = useTasks();
   const { data: contexts = [] } = useContexts();
   const { data: audit = [] } = useAudit();
   const { data: journalEntries = [] } = useJournalEntries();
   const { data: habits = [] } = useHabits({ active: "true" });
-  const { data: dailyCheckIns = [] } = useDailyCheckIns({ days: 1, end: todayISO() });
+  const { data: dailyCheckIns = [] } = useDailyCheckIns({ days: 1, end: today });
   const updateTask = useUpdateTask();
   const logHabit = useLogHabit();
   const setDailyCheckIn = useSetDailyCheckIn();
   const revert = useRevert();
 
-  const [mood, setMood] = useState<number | null>(null);
-  const [energy, setEnergy] = useState<number | null>(null);
-  const [productivity, setProductivity] = useState<number | null>(null);
+  const [localCheckIn, setLocalCheckIn] = useState<Partial<Record<CheckInMetric, number>>>({});
   const [done, setDone] = useState<Record<string, boolean>>({});
 
-  const today = todayISO();
-
-  useEffect(() => {
-    const todayCheckIn = dailyCheckIns[0];
-    if (!todayCheckIn) return;
-    setMood(todayCheckIn.mood);
-    setEnergy(todayCheckIn.energy);
-    setProductivity(todayCheckIn.productivity);
-  }, [dailyCheckIns]);
+  const todayCheckIn = dailyCheckIns[0];
+  const mood = localCheckIn.mood ?? todayCheckIn?.mood ?? null;
+  const energy = localCheckIn.energy ?? todayCheckIn?.energy ?? null;
+  const productivity = localCheckIn.productivity ?? todayCheckIn?.productivity ?? null;
 
   // First name from useMe
   const firstName = (() => {
@@ -275,22 +271,15 @@ export function Dashboard() {
 
   const recentActivity = audit.slice(0, 5);
 
-  function setCheckInScore(
-    key: "mood" | "energy" | "productivity",
-    value: number,
-  ) {
-    const previous = { mood, energy, productivity };
-    if (key === "mood") setMood(value);
-    if (key === "energy") setEnergy(value);
-    if (key === "productivity") setProductivity(value);
+  function setCheckInScore(key: CheckInMetric, value: number) {
+    const previous = localCheckIn;
+    setLocalCheckIn((current) => ({ ...current, [key]: value }));
 
     setDailyCheckIn.mutate(
       { date: today, data: { [key]: value } },
       {
         onError: () => {
-          setMood(previous.mood);
-          setEnergy(previous.energy);
-          setProductivity(previous.productivity);
+          setLocalCheckIn(previous);
         },
       },
     );
