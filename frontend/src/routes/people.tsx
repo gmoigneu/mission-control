@@ -1,6 +1,6 @@
 import { createRoute, Link } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useReducer } from "react";
 import { AppShell } from "../components/AppShell";
 import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
@@ -47,6 +47,64 @@ const EMPTY_FORM: FormState = {
   summary: "",
 };
 
+interface PeopleState {
+  offset: number;
+  search: string;
+  form: FormState;
+  editingId: string | null;
+  panelOpen: boolean;
+}
+
+type PeopleAction =
+  | { type: "setOffset"; offset: number }
+  | { type: "setSearch"; search: string }
+  | { type: "openNew" }
+  | { type: "editPerson"; person: Person }
+  | { type: "closePanel" }
+  | { type: "updateForm"; key: keyof FormState; value: string };
+
+function initialPeopleState(): PeopleState {
+  return {
+    offset: 0,
+    search: "",
+    form: EMPTY_FORM,
+    editingId: null,
+    panelOpen: false,
+  };
+}
+
+function peopleReducer(state: PeopleState, action: PeopleAction): PeopleState {
+  switch (action.type) {
+    case "setOffset":
+      return { ...state, offset: action.offset };
+    case "setSearch":
+      return { ...state, offset: 0, search: action.search };
+    case "openNew":
+      return { ...state, form: EMPTY_FORM, editingId: null, panelOpen: true };
+    case "editPerson":
+      return {
+        ...state,
+        editingId: action.person.id,
+        form: {
+          name: action.person.name,
+          slug: action.person.slug,
+          role: action.person.role ?? "",
+          company_id: action.person.company_id ?? "",
+          primary_context_id: action.person.primary_context_id ?? "",
+          email: action.person.email ?? "",
+          linkedin: action.person.linkedin ?? "",
+          first_met: action.person.first_met ?? "",
+          summary: action.person.summary ?? "",
+        },
+        panelOpen: true,
+      };
+    case "closePanel":
+      return { ...state, form: EMPTY_FORM, editingId: null, panelOpen: false };
+    case "updateForm":
+      return { ...state, form: { ...state.form, [action.key]: action.value } };
+  }
+}
+
 /** Build a PersonCreate/PersonUpdate payload.
  * On create: omit empty optional FK/date fields entirely.
  * On update: send null for cleared optional FK/date fields so the backend can unset them.
@@ -72,8 +130,8 @@ function buildPayload(form: FormState, isEdit: boolean) {
 }
 
 export function PeoplePage() {
-  const [offset, setOffset] = useState(0);
-  const [search, setSearch] = useState("");
+  const [state, dispatch] = useReducer(peopleReducer, undefined, initialPeopleState);
+  const { offset, search, form, editingId, panelOpen } = state;
   const query = search.trim();
   const { data: peoplePage } = usePeoplePage({
     limit: DEFAULT_PAGE_SIZE,
@@ -87,51 +145,31 @@ export function PeoplePage() {
   const updatePerson = useUpdatePerson();
   const deletePerson = useDeletePerson();
 
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [panelOpen, setPanelOpen] = useState(false);
   useHotkey("c", handleNew, !panelOpen);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setForm((prev) => ({ ...prev, [key]: e.target.value }));
+      dispatch({ type: "updateForm", key, value: e.target.value });
   }
 
   function handleSelectChange(key: keyof FormState) {
-    return (value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+    return (value: string) => dispatch({ type: "updateForm", key, value });
   }
 
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setOffset(0);
-    setSearch(e.target.value);
+    dispatch({ type: "setSearch", search: e.target.value });
   }
 
   function handleNew() {
-    setEditingId(null);
-    setForm(EMPTY_FORM);
-    setPanelOpen(true);
+    dispatch({ type: "openNew" });
   }
 
   function handleEdit(row: Person) {
-    setEditingId(row.id);
-    setForm({
-      name: row.name,
-      slug: row.slug,
-      role: row.role ?? "",
-      company_id: row.company_id ?? "",
-      primary_context_id: row.primary_context_id ?? "",
-      email: row.email ?? "",
-      linkedin: row.linkedin ?? "",
-      first_met: row.first_met ?? "",
-      summary: row.summary ?? "",
-    });
-    setPanelOpen(true);
+    dispatch({ type: "editPerson", person: row });
   }
 
   function handleClose() {
-    setPanelOpen(false);
-    setEditingId(null);
-    setForm(EMPTY_FORM);
+    dispatch({ type: "closePanel" });
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -237,7 +275,12 @@ export function PeoplePage() {
             columns={columns}
             empty={query ? `No people match "${query}".` : "No people yet."}
           />
-          {peoplePage && <Pagination page={peoplePage.page} onChange={setOffset} />}
+          {peoplePage && (
+            <Pagination
+              page={peoplePage.page}
+              onChange={(nextOffset) => dispatch({ type: "setOffset", offset: nextOffset })}
+            />
+          )}
         </div>
 
         <SidePanel
@@ -316,7 +359,7 @@ export function PeoplePage() {
             <SlugField
               value={form.slug}
               source={form.name}
-              onChange={(value) => setForm((prev) => ({ ...prev, slug: value }))}
+              onChange={(value) => dispatch({ type: "updateForm", key: "slug", value })}
             />
             <div className="flex gap-2">
               <Button type="submit">{editingId ? "Save" : "Add"}</Button>
