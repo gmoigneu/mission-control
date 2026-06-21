@@ -61,11 +61,11 @@ export function LoginPage() {
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    login.mutate({ email, password }, { onSuccess: () => navigate({ to: "/" }) });
+    login.mutate({ email, password });
   }
 
   function onPasskey() {
-    passkeyLogin.mutate(undefined, { onSuccess: () => navigate({ to: "/" }) });
+    passkeyLogin.mutate();
   }
 
   if (me.isLoading || me.data) {
