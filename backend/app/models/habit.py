@@ -23,6 +23,9 @@ class Habit(Base):
     slug: Mapped[str] = mapped_column(String, unique=True, index=True)
     name: Mapped[str] = mapped_column(String)
     cadence: Mapped[str] = mapped_column(String, default="daily")  # daily|weekly
+    tracking_type: Mapped[str] = mapped_column(
+        String, default="boolean", server_default="boolean"
+    )  # boolean|score
     active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
@@ -40,6 +43,7 @@ class HabitLog(Base):
     )
     date: Mapped[date] = mapped_column(Date, nullable=False)
     done: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    score: Mapped[int | None] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

@@ -79,6 +79,7 @@ function Gauge({
         {[1, 2, 3, 4, 5].map((n) => (
           <button
             key={n}
+            type="button"
             onClick={() => onSet(n)}
             title={`${label} ${n} of 5`}
             aria-label={`${label} ${n} of 5`}
@@ -104,7 +105,7 @@ function Gauge({
                   n <= score
                     ? `0 0 8px color-mix(in oklch, ${tint} 50%, transparent)`
                     : "none",
-                transition: "all 150ms",
+                transition: "background 150ms, box-shadow 150ms",
               }}
             />
           </button>
@@ -125,6 +126,7 @@ function CheckBtn({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className="check-btn"
       style={{
@@ -140,7 +142,7 @@ function CheckBtn({
         alignItems: "center",
         justifyContent: "center",
         padding: 0,
-        transition: "all 150ms",
+        transition: "background 150ms, border-color 150ms, color 150ms",
       }}
     >
       {checked && <Check size={12} strokeWidth={3} />}
@@ -152,35 +154,71 @@ function CheckBtn({
 
 function HabitRow({
   habit,
-  onToggle,
+  onLog,
 }: {
   habit: Habit;
-  onToggle: (habit: Habit) => void;
+  onLog: (habit: Habit, value?: number) => void;
 }) {
   const done = habit.logged_today;
   const col = done ? "var(--st-done)" : "transparent";
   return (
     <div className="row gap-3" style={{ alignItems: "center" }}>
-      <button
-        onClick={() => onToggle(habit)}
-        title="Tap to log today"
-        aria-label={`Toggle ${habit.name} for today`}
-        style={{
-          width: 24,
-          height: 24,
-          borderRadius: 7,
-          cursor: "pointer",
-          flexShrink: 0,
-          border: `1px solid ${done ? col : "var(--line-bright)"}`,
-          background: done ? col : "transparent",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: done ? "var(--signal-ink)" : "var(--fg-dim)",
-        }}
-      >
-        {done && <Check size={13} strokeWidth={2.4} />}
-      </button>
+      {habit.tracking_type === "score" ? (
+        <div className="row gap-1" aria-label={`${habit.name} score for today`}>
+          {[0, 1, 2, 3, 4, 5].map((value) => {
+            const active = habit.today_score === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => onLog(habit, value)}
+                title={`${habit.name} ${value} of 5 today`}
+                aria-label={`${habit.name} ${value} of 5 today`}
+                aria-pressed={active}
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  border: `1px solid ${active ? "var(--st-warn)" : "var(--line-bright)"}`,
+                  background: active ? "var(--st-warn)" : "transparent",
+                  color: active ? "var(--signal-ink)" : "var(--fg-dim)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 0,
+                  fontSize: 12,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {value}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onLog(habit)}
+          title="Tap to log today"
+          aria-label={`Toggle ${habit.name} for today`}
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 7,
+            cursor: "pointer",
+            flexShrink: 0,
+            border: `1px solid ${done ? col : "var(--line-bright)"}`,
+            background: done ? col : "transparent",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: done ? "var(--signal-ink)" : "var(--fg-dim)",
+          }}
+        >
+          {done && <Check size={13} strokeWidth={2.4} />}
+        </button>
+      )}
       <span style={{ flex: 1, fontSize: 13 }}>{habit.name}</span>
       <span
         className="row gap-1 meta"
@@ -285,7 +323,11 @@ export function Dashboard() {
     );
   }
 
-  function toggleHabit(habit: Habit) {
+  function logHabitToday(habit: Habit, value?: number) {
+    if (habit.tracking_type === "score") {
+      logHabit.mutate({ id: habit.id, data: { date: today, score: value ?? 0 } });
+      return;
+    }
     logHabit.mutate({ id: habit.id, data: { date: today, done: !habit.logged_today } });
   }
 
@@ -295,9 +337,14 @@ export function Dashboard() {
   const journalLines = latestJournal
     ? latestJournal.body
         .split("\n")
-        .map((l) => l.trim())
-        .filter((l) => l.length > 0 && !l.startsWith("#"))
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0 && !line.startsWith("#"))
         .slice(0, 4)
+        .reduce<Array<{ key: string; text: string }>>((lines, line) => {
+          const duplicateCount = lines.filter((item) => item.text === line).length;
+          lines.push({ key: `${latestJournal.id}:${line}:${duplicateCount}`, text: line });
+          return lines;
+        }, [])
     : [];
 
   return (
@@ -392,6 +439,7 @@ export function Dashboard() {
                 <SectionLabel
                   right={
                     <button
+                      type="button"
                       className="btn ghost sm"
                       onClick={() => navigate({ to: "/tasks" })}
                     >
@@ -465,6 +513,7 @@ export function Dashboard() {
                 <SectionLabel
                   right={
                     <button
+                      type="button"
                       className="btn ghost sm"
                       onClick={() => navigate({ to: "/journal" })}
                     >
@@ -493,21 +542,22 @@ export function Dashboard() {
                         {latestJournal.title}
                       </span>
                     )}
-                    {journalLines.map((line, i) => (
+                    {journalLines.map((line) => (
                       <span
-                        key={i}
+                        key={line.key}
                         style={{
                           fontSize: 13,
                           color: "var(--fg-dim)",
                           lineHeight: 1.5,
                         }}
                       >
-                        {line}
+                        {line.text}
                       </span>
                     ))}
                   </div>
                 ) : (
                   <button
+                    type="button"
                     className="row gap-2 well"
                     onClick={() => navigate({ to: "/journal" })}
                     style={{
@@ -535,6 +585,7 @@ export function Dashboard() {
                 <SectionLabel
                   right={
                     <button
+                      type="button"
                       className="btn ghost sm"
                       onClick={() => navigate({ to: "/contexts" })}
                     >
@@ -571,6 +622,7 @@ export function Dashboard() {
                       const count = openTaskCount(c.id);
                       return (
                         <button
+                          type="button"
                           key={c.slug}
                           className="card ticks ctx-card"
                           onClick={() => navigate({ to: "/contexts" })}
@@ -641,10 +693,11 @@ export function Dashboard() {
                 <SectionLabel
                   right={
                     <button
+                      type="button"
                       className="btn ghost sm"
                       onClick={() =>
-                      navigate({ to: "/habits" } as Parameters<typeof navigate>[0])
-                    }
+                        navigate({ to: "/habits" } as Parameters<typeof navigate>[0])
+                      }
                     >
                       Grid
                       <ArrowRight size={13} />
@@ -682,7 +735,7 @@ export function Dashboard() {
                 ) : (
                   <div className="col gap-2">
                     {habits.map((h) => (
-                      <HabitRow key={h.id} habit={h} onToggle={toggleHabit} />
+                      <HabitRow key={h.id} habit={h} onLog={logHabitToday} />
                     ))}
                   </div>
                 )}
@@ -693,6 +746,7 @@ export function Dashboard() {
                 <SectionLabel
                   right={
                     <button
+                      type="button"
                       className="btn ghost sm"
                       onClick={() => navigate({ to: "/activity" })}
                     >
@@ -767,6 +821,7 @@ export function Dashboard() {
                         </div>
                       </div>
                       <button
+                        type="button"
                         className="btn ghost sm"
                         disabled={a.reverted}
                         onClick={() => revert.mutate(a.id)}

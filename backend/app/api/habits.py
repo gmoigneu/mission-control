@@ -1,6 +1,7 @@
 import uuid
+from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
@@ -19,10 +20,11 @@ router = APIRouter(prefix="/habits", tags=["habits"], dependencies=[Depends(get_
 
 
 async def _to_out(db: AsyncSession, habit: Habit) -> HabitOut:
-    streak, logged_today = await svc.habit_stats(db, habit.id)
+    streak, logged_today, today_score = await svc.habit_stats(db, habit.id)
     out = HabitOut.model_validate(habit)
     out.streak = streak
     out.logged_today = logged_today
+    out.today_score = today_score
     return out
 
 
@@ -40,6 +42,18 @@ async def create_habit(payload: HabitCreate, db: AsyncSession = Depends(get_db))
     obj = await svc.create_habit(db, payload, surface="ui")
     await db.commit()
     return await _to_out(db, obj)
+
+
+@router.get("/logs", response_model=list[HabitLogOut])
+async def list_habit_logs_range(
+    days: int = Query(default=30, ge=1, le=365),
+    end: date | None = None,
+    active: bool | None = True,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+):
+    last_day = end or date.today()
+    first_day = last_day - timedelta(days=days - 1)
+    return await svc.list_logs_range(db, start=first_day, end=last_day, active=active)
 
 
 @router.get("/{habit_id}", response_model=HabitOut)
@@ -88,6 +102,11 @@ async def log_habit(
     obj = await svc.get_habit(db, habit_id)
     if obj is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
-    log = await svc.upsert_log(db, obj, payload, surface="ui")
+    try:
+        log = await svc.upsert_log(db, obj, payload, surface="ui")
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
     await db.commit()
     return log
