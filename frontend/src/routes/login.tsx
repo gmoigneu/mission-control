@@ -194,7 +194,7 @@ export function LoginPage() {
                 style={{ alignItems: "center", gap: 10, margin: "2px 0" }}
               >
                 <span className="hr" style={{ flex: 1, height: 1 }} />
-                <span className="meta" style={{ color: "var(--fg-faint)", fontSize: 11 }}>
+                <span className="meta" style={{ color: "var(--fg-faint)", fontSize: 12 }}>
                   or
                 </span>
                 <span className="hr" style={{ flex: 1, height: 1 }} />
@@ -231,7 +231,7 @@ export function LoginPage() {
             marginTop: 24,
             textAlign: "center",
             color: "var(--fg-faint)",
-            fontSize: 11,
+            fontSize: 12,
           }}
         >
           Your personal OS. Private by design.

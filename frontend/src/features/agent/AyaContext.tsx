@@ -1,7 +1,7 @@
 import {
   createContext,
+  use,
   useCallback,
-  useContext,
   useMemo,
   useState,
   type ReactNode,
@@ -45,5 +45,5 @@ export function AyaProvider({ children }: { children: ReactNode }) {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function useAya(): AyaContextValue {
-  return useContext(AyaCtx);
+  return use(AyaCtx);
 }

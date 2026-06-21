@@ -221,7 +221,7 @@ function BottomItemComp({
       <IconComp size={20} strokeWidth={1.6} />
       <span
         style={{
-          fontSize: 9.5,
+          fontSize: 12,
           fontFamily: "var(--mono)",
           letterSpacing: "0.04em",
         }}
@@ -904,7 +904,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           borderBottom: "1px solid var(--line-soft)",
           background:
             "color-mix(in oklch, var(--surface-1) 88%, transparent)",
-          backdropFilter: "blur(12px)",
+          backdropFilter: "blur(8px)",
           position: "relative",
           zIndex: 40,
         }}

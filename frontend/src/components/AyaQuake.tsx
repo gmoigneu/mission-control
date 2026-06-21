@@ -64,7 +64,7 @@ function WritesCard({
       <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: reverted ? 0 : 8 }}>
         {writes.map((w) => (
           <span key={w.id} className="row gap-1" style={{ gap: 5 }}>
-            <span className="spark" style={{ fontSize: 11 }}>✦</span>
+            <span className="spark" style={{ fontSize: 12 }}>✦</span>
             <span style={{ color: "var(--fg-muted)" }}>
               {w.action} {w.entity_type.replace("_", " ")}
             </span>
@@ -87,7 +87,7 @@ function WritesCard({
           Undo
         </button>
       ) : (
-        <span style={{ fontSize: 11, color: "var(--fg-faint)", fontStyle: "italic" }}>
+        <span style={{ fontSize: 12, color: "var(--fg-faint)", fontStyle: "italic" }}>
           Reverted
         </span>
       )}
@@ -258,7 +258,7 @@ function AyaQuakeInner() {
           <span className="serif" style={{ fontSize: 15, fontWeight: 460, flex: 1 }}>
             {ayaName}
           </span>
-          <span className="meta" style={{ color: "var(--fg-faint)", fontSize: 11 }}>
+          <span className="meta" style={{ color: "var(--fg-faint)", fontSize: 12 }}>
             {chat.isPending ? "thinking…" : "idle"}
           </span>
           <button

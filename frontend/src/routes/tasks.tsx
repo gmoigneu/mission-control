@@ -882,7 +882,7 @@ function BoardCard({
       </button>
       <div
         className="flex flex-wrap items-center gap-2"
-        style={{ fontSize: "11px", marginTop: "6px" }}
+        style={{ fontSize: "12px", marginTop: "6px" }}
       >
         <PriorityIcon priority={task.priority} withLabel />
         {task.due && <span style={{ color: "var(--fg-dim)" }}>· {task.due}</span>}

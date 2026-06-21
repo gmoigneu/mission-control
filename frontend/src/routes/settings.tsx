@@ -293,7 +293,7 @@ function PasskeysCard() {
                 >
                   <div>
                     <div style={{ fontSize: 14 }}>{pk.name || "Unnamed passkey"}</div>
-                    <div className="meta" style={{ color: "var(--fg-faint)", fontSize: 11 }}>
+                    <div className="meta" style={{ color: "var(--fg-faint)", fontSize: 12 }}>
                       Added {new Date(pk.created_at).toLocaleDateString()}
                       {pk.last_used_at
                         ? ` · Last used ${new Date(pk.last_used_at).toLocaleDateString()}`
