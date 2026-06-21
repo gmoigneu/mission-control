@@ -1,4 +1,5 @@
 """Integration tests for /agent/chat, /agent/capture, and /agent/runs/{id}/revert."""
+
 import uuid
 
 import pytest

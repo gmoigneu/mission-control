@@ -5,7 +5,9 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 CaptureSurface = Literal["cmd_k", "chat", "voice", "telegram", "app"]
-CaptureStatus = Literal["raw", "interpreted", "previewed", "applied", "inboxed", "dismissed", "failed"]
+CaptureStatus = Literal[
+    "raw", "interpreted", "previewed", "applied", "inboxed", "dismissed", "failed"
+]
 CaptureIntent = Literal[
     "create_task",
     "create_update_person",

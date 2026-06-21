@@ -11,9 +11,7 @@ from app.schemas.inbox_item import InboxItemCreate, InboxItemOut, InboxItemUpdat
 from app.services import capture as capture_svc
 from app.services import inbox_item as svc
 
-router = APIRouter(
-    prefix="/inbox", tags=["inbox"], dependencies=[Depends(get_current_user)]
-)
+router = APIRouter(prefix="/inbox", tags=["inbox"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("", response_model=list[InboxItemOut])
@@ -25,14 +23,13 @@ async def list_inbox_items(  # noqa: B008
 ):
     total = await svc.count_inbox_items(db, status=status)
     set_pagination_headers(response, total=total, page=page)
-    return await svc.list_inbox_items(
-        db, status=status, limit=page.limit, offset=page.offset
-    )
+    return await svc.list_inbox_items(db, status=status, limit=page.limit, offset=page.offset)
 
 
 @router.post("", response_model=InboxItemOut, status_code=status.HTTP_201_CREATED)
 async def create_inbox_item(
-    payload: InboxItemCreate, db: AsyncSession = Depends(get_db)  # noqa: B008
+    payload: InboxItemCreate,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     obj = await svc.create_inbox_item(db, payload, surface="ui")
     await db.commit()
@@ -49,7 +46,9 @@ async def get_inbox_item(item_id: uuid.UUID, db: AsyncSession = Depends(get_db))
 
 @router.patch("/{item_id}", response_model=InboxItemOut)
 async def update_inbox_item(
-    item_id: uuid.UUID, payload: InboxItemUpdate, db: AsyncSession = Depends(get_db)  # noqa: B008
+    item_id: uuid.UUID,
+    payload: InboxItemUpdate,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     obj = await svc.get_inbox_item(db, item_id)
     if obj is None:
@@ -78,7 +77,11 @@ async def promote_inbox_item(
         writes, run_id = await capture_svc.promote_inbox_item(db, item_id, payload)
     except ValueError as exc:
         detail = str(exc)
-        code = status.HTTP_404_NOT_FOUND if "not found" in detail else status.HTTP_422_UNPROCESSABLE_ENTITY
+        code = (
+            status.HTTP_404_NOT_FOUND
+            if "not found" in detail
+            else status.HTTP_422_UNPROCESSABLE_ENTITY
+        )
         raise HTTPException(status_code=code, detail=detail) from exc
     await db.commit()
     obj = await svc.get_inbox_item(db, item_id)

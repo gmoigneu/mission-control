@@ -104,7 +104,7 @@ def interpret_capture(text: str) -> CaptureResult:
             "remind me to ",
         ):
             if lower.startswith(prefix):
-                title = raw[len(prefix):]
+                title = raw[len(prefix) :]
                 break
         if follow_up:
             title = raw
@@ -125,7 +125,7 @@ def interpret_capture(text: str) -> CaptureResult:
 
     context_match = re.match(r"^create (?:a )?context (?P<name>.+)$", lower)
     if context_match:
-        name = raw[raw.lower().find("context") + len("context"):].strip()
+        name = raw[raw.lower().find("context") + len("context") :].strip()
         candidate = CaptureCandidate(
             id="context-1",
             intent="unknown",
@@ -164,7 +164,9 @@ def interpret_capture(text: str) -> CaptureResult:
             proposed_actions=[candidate],
         )
 
-    observation_match = re.match(r"^(?P<name>[A-Z][A-Za-z .'-]{1,60})\s+(?:said|prefers|likes|wants)\s+.+", raw)
+    observation_match = re.match(
+        r"^(?P<name>[A-Z][A-Za-z .'-]{1,60})\s+(?:said|prefers|likes|wants)\s+.+", raw
+    )
     if observation_match:
         candidate = CaptureCandidate(
             id="observation-1",
@@ -180,7 +182,9 @@ def interpret_capture(text: str) -> CaptureResult:
         return CaptureResult(
             intent="create_observation",
             confidence=0.64,
-            ambiguity_notes=["The note looks like an observation but the target person is unresolved."],
+            ambiguity_notes=[
+                "The note looks like an observation but the target person is unresolved."
+            ],
             suggested_next_action="Send to inbox for review",
             proposed_actions=[candidate],
         )
@@ -194,7 +198,9 @@ def interpret_capture(text: str) -> CaptureResult:
     )
 
 
-async def create_capture(db: AsyncSession, payload: CaptureRequest) -> tuple[Capture, CaptureResult, list[dict[str, Any]], uuid.UUID]:
+async def create_capture(
+    db: AsyncSession, payload: CaptureRequest
+) -> tuple[Capture, CaptureResult, list[dict[str, Any]], uuid.UUID]:
     result = interpret_capture(payload.text)
     surface = payload.source_surface
     async with _capture_run(db, surface, payload.text) as run:
@@ -212,10 +218,17 @@ async def create_capture(db: AsyncSession, payload: CaptureRequest) -> tuple[Cap
         await db.flush()
         await record_create(db, ENTITY, capture, surface=surface)
 
-        if payload.auto_apply and result.confidence >= HIGH_CONFIDENCE and len(result.proposed_actions) == 1:
+        if (
+            payload.auto_apply
+            and result.confidence >= HIGH_CONFIDENCE
+            and len(result.proposed_actions) == 1
+        ):
             await _apply_actions(db, capture, result.proposed_actions, surface=surface)
             reply = "Captured and applied."
-        elif result.confidence < HIGH_CONFIDENCE and result.suggested_next_action.lower().startswith("send"):
+        elif (
+            result.confidence < HIGH_CONFIDENCE
+            and result.suggested_next_action.lower().startswith("send")
+        ):
             await _send_capture_to_inbox(
                 db,
                 capture,
@@ -279,7 +292,9 @@ async def send_capture_to_inbox(
         return capture, writes, run.id
 
 
-async def dismiss_capture(db: AsyncSession, capture: Capture) -> tuple[Capture, list[dict[str, Any]], uuid.UUID]:
+async def dismiss_capture(
+    db: AsyncSession, capture: Capture
+) -> tuple[Capture, list[dict[str, Any]], uuid.UUID]:
     async with _capture_run(db, capture.source_surface, capture.raw_text) as run:
         before = model_to_dict(capture)
         capture.status = "dismissed"
@@ -433,7 +448,9 @@ async def promote_inbox_item(
             )
             refs.append({"entity_type": "knowledge", "entity_id": str(note.id)})
         elif payload.target == "journal_entry":
-            entry = await journal_svc.get_or_create_journal_entry(db, datetime.now(UTC).date(), surface="ui")
+            entry = await journal_svc.get_or_create_journal_entry(
+                db, datetime.now(UTC).date(), surface="ui"
+            )
             await journal_svc.update_journal_entry(
                 db,
                 entry,
@@ -442,7 +459,9 @@ async def promote_inbox_item(
             )
             refs.append({"entity_type": "journal_entry", "entity_id": str(entry.id)})
 
-        await inbox_svc.update_inbox_item(db, item, InboxItemUpdate(status="processed"), surface="ui")
+        await inbox_svc.update_inbox_item(
+            db, item, InboxItemUpdate(status="processed"), surface="ui"
+        )
         if item.capture_id is not None:
             capture = await get_capture(db, item.capture_id)
             if capture is not None:

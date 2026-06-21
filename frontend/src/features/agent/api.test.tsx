@@ -14,6 +14,7 @@ function wrapper({ children }: { children: ReactNode }) {
 const MOCK_CAPTURE_RESPONSE = {
   agent_run_id: "r1",
   reply: "Done",
+  conversation_id: null,
   writes: [
     {
       id: "a1",
@@ -22,6 +23,34 @@ const MOCK_CAPTURE_RESPONSE = {
       entity_id: "t1",
     },
   ],
+  capture: {
+    id: "c1",
+    raw_text: "create a task to email Bob",
+    transcript: null,
+    source_surface: "cmd_k",
+    source_metadata: {},
+    status: "previewed",
+    confidence_summary: { confidence: 0.92 },
+    structured_result: {
+      intent: "create_task",
+      confidence: 0.92,
+      ambiguity_notes: [],
+      suggested_next_action: "Create a task",
+      proposed_actions: [],
+    },
+    agent_run_id: "r1",
+    created_entity_refs: [],
+    inbox_item_id: null,
+    created_at: "2026-06-22T00:00:00Z",
+    updated_at: "2026-06-22T00:00:00Z",
+  },
+  result: {
+    intent: "create_task",
+    confidence: 0.92,
+    ambiguity_notes: [],
+    suggested_next_action: "Create a task",
+    proposed_actions: [],
+  },
 };
 
 it("useCapture POSTs to /api/agent/capture with the provided text", async () => {

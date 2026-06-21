@@ -20,6 +20,54 @@ export interface AgentResponse {
   conversation_id: string | null;
 }
 
+export interface CaptureCandidate {
+  id: string;
+  intent: string;
+  entity_type: string;
+  confidence: number;
+  fields: Record<string, unknown>;
+  required_fields: string[];
+  missing_fields: string[];
+  warnings: string[];
+  selected: boolean;
+}
+
+export interface CaptureResult {
+  intent: string;
+  confidence: number;
+  ambiguity_notes: string[];
+  suggested_next_action: string;
+  proposed_actions: CaptureCandidate[];
+}
+
+export interface CaptureRecord {
+  id: string;
+  raw_text: string;
+  transcript: string | null;
+  source_surface: string;
+  source_metadata: Record<string, unknown>;
+  status: string;
+  confidence_summary: Record<string, unknown>;
+  structured_result: CaptureResult;
+  agent_run_id: string | null;
+  created_entity_refs: Record<string, unknown>[];
+  inbox_item_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CaptureResponse extends AgentResponse {
+  capture: CaptureRecord;
+  result: CaptureResult;
+}
+
+export interface CaptureApplyResponse {
+  agent_run_id: string;
+  reply: string;
+  writes: AgentWrite[];
+  capture: CaptureRecord | null;
+}
+
 /** A single rendered turn in a thread, as returned by /agent/conversation/*. */
 export interface ConversationMessage {
   role: "user" | "assistant";
@@ -117,8 +165,14 @@ export function useNewConversation() {
 export function useCapture() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { text: string }) =>
-      apiFetch<AgentResponse>("/agent/capture", {
+    mutationFn: (payload: {
+      text: string;
+      transcript?: string | null;
+      source_surface?: "cmd_k" | "chat" | "voice" | "telegram" | "app";
+      source_metadata?: Record<string, unknown>;
+      auto_apply?: boolean;
+    }) =>
+      apiFetch<CaptureResponse>("/agent/capture", {
         method: "POST",
         body: JSON.stringify(payload),
       }),
@@ -126,6 +180,38 @@ export function useCapture() {
       qc.invalidateQueries({ queryKey: CONVERSATION_KEY, refetchType: "none" });
       invalidateForWrites(qc, data.writes);
     },
+  });
+}
+
+export function useApplyCapture() {
+  return useMutation({
+    mutationFn: (payload: { captureId: string; actions?: CaptureCandidate[] }) =>
+      apiFetch<CaptureApplyResponse>(`/agent/captures/${payload.captureId}/apply`, {
+        method: "POST",
+        body: JSON.stringify({ actions: payload.actions }),
+      }),
+  });
+}
+
+export function useInboxCapture() {
+  return useMutation({
+    mutationFn: (payload: { captureId: string; reason?: string; suggested_action?: string }) =>
+      apiFetch<CaptureApplyResponse>(`/agent/captures/${payload.captureId}/inbox`, {
+        method: "POST",
+        body: JSON.stringify({
+          reason: payload.reason,
+          suggested_action: payload.suggested_action,
+        }),
+      }),
+  });
+}
+
+export function useDismissCapture() {
+  return useMutation({
+    mutationFn: (captureId: string) =>
+      apiFetch<CaptureApplyResponse>(`/agent/captures/${captureId}/dismiss`, {
+        method: "POST",
+      }),
   });
 }
 

@@ -3,6 +3,7 @@
 The agent's LLM call is stubbed (see _fake_complete) so these stay offline and
 deterministic; the gateway logic, thread mapping, and webhook auth are real.
 """
+
 import pytest
 from sqlalchemy import select
 

@@ -13,15 +13,16 @@ import { AppShell } from "./AppShell";
 
 afterEach(() => vi.restoreAllMocks());
 
-function renderShell() {
+function renderShell(fetchImpl?: typeof fetch) {
   // /me succeeds so AppShell renders; all other endpoints return empty.
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () =>
-      new Response(JSON.stringify({ id: "1", email: "g@x.com", name: "G" }), {
-        status: 200,
-      }),
-    ),
+    fetchImpl ??
+      vi.fn(async () =>
+        new Response(JSON.stringify({ id: "1", email: "g@x.com", name: "G" }), {
+          status: 200,
+        }),
+      ),
   );
 
   const root = createRootRoute();
@@ -100,5 +101,98 @@ it("marks the highlighted command as current", async () => {
   expect(document.getElementById("cmdk-nav-contexts")).toHaveAttribute(
     "aria-current",
     "true",
+  );
+});
+
+it("shows a capture preview and applies the selected action", async () => {
+  const user = userEvent.setup();
+  const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
+    const path = String(url);
+    if (path.endsWith("/api/auth/me")) {
+      return new Response(JSON.stringify({ id: "1", email: "g@x.com", name: "G" }), { status: 200 });
+    }
+    if (path.endsWith("/api/agent/capture")) {
+      return new Response(
+        JSON.stringify({
+          agent_run_id: "r1",
+          reply: "Capture preview ready.",
+          conversation_id: null,
+          writes: [],
+          capture: {
+            id: "c1",
+            raw_text: "Create a task to call Sarah",
+            transcript: null,
+            source_surface: "cmd_k",
+            source_metadata: {},
+            status: "previewed",
+            confidence_summary: { confidence: 0.92 },
+            structured_result: {},
+            agent_run_id: "r1",
+            created_entity_refs: [],
+            inbox_item_id: null,
+            created_at: "2026-06-22T00:00:00Z",
+            updated_at: "2026-06-22T00:00:00Z",
+          },
+          result: {
+            intent: "create_task",
+            confidence: 0.92,
+            ambiguity_notes: [],
+            suggested_next_action: "Create a task",
+            proposed_actions: [
+              {
+                id: "task-1",
+                intent: "create_task",
+                entity_type: "task",
+                confidence: 0.92,
+                fields: {
+                  title: "call Sarah",
+                  status: "open",
+                  priority: "normal",
+                  body: "Create a task to call Sarah",
+                },
+                required_fields: ["title"],
+                missing_fields: [],
+                warnings: [],
+                selected: true,
+              },
+            ],
+          },
+        }),
+        { status: 200 },
+      );
+    }
+    if (path.endsWith("/api/agent/captures/c1/apply")) {
+      return new Response(
+        JSON.stringify({
+          agent_run_id: "r2",
+          reply: "Capture applied.",
+          writes: [{ id: "a1", action: "create", entity_type: "task", entity_id: "t1" }],
+          capture: null,
+        }),
+        { status: 200 },
+      );
+    }
+    return new Response("{}", { status: 200 });
+  });
+  renderShell(fetchMock as typeof fetch);
+  await openPalette(user);
+
+  await user.type(
+    screen.getByRole("textbox", { name: "Command palette search" }),
+    "Create a task to call Sarah",
+  );
+  await user.click(screen.getByRole("option", { name: /Capture with Aya/ }));
+
+  expect(await screen.findByRole("region", { name: "Capture preview" })).toBeInTheDocument();
+  expect(screen.getByDisplayValue("call Sarah")).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Apply selected" }));
+
+  await waitFor(() => {
+    expect(screen.queryByRole("dialog", { name: "Command palette" })).toBeNull();
+  });
+  expect(fetchMock).toHaveBeenCalledWith(
+    "/api/agent/captures/c1/apply",
+    expect.objectContaining({ method: "POST" }),
   );
 });
