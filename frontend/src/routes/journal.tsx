@@ -82,7 +82,7 @@ export function JournalPage() {
   const today = useMemo(() => todayISO(), []);
   const [activeDate, setActiveDate] = useState(today);
 
-  useEditFromSearch(entries, (entry) => setActiveDate(entry.date));
+  const editRequest = useEditFromSearch(entries);
 
   const entriesByDate = useMemo(() => {
     const map = new Map<string, JournalEntry>();
@@ -95,6 +95,7 @@ export function JournalPage() {
   const dates = useMemo(() => {
     return [...new Set([today, ...entries.map((entry) => entry.date)])].toSorted();
   }, [entries, today]);
+  if (editRequest && activeDate !== editRequest.date) setActiveDate(editRequest.date);
 
   const activeEntry = entriesByDate.get(activeDate) ?? null;
   const activeIndex = dates.indexOf(activeDate);

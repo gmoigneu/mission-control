@@ -68,7 +68,7 @@ export function RelationshipsPage() {
   const { data: relationships = [] } = useRelationships(
     searchQuery ? { q: searchQuery } : undefined,
   );
-  useEditFromSearch(relationships, handleEdit);
+  const editRequest = useEditFromSearch(relationships);
   const { data: people = [] } = usePeople();
   const { data: contexts = [] } = useContexts();
   const createRelationship = useCreateRelationship();
@@ -79,6 +79,7 @@ export function RelationshipsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   useHotkey("c", handleNew, !panelOpen);
+  if (editRequest) handleEdit(editRequest);
 
   const personMap = Object.fromEntries(people.map((p) => [p.id, p]));
 

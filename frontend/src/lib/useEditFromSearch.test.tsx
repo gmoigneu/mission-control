@@ -14,7 +14,8 @@ type Item = { id: string };
 function setup(initial: string, items: Item[], onOpen: (i: Item) => void) {
   const root = createRootRoute();
   function RouteComponent() {
-    useEditFromSearch(items, onOpen);
+    const editRequest = useEditFromSearch(items);
+    if (editRequest) onOpen(editRequest);
     return <div>x</div>;
   }
   const x = createRoute({

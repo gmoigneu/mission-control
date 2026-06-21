@@ -30,7 +30,7 @@ const EMPTY_FORM: FormState = { title: "", slug: "", body: "" };
 
 export function KnowledgePage() {
   const { data: knowledge = [] } = useKnowledge();
-  useEditFromSearch(knowledge, handleEdit);
+  const editRequest = useEditFromSearch(knowledge);
   const createKnowledge = useCreateKnowledge();
   const updateKnowledge = useUpdateKnowledge();
   const deleteKnowledge = useDeleteKnowledge();
@@ -39,6 +39,7 @@ export function KnowledgePage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   useHotkey("c", handleNew, !panelOpen);
+  if (editRequest) handleEdit(editRequest);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>

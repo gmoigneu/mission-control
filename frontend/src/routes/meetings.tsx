@@ -103,7 +103,7 @@ function meetingsReducer(state: MeetingsState, action: MeetingsAction): Meetings
 
 export function MeetingsPage() {
   const { data: meetings = [] } = useMeetings();
-  useEditFromSearch(meetings, handleEdit);
+  const editRequest = useEditFromSearch(meetings);
   const { data: contexts = [] } = useContexts();
   const { data: projects = [] } = useProjects();
   const { data: people = [] } = usePeople();
@@ -117,6 +117,7 @@ export function MeetingsPage() {
   const [state, dispatch] = useReducer(meetingsReducer, undefined, initialMeetingsState);
   const { form, editingId, panelOpen, attendeeFor, attendeePerson } = state;
   useHotkey("c", handleNew, !panelOpen);
+  if (editRequest) handleEdit(editRequest);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>

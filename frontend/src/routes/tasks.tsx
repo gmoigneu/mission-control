@@ -361,7 +361,7 @@ function groupTasks(tasks: Task[], groupBy: GroupBy, today: string): Group[] {
 
 export function TasksPage() {
   const { data: tasks = [] } = useTasks();
-  useEditFromSearch(tasks, handleEdit);
+  const editRequest = useEditFromSearch(tasks);
   const { data: contexts = [] } = useContexts();
   const { data: projects = [] } = useProjects();
   const createTask = useCreateTask();
@@ -455,6 +455,7 @@ export function TasksPage() {
     () => groupTasks(visibleTasks, groupBy, today),
     [visibleTasks, groupBy, today],
   );
+  if (editRequest) handleEdit(editRequest);
 
   const columns = [
     {

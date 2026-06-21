@@ -38,7 +38,7 @@ const EMPTY_FORM: FormState = {
 
 export function ContextsPage() {
   const { data: contexts = [] } = useContexts();
-  useEditFromSearch(contexts, handleEdit);
+  const editRequest = useEditFromSearch(contexts);
   const createContext = useCreateContext();
   const updateContext = useUpdateContext();
   const deleteContext = useDeleteContext();
@@ -47,6 +47,7 @@ export function ContextsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   useHotkey("c", handleNew, !panelOpen);
+  if (editRequest) handleEdit(editRequest);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>

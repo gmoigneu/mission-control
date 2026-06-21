@@ -60,7 +60,7 @@ function buildPayload(form: FormState) {
 
 export function ObservationsPage() {
   const { data: observations = [] } = useObservations();
-  useEditFromSearch(observations, handleEdit);
+  const editRequest = useEditFromSearch(observations);
   const createObservation = useCreateObservation();
   const updateObservation = useUpdateObservation();
   const deleteObservation = useDeleteObservation();
@@ -69,6 +69,7 @@ export function ObservationsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   useHotkey("c", handleNew, !panelOpen);
+  if (editRequest) handleEdit(editRequest);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>

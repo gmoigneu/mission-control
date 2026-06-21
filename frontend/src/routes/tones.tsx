@@ -26,7 +26,7 @@ const EMPTY_FORM: FormState = { name: "", slug: "", description: "", sample: "" 
 
 export function TonesPage() {
   const { data: tones = [] } = useTones();
-  useEditFromSearch(tones, handleEdit);
+  const editRequest = useEditFromSearch(tones);
   const createTone = useCreateTone();
   const updateTone = useUpdateTone();
   const deleteTone = useDeleteTone();
@@ -35,6 +35,7 @@ export function TonesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   useHotkey("c", handleNew, !panelOpen);
+  if (editRequest) handleEdit(editRequest);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>

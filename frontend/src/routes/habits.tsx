@@ -330,7 +330,7 @@ export function HabitsPage() {
     active: "true",
   });
   const { data: checkIns = [] } = useDailyCheckIns({ days: REVIEW_DAYS, end: today });
-  useEditFromSearch(habits, handleEdit);
+  const editRequest = useEditFromSearch(habits);
   const createHabit = useCreateHabit();
   const updateHabit = useUpdateHabit();
   const deleteHabit = useDeleteHabit();
@@ -346,6 +346,7 @@ export function HabitsPage() {
     () => buildRows(habits, habitLogs, checkIns),
     [habits, habitLogs, checkIns],
   );
+  if (editRequest) handleEdit(editRequest);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>

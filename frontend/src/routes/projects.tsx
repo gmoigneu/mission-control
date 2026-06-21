@@ -43,7 +43,7 @@ const EMPTY_FORM: FormState = {
 
 export function ProjectsPage() {
   const { data: projects = [] } = useProjects();
-  useEditFromSearch(projects, handleEdit);
+  const editRequest = useEditFromSearch(projects);
   const { data: contexts = [] } = useContexts();
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
@@ -53,6 +53,7 @@ export function ProjectsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   useHotkey("c", handleNew, !panelOpen);
+  if (editRequest) handleEdit(editRequest);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>

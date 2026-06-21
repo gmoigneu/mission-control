@@ -22,7 +22,7 @@ const EMPTY_FORM: FormState = { name: "", kind: "" };
 
 export function TagsPage() {
   const { data: tags = [] } = useTags();
-  useEditFromSearch(tags, handleEdit);
+  const editRequest = useEditFromSearch(tags);
   const createTag = useCreateTag();
   const updateTag = useUpdateTag();
   const deleteTag = useDeleteTag();
@@ -31,6 +31,7 @@ export function TagsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   useHotkey("c", handleNew, !panelOpen);
+  if (editRequest) handleEdit(editRequest);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>
