@@ -20,7 +20,7 @@ import { Button, Field, Input, Select, Textarea } from "../components/ui";
 import { useContexts } from "../features/contexts/api";
 import { useProjects } from "../features/projects/api";
 import { useCreateTask, useDeleteTask, useTasks, useUpdateTask } from "../features/tasks/api";
-import type { Context, Task } from "../lib/types";
+import type { Context, Project, Task } from "../lib/types";
 import { rootRoute } from "./root";
 
 interface FormState {
@@ -103,12 +103,83 @@ const GROUP_OPTIONS = [
   { value: "due", label: "Due" },
 ];
 
-/** Selector for descendants that handle their own clicks (so a card/row click
- * doesn't also fire when one of these is the target). */
-const INTERACTIVE = "button, a, select, input, textarea, label, [role='menu']";
-
 /** Shared width so every toolbar filter select is the same size. */
 const FILTER_WIDTH: React.CSSProperties = { width: 180 };
+
+interface TaskFiltersProps {
+  full: boolean;
+  view: ViewMode;
+  groupBy: GroupBy;
+  onGroupByChange: (value: GroupBy) => void;
+  contextFilter: string;
+  onContextFilterChange: (value: string) => void;
+  contexts: Context[];
+  projectFilter: string;
+  onProjectFilterChange: (value: string) => void;
+  projects: Project[];
+  showCompleted: boolean;
+  onToggleCompleted: () => void;
+}
+
+function TaskFilters({
+  full,
+  view,
+  groupBy,
+  onGroupByChange,
+  contextFilter,
+  onContextFilterChange,
+  contexts,
+  projectFilter,
+  onProjectFilterChange,
+  projects,
+  showCompleted,
+  onToggleCompleted,
+}: TaskFiltersProps) {
+  const w: React.CSSProperties = full ? { width: "100%" } : FILTER_WIDTH;
+  return (
+    <>
+      {view === "list" && (
+        <Field label="Group by">
+          <div style={w}>
+            <Select
+              value={groupBy}
+              onChange={(value) => onGroupByChange(value as GroupBy)}
+              options={GROUP_OPTIONS}
+            />
+          </div>
+        </Field>
+      )}
+      <Field label="Context filter">
+        <div style={w}>
+          <Select
+            value={contextFilter}
+            onChange={onContextFilterChange}
+            options={contexts.map((c) => ({ value: c.id, label: c.name }))}
+            placeholder="All contexts"
+          />
+        </div>
+      </Field>
+      <Field label="Project filter">
+        <div style={w}>
+          <Select
+            value={projectFilter}
+            onChange={onProjectFilterChange}
+            options={projects.map((p) => ({ value: p.id, label: p.title }))}
+            placeholder="All projects"
+          />
+        </div>
+      </Field>
+      <Button
+        type="button"
+        aria-pressed={showCompleted}
+        className={showCompleted ? "primary" : "ghost"}
+        onClick={onToggleCompleted}
+      >
+        Show completed
+      </Button>
+    </>
+  );
+}
 
 /** A leading dot tinted by the task's context; muted/hollow when none. */
 function ContextDot({ ctx }: { ctx?: Context }) {
@@ -342,54 +413,19 @@ export function TasksPage() {
     { header: "Due", cell: (row: Task) => row.due ?? "" },
   ];
 
-  // Filter controls, shared between the desktop inline row and the mobile sheet.
-  // `full` makes each control span its container (for the stacked sheet layout).
-  function renderFilters(full: boolean) {
-    const w: React.CSSProperties = full ? { width: "100%" } : FILTER_WIDTH;
-    return (
-      <>
-        {view === "list" && (
-          <Field label="Group by">
-            <div style={w}>
-              <Select
-                value={groupBy}
-                onChange={(value) => setGroupBy(value as GroupBy)}
-                options={GROUP_OPTIONS}
-              />
-            </div>
-          </Field>
-        )}
-        <Field label="Context filter">
-          <div style={w}>
-            <Select
-              value={contextFilter}
-              onChange={setContextFilter}
-              options={contexts.map((c) => ({ value: c.id, label: c.name }))}
-              placeholder="All contexts"
-            />
-          </div>
-        </Field>
-        <Field label="Project filter">
-          <div style={w}>
-            <Select
-              value={projectFilter}
-              onChange={setProjectFilter}
-              options={projects.map((p) => ({ value: p.id, label: p.title }))}
-              placeholder="All projects"
-            />
-          </div>
-        </Field>
-        <Button
-          type="button"
-          aria-pressed={showCompleted}
-          className={showCompleted ? "primary" : "ghost"}
-          onClick={() => setShowCompleted((v) => !v)}
-        >
-          Show completed
-        </Button>
-      </>
-    );
-  }
+  const filterProps = {
+    view,
+    groupBy,
+    onGroupByChange: setGroupBy,
+    contextFilter,
+    onContextFilterChange: setContextFilter,
+    contexts,
+    projectFilter,
+    onProjectFilterChange: setProjectFilter,
+    projects,
+    showCompleted,
+    onToggleCompleted: () => setShowCompleted((v) => !v),
+  };
 
   return (
     <RequireAuth>
@@ -440,7 +476,7 @@ export function TasksPage() {
                 {activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
               </Button>
             ) : (
-              renderFilters(false)
+              <TaskFilters {...filterProps} full={false} />
             )}
           </div>
 
@@ -450,7 +486,7 @@ export function TasksPage() {
               onClose={() => setFiltersOpen(false)}
               title="Filters"
             >
-              {renderFilters(true)}
+              <TaskFilters {...filterProps} full />
             </BottomSheet>
           )}
 
@@ -829,16 +865,11 @@ function BoardCard({
     : null;
   return (
     <article
-      onClick={(e) => {
-        if ((e.target as HTMLElement).closest(INTERACTIVE)) return;
-        onEdit(task);
-      }}
       style={{
         background: "var(--surface-2)",
         border: "1px solid var(--line-soft)",
         borderRadius: "var(--r-sm)",
         padding: "10px",
-        cursor: "pointer",
       }}
     >
       <button
