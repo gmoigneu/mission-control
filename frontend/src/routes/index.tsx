@@ -1,5 +1,6 @@
 import { createRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Check, Flame } from "lucide-react";
+import type { CSSProperties } from "react";
 import { useState } from "react";
 import { AppShell } from "../components/AppShell";
 import {
@@ -24,6 +25,10 @@ import type { Habit } from "../lib/types";
 import { rootRoute } from "./root";
 
 // ─── Local helpers ──────────────────────────────────────────────────────────────
+
+const DASHBOARD_HABIT_TOGGLE_STYLE = {
+  "--dashboard-habit-color": "var(--st-done)",
+} as CSSProperties;
 
 function todayISO(): string {
   const d = new Date();
@@ -68,46 +73,34 @@ function Gauge({
 }) {
   const score = value ?? 0;
   return (
-    <div
-      className="row"
-      style={{ justifyContent: "space-between", alignItems: "center" }}
-    >
+    <div className="row dashboard-gauge">
       <span className="label">{label}</span>
       <div className="row gap-1">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button
-            key={n}
-            type="button"
-            onClick={() => onSet(n)}
-            title={`${label} ${n} of 5`}
-            aria-label={`${label} ${n} of 5`}
-            aria-pressed={n <= score}
-            disabled={disabled}
-            style={{
-              width: 16,
-              height: 16,
-              padding: 0,
-              border: 0,
-              cursor: disabled ? "default" : "pointer",
-              background: "transparent",
-            }}
-          >
-            <span
-              style={{
-                display: "block",
-                width: 12,
-                height: 12,
-                borderRadius: 3,
-                background: n <= score ? tint : "var(--surface-4)",
-                boxShadow:
-                  n <= score
-                    ? `0 0 8px color-mix(in oklch, ${tint} 50%, transparent)`
-                    : "none",
-                transition: "background 150ms, box-shadow 150ms",
-              }}
-            />
-          </button>
-        ))}
+        {[1, 2, 3, 4, 5].map((n) => {
+          const active = n <= score;
+          const style = {
+            "--dashboard-gauge-tint": tint,
+          } as CSSProperties;
+          return (
+            <button
+              key={n}
+              type="button"
+              onClick={() => onSet(n)}
+              title={`${label} ${n} of 5`}
+              aria-label={`${label} ${n} of 5`}
+              aria-pressed={active}
+              disabled={disabled}
+              className={
+                "dashboard-gauge-button" +
+                (active ? " active" : "") +
+                (disabled ? " disabled" : "")
+              }
+              style={style}
+            >
+              <span />
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -126,22 +119,7 @@ function CheckBtn({
     <button
       type="button"
       onClick={onClick}
-      className="check-btn"
-      style={{
-        width: 18,
-        height: 18,
-        borderRadius: 5,
-        flexShrink: 0,
-        cursor: "pointer",
-        border: `1.5px solid ${checked ? "var(--signal)" : "var(--line-bright)"}`,
-        background: checked ? "var(--signal)" : "transparent",
-        color: "var(--signal-ink)",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 0,
-        transition: "background 150ms, border-color 150ms, color 150ms",
-      }}
+      className={"check-btn" + (checked ? " active" : "")}
     >
       {checked && <Check size={12} strokeWidth={3} />}
     </button>
@@ -158,9 +136,8 @@ function HabitRow({
   onLog: (habit: Habit, value?: number) => void;
 }) {
   const done = habit.logged_today;
-  const col = done ? "var(--st-done)" : "transparent";
   return (
-    <div className="row gap-3" style={{ alignItems: "center" }}>
+    <div className="row gap-3 dashboard-habit-row">
       {habit.tracking_type === "score" ? (
         <div className="row gap-1" aria-label={`${habit.name} score for today`}>
           {[0, 1, 2, 3, 4, 5].map((value) => {
@@ -173,21 +150,7 @@ function HabitRow({
                 title={`${habit.name} ${value} of 5 today`}
                 aria-label={`${habit.name} ${value} of 5 today`}
                 aria-pressed={active}
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: 6,
-                  cursor: "pointer",
-                  border: `1px solid ${active ? "var(--st-warn)" : "var(--line-bright)"}`,
-                  background: active ? "var(--st-warn)" : "transparent",
-                  color: active ? "var(--signal-ink)" : "var(--fg-dim)",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: 0,
-                  fontSize: 12,
-                  fontVariantNumeric: "tabular-nums",
-                }}
+                className={"dashboard-habit-score" + (active ? " active" : "")}
               >
                 {value}
               </button>
@@ -200,19 +163,8 @@ function HabitRow({
           onClick={() => onLog(habit)}
           title="Tap to log today"
           aria-label={`Toggle ${habit.name} for today`}
-          style={{
-            width: 24,
-            height: 24,
-            borderRadius: 7,
-            cursor: "pointer",
-            flexShrink: 0,
-            border: `1px solid ${done ? col : "var(--line-bright)"}`,
-            background: done ? col : "transparent",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: done ? "var(--signal-ink)" : "var(--fg-dim)",
-          }}
+          className={"dashboard-habit-toggle" + (done ? " active" : "")}
+          style={DASHBOARD_HABIT_TOGGLE_STYLE}
         >
           {done && <Check size={13} strokeWidth={2.4} />}
         </button>
