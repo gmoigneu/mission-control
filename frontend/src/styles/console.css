@@ -721,7 +721,15 @@ a:focus-visible {
   .leftnav.mobile-open { transform: none; }
   .leftnav .nav-item { justify-content: flex-start !important; padding: 10px 12px !important; }
   .leftnav .nav-item span { display: inline !important; }
-  .nav-scrim { display: block; position: fixed; inset: 56px 0 0; background: oklch(0.1 0.01 258 / 0.5); z-index: 45; }
+  .nav-scrim {
+    display: block;
+    position: fixed;
+    inset: 56px 0 0;
+    background: oklch(0.1 0.01 258 / 0.5);
+    z-index: 45;
+    border: 0;
+    padding: 0;
+  }
   /* The shell is a single column on mobile; force main to occupy it. Without
      this, main's desktop `grid-column: 2` lands it in an implicit column while
      an empty `1fr` sits to its left, squashing the page into a narrow strip.

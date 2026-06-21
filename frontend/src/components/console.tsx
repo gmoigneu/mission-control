@@ -240,12 +240,22 @@ export function ContextChip({
   children: ReactNode;
   onClick?: () => void;
 }) {
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        className="chip"
+        onClick={onClick}
+        style={{ cursor: "pointer" }}
+      >
+        <span className="dot" style={{ background: tint }} />
+        {children}
+      </button>
+    );
+  }
+
   return (
-    <span
-      className="chip"
-      onClick={onClick}
-      style={onClick ? { cursor: "pointer" } : undefined}
-    >
+    <span className="chip">
       <span className="dot" style={{ background: tint }} />
       {children}
     </span>

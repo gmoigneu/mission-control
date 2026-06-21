@@ -370,6 +370,7 @@ function AyaQuakeInner() {
             ref={inputRef}
             className="input"
             placeholder="Message Aya…  (/new for a fresh thread)"
+            aria-label="Message Aya"
             value={msg}
             onChange={(e) => setMsg(e.target.value)}
             disabled={chat.isPending}

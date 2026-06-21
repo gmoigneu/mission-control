@@ -69,7 +69,7 @@ it("opens the command palette as an aria-modal dialog and focuses the input", as
   renderShell();
   const dialog = await openPalette(user);
   expect(dialog).toHaveAttribute("aria-modal", "true");
-  expect(screen.getByRole("combobox")).toHaveFocus();
+  expect(screen.getByRole("textbox", { name: "Command palette search" })).toHaveFocus();
 });
 
 it("acts on a nav entry via ArrowDown + Enter and closes the palette", async () => {
@@ -91,7 +91,7 @@ it("exposes the highlighted option via aria-activedescendant", async () => {
   renderShell();
   await openPalette(user);
 
-  const input = screen.getByRole("combobox");
+  const input = screen.getByRole("textbox", { name: "Command palette search" });
   // With no query, the first nav option (Dashboard) is active.
   expect(input).toHaveAttribute("aria-activedescendant", "cmdk-nav-dashboard");
   await user.keyboard("{ArrowDown}");

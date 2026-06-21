@@ -334,9 +334,12 @@ function SettingsPopover({
   }, [close]);
   return (
     <>
-      <div
+      <button
+        type="button"
+        aria-label="Close display settings"
+        tabIndex={-1}
         onClick={close}
-        style={{ position: "fixed", inset: 0, zIndex: 41 }}
+        style={{ position: "fixed", inset: 0, zIndex: 41, border: 0, padding: 0, background: "transparent" }}
       />
       <div
         ref={ref}
@@ -441,9 +444,12 @@ function AvatarMenu({
   }, [onClose]);
   return (
     <>
-      <div
+      <button
+        type="button"
+        aria-label="Close account menu"
+        tabIndex={-1}
         onClick={onClose}
-        style={{ position: "fixed", inset: 0, zIndex: 41 }}
+        style={{ position: "fixed", inset: 0, zIndex: 41, border: 0, padding: 0, background: "transparent" }}
       />
       <div
         ref={ref}
@@ -625,7 +631,10 @@ function CommandPalette({
   return (
     <>
       {/* Backdrop */}
-      <div
+      <button
+        type="button"
+        aria-label="Close command palette"
+        tabIndex={-1}
         onClick={onClose}
         style={{
           position: "fixed",
@@ -633,6 +642,8 @@ function CommandPalette({
           zIndex: 80,
           background: "oklch(0.1 0.01 258 / 0.55)",
           backdropFilter: "blur(4px)",
+          border: 0,
+          padding: 0,
         }}
       />
       {/* Modal */}
@@ -662,11 +673,10 @@ function CommandPalette({
           className="input"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          aria-label="Command palette search"
           placeholder="Capture anything… or navigate"
           style={{ marginBottom: 12 }}
           disabled={isPending}
-          role="combobox"
-          aria-expanded={actions.length > 0}
           aria-controls="cmdk-listbox"
           aria-activedescendant={activeId}
           aria-autocomplete="list"
@@ -1058,8 +1068,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Nav scrim (mobile) */}
       {mobileNav && (
-        <div
+        <button
+          type="button"
           className="nav-scrim"
+          aria-label="Close navigation"
+          tabIndex={-1}
           onClick={() => setMobileNav(false)}
         />
       )}
