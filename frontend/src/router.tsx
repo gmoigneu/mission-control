@@ -6,6 +6,7 @@ import { contextsRoute } from "./routes/contexts";
 import { projectsRoute } from "./routes/projects";
 import { peopleRoute } from "./routes/people";
 import { personDetailRoute } from "./routes/person-detail";
+import { planningRoute } from "./routes/planning";
 import { tasksRoute } from "./routes/tasks";
 import { companiesRoute } from "./routes/companies";
 import { companyDetailRoute } from "./routes/company-detail";
@@ -35,6 +36,7 @@ const routeTree = rootRoute.addChildren([
   projectsRoute,
   peopleRoute,
   personDetailRoute,
+  planningRoute,
   tasksRoute,
   companiesRoute,
   companyDetailRoute,
