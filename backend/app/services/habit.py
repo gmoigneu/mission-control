@@ -142,15 +142,16 @@ def compute_streak(
 
 async def habit_stats(
     db: AsyncSession, habit_id: uuid.UUID, *, today: date | None = None
-) -> tuple[int, bool]:
-    """Return (current streak, whether today is logged done) for a habit."""
+) -> tuple[int, bool, int | None]:
+    """Return (streak, whether today is logged, today's score) for a habit."""
     today = today or date.today()
     logs = await list_logs(db, habit_id)
     habit = await get_habit(db, habit_id)
     tracking_type = habit.tracking_type if habit is not None else "boolean"
     streak = compute_streak(logs, today=today, tracking_type=tracking_type)
-    logged_today = any(
-        log.date == today and (log.score is not None if tracking_type == "score" else log.done)
-        for log in logs
+    today_log = next((log for log in logs if log.date == today), None)
+    logged_today = bool(
+        today_log and (today_log.score is not None if tracking_type == "score" else today_log.done)
     )
-    return streak, logged_today
+    today_score = today_log.score if today_log and tracking_type == "score" else None
+    return streak, logged_today, today_score

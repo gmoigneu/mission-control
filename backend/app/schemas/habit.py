@@ -36,6 +36,7 @@ class HabitOut(BaseModel):
     active: bool
     streak: int = 0
     logged_today: bool = False
+    today_score: int | None = None
     created_at: datetime
     updated_at: datetime
 

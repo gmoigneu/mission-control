@@ -22,6 +22,7 @@ async def test_habits_crud_flow(client, db):
     assert body["active"] is True
     assert body["streak"] == 0
     assert body["logged_today"] is False
+    assert body["today_score"] is None
 
     listing = await client.get("/habits")
     assert listing.status_code == 200
@@ -83,6 +84,17 @@ async def test_habit_logs_and_streak(client, db):
     got = await client.get(f"/habits/{hid}")
     assert got.json()["logged_today"] is False
     assert got.json()["streak"] == 2
+
+    score_habit = await client.post(
+        "/habits", json={"slug": "focus-score", "name": "Focus score", "tracking_type": "score"}
+    )
+    score_id = score_habit.json()["id"]
+    await client.post(
+        f"/habits/{score_id}/logs", json={"date": today.isoformat(), "score": 4}
+    )
+    got_score = await client.get(f"/habits/{score_id}")
+    assert got_score.json()["logged_today"] is True
+    assert got_score.json()["today_score"] == 4
 
 
 async def test_score_habit_logs_and_history(client, db):

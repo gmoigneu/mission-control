@@ -68,9 +68,11 @@ export interface Habit {
   slug: string;
   name: string;
   cadence: string;
+  tracking_type: "boolean" | "score";
   active: boolean;
   streak: number;
   logged_today: boolean;
+  today_score: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -78,6 +80,7 @@ export interface HabitCreate {
   slug: string;
   name: string;
   cadence?: string;
+  tracking_type?: "boolean" | "score";
   active?: boolean;
 }
 export type HabitUpdate = Partial<HabitCreate>;
@@ -87,12 +90,14 @@ export interface HabitLog {
   habit_id: string;
   date: string;
   done: boolean;
+  score: number | null;
   created_at: string;
   updated_at: string;
 }
 export interface HabitLogCreate {
   date: string;
   done?: boolean;
+  score?: number | null;
 }
 
 export interface DailyCheckIn {

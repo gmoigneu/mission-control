@@ -20,10 +20,11 @@ router = APIRouter(prefix="/habits", tags=["habits"], dependencies=[Depends(get_
 
 
 async def _to_out(db: AsyncSession, habit: Habit) -> HabitOut:
-    streak, logged_today = await svc.habit_stats(db, habit.id)
+    streak, logged_today, today_score = await svc.habit_stats(db, habit.id)
     out = HabitOut.model_validate(habit)
     out.streak = streak
     out.logged_today = logged_today
+    out.today_score = today_score
     return out
 
 

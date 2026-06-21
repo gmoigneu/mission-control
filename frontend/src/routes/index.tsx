@@ -152,35 +152,70 @@ function CheckBtn({
 
 function HabitRow({
   habit,
-  onToggle,
+  onLog,
 }: {
   habit: Habit;
-  onToggle: (habit: Habit) => void;
+  onLog: (habit: Habit, value?: number) => void;
 }) {
   const done = habit.logged_today;
   const col = done ? "var(--st-done)" : "transparent";
   return (
     <div className="row gap-3" style={{ alignItems: "center" }}>
-      <button
-        onClick={() => onToggle(habit)}
-        title="Tap to log today"
-        aria-label={`Toggle ${habit.name} for today`}
-        style={{
-          width: 24,
-          height: 24,
-          borderRadius: 7,
-          cursor: "pointer",
-          flexShrink: 0,
-          border: `1px solid ${done ? col : "var(--line-bright)"}`,
-          background: done ? col : "transparent",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: done ? "var(--signal-ink)" : "var(--fg-dim)",
-        }}
-      >
-        {done && <Check size={13} strokeWidth={2.4} />}
-      </button>
+      {habit.tracking_type === "score" ? (
+        <div className="row gap-1" aria-label={`${habit.name} score for today`}>
+          {[0, 1, 2, 3, 4, 5].map((value) => {
+            const active = habit.today_score === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => onLog(habit, value)}
+                title={`${habit.name} ${value} of 5 today`}
+                aria-label={`${habit.name} ${value} of 5 today`}
+                aria-pressed={active}
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  border: `1px solid ${active ? "var(--st-warn)" : "var(--line-bright)"}`,
+                  background: active ? "var(--st-warn)" : "transparent",
+                  color: active ? "var(--signal-ink)" : "var(--fg-dim)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 0,
+                  fontSize: 10,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {value}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <button
+          onClick={() => onLog(habit)}
+          title="Tap to log today"
+          aria-label={`Toggle ${habit.name} for today`}
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 7,
+            cursor: "pointer",
+            flexShrink: 0,
+            border: `1px solid ${done ? col : "var(--line-bright)"}`,
+            background: done ? col : "transparent",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: done ? "var(--signal-ink)" : "var(--fg-dim)",
+          }}
+        >
+          {done && <Check size={13} strokeWidth={2.4} />}
+        </button>
+      )}
       <span style={{ flex: 1, fontSize: 13 }}>{habit.name}</span>
       <span
         className="row gap-1 meta"
@@ -285,7 +320,11 @@ export function Dashboard() {
     );
   }
 
-  function toggleHabit(habit: Habit) {
+  function logHabitToday(habit: Habit, value?: number) {
+    if (habit.tracking_type === "score") {
+      logHabit.mutate({ id: habit.id, data: { date: today, score: value ?? 0 } });
+      return;
+    }
     logHabit.mutate({ id: habit.id, data: { date: today, done: !habit.logged_today } });
   }
 
@@ -682,7 +721,7 @@ export function Dashboard() {
                 ) : (
                   <div className="col gap-2">
                     {habits.map((h) => (
-                      <HabitRow key={h.id} habit={h} onToggle={toggleHabit} />
+                      <HabitRow key={h.id} habit={h} onLog={logHabitToday} />
                     ))}
                   </div>
                 )}
