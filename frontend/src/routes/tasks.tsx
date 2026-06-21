@@ -459,6 +459,11 @@ export function TasksPage() {
             <ListView
               groups={groups}
               columns={columns}
+              isMobile={isMobile}
+              contextById={contextById}
+              contextMap={contextMap}
+              projectMap={projectMap}
+              onStatusChange={handleStatusChange}
               onRowClick={handleEdit}
               empty={hasFilter ? "No tasks match these filters." : "No tasks yet."}
             />
@@ -611,11 +616,21 @@ export function TasksPage() {
 function ListView({
   groups,
   columns,
+  isMobile,
+  contextById,
+  contextMap,
+  projectMap,
+  onStatusChange,
   onRowClick,
   empty,
 }: {
   groups: Group[];
   columns: { header: string; cell: (row: Task) => React.ReactNode }[];
+  isMobile: boolean;
+  contextById: Record<string, Context>;
+  contextMap: Record<string, string>;
+  projectMap: Record<string, string>;
+  onStatusChange: (row: Task, status: string) => void;
   onRowClick: (row: Task) => void;
   empty: string;
 }) {
@@ -648,10 +663,79 @@ function ListView({
               {group.tasks.length}
             </span>
           </div>
-          <DataTable rows={group.tasks} columns={columns} onRowClick={onRowClick} empty={empty} />
+          {isMobile ? (
+            <div className="space-y-2">
+              {group.tasks.map((task) => (
+                <MobileTaskCard
+                  key={task.id}
+                  task={task}
+                  contextById={contextById}
+                  contextMap={contextMap}
+                  projectMap={projectMap}
+                  onEdit={onRowClick}
+                  onStatusChange={onStatusChange}
+                />
+              ))}
+            </div>
+          ) : (
+            <DataTable rows={group.tasks} columns={columns} onRowClick={onRowClick} empty={empty} />
+          )}
         </section>
       ))}
     </div>
+  );
+}
+
+function MobileTaskCard({
+  task,
+  contextById,
+  contextMap,
+  projectMap,
+  onEdit,
+  onStatusChange,
+}: {
+  task: Task;
+  contextById: Record<string, Context>;
+  contextMap: Record<string, string>;
+  projectMap: Record<string, string>;
+  onEdit: (row: Task) => void;
+  onStatusChange: (row: Task, status: string) => void;
+}) {
+  const ctx = task.context_id ? contextById[task.context_id] : undefined;
+  const contextName = task.context_id ? (contextMap[task.context_id] ?? task.context_id) : null;
+  const projectName = task.project_id ? (projectMap[task.project_id] ?? task.project_id) : null;
+
+  return (
+    <article
+      className="card task-card"
+      style={{ padding: 12 }}
+    >
+      <div className="row" style={{ justifyContent: "space-between", gap: 12 }}>
+        <button
+          type="button"
+          style={{ ...titleButtonStyle, fontSize: 14, fontWeight: 600 }}
+          onClick={() => onEdit(task)}
+        >
+          <ContextDot ctx={ctx} />
+          {task.title}
+        </button>
+        <PriorityIcon priority={task.priority} withLabel />
+      </div>
+      {(contextName || projectName || task.due) && (
+        <div className="row wrap gap-2" style={{ marginTop: 10 }}>
+          {contextName && <span className="chip">{contextName}</span>}
+          {projectName && <span className="chip">{projectName}</span>}
+          {task.due && <span className="chip">Due {task.due}</span>}
+        </div>
+      )}
+      <div className="row" style={{ marginTop: 10 }}>
+        <StatusBadgeMenu
+          status={task.status}
+          options={STATUS_OPTIONS}
+          onChange={(status) => onStatusChange(task, status)}
+        />
+      </div>
+    </article>
   );
 }
 

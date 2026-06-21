@@ -1,10 +1,10 @@
-import { createRoute, Link } from "@tanstack/react-router";
+import { createRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Building2, FolderKanban, Layers, SquareCheckBig, Users } from "lucide-react";
 import { type ComponentType, type ReactNode, useState } from "react";
 import { AppShell } from "../components/AppShell";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
-import { Badge, Input } from "../components/ui";
+import { Badge, Button, Input } from "../components/ui";
 import { useSearch } from "../features/search/api";
 import type { SearchResult } from "../lib/types";
 import { rootRoute } from "./root";
@@ -106,46 +106,70 @@ const columns = [
 
 export function SearchPage() {
   const { q: initialQ } = searchRoute.useSearch();
-  // Seed from URL param on mount (e.g. when navigated from ⌘K with a query)
-  const [input, setInput] = useState(initialQ ?? "");
-  const [query, setQuery] = useState(initialQ ?? "");
+  const initialQuery = initialQ ?? "";
 
-  const { data = [] } = useSearch(query);
+  return (
+    <RequireAuth>
+      <AppShell>
+        <SearchWorkspace key={initialQuery} initialQuery={initialQuery} />
+      </AppShell>
+    </RequireAuth>
+  );
+}
+
+function SearchWorkspace({ initialQuery }: { initialQuery: string }) {
+  const navigate = useNavigate({ from: "/search" });
+  // Seed from URL param on mount (e.g. when navigated from ⌘K with a query)
+  const [input, setInput] = useState(initialQuery);
+  const [query, setQuery] = useState(initialQuery);
+
+  const { data = [], isFetching } = useSearch(query);
 
   const rows: SearchRow[] = data.map((r) => ({
     ...r,
     id: `${r.subject_type}:${r.subject_id}`,
   }));
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") {
-      setQuery(input.trim());
-    }
+  function runSearch(e?: React.FormEvent) {
+    e?.preventDefault();
+    const next = input.trim();
+    setQuery(next);
+    void navigate({
+      to: "/search",
+      search: { q: next || undefined },
+    });
   }
 
   return (
-    <RequireAuth>
-      <AppShell>
-        <div
-          className="page"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 24,
-          }}
-        >
-          <h1 className="title">Search</h1>
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Type a query and press Enter…"
-            aria-label="Search query"
-          />
-          <DataTable rows={rows} columns={columns} empty="No results." />
-        </div>
-      </AppShell>
-    </RequireAuth>
+    <div
+      className="page"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 24,
+      }}
+    >
+      <h1 className="title">Search</h1>
+      <form onSubmit={runSearch} className="row gap-2" role="search">
+        <Input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Search people, tasks, projects, contexts..."
+          aria-label="Search query"
+        />
+        <Button type="submit">Search</Button>
+      </form>
+      {query ? (
+        <p className="meta" aria-live="polite">
+          {isFetching ? "Searching..." : `Showing results for "${query}".`}
+        </p>
+      ) : (
+        <p className="meta">Enter a query to search across mission control.</p>
+      )}
+      {query ? (
+        <DataTable rows={rows} columns={columns} empty={`No results for "${query}".`} />
+      ) : null}
+    </div>
   );
 }
 
