@@ -107,38 +107,9 @@ interface Toast {
 
 function Logo() {
   return (
-    <span
-      style={{
-        width: 30,
-        height: 30,
-        borderRadius: 8,
-        background: "var(--surface-3)",
-        border: "1px solid var(--line-bright)",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-        flexShrink: 0,
-      }}
-    >
-      <span
-        style={{
-          width: 9,
-          height: 9,
-          borderRadius: 9,
-          background: "var(--signal)",
-          boxShadow: "0 0 10px var(--signal-halo)",
-        }}
-      />
-      <span
-        style={{
-          position: "absolute",
-          inset: 5,
-          border: "1px solid var(--line-bright)",
-          borderRadius: 5,
-          opacity: 0.6,
-        }}
-      />
+    <span className="app-logo">
+      <span className="app-logo-core" />
+      <span className="app-logo-frame" />
     </span>
   );
 }
@@ -218,15 +189,7 @@ function Toggle2({
   text?: boolean;
 }) {
   return (
-    <div
-      className="row"
-      style={{
-        background: "var(--bg-deep)",
-        borderRadius: "var(--r-sm)",
-        padding: 2,
-        border: "1px solid var(--line)",
-      }}
-    >
+    <div className="row toggle2">
       {[a, b].map((opt, i) => {
         const IconComp = i === 0 ? iconA : iconB;
         return (
@@ -234,19 +197,11 @@ function Toggle2({
             type="button"
             key={opt}
             onClick={() => onChange(opt)}
-            className="row gap-1"
-            style={{
-              padding: text ? "4px 9px" : "4px 8px",
-              borderRadius: 5,
-              border: 0,
-              cursor: "pointer",
-              fontFamily: text ? "var(--mono)" : "var(--sans)",
-              fontSize: text ? 10.5 : 12,
-              letterSpacing: text ? "0.04em" : 0,
-              textTransform: text ? "uppercase" : "none",
-              background: value === opt ? "var(--surface-4)" : "transparent",
-              color: value === opt ? "var(--fg)" : "var(--fg-dim)",
-            }}
+            className={
+              "row gap-1 toggle2-option" +
+              (text ? " text" : "") +
+              (value === opt ? " active" : "")
+            }
           >
             {!text && IconComp && <IconComp size={13} strokeWidth={1.6} />}
             {opt}
@@ -265,15 +220,8 @@ function SetRow({
   children: ReactNode;
 }) {
   return (
-    <div
-      className="row"
-      style={{
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 11,
-      }}
-    >
-      <span style={{ fontSize: 13 }}>{label}</span>
+    <div className="row settings-row">
+      <span className="settings-row-label">{label}</span>
       {children}
     </div>
   );
@@ -334,7 +282,7 @@ function SettingsPopover({
       <div
         className="card rise shell-popover-card shell-popover-card-settings"
       >
-        <div className="label" style={{ marginBottom: 12 }}>
+        <div className="label settings-title">
           Display
         </div>
         <SetRow label="Theme">
@@ -356,14 +304,7 @@ function SettingsPopover({
             text
           />
         </SetRow>
-        <div
-          className="meta"
-          style={{
-            marginTop: 12,
-            lineHeight: 1.4,
-            color: "var(--fg-faint)",
-          }}
-        >
+        <div className="meta settings-hint">
           Press ⌘K anywhere to capture. Drag task cards between board columns.
         </div>
       </div>
@@ -378,24 +319,13 @@ function Avatar({
   initials: string;
   size?: number;
 }) {
+  const avatarStyle = {
+    "--avatar-size": `${size}px`,
+    "--avatar-font-size": `${size * 0.4}px`,
+  } as CSSProperties;
+
   return (
-    <span
-      style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        background: "var(--ctx-work)",
-        color: "var(--signal-ink)",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: size * 0.4,
-        fontWeight: 700,
-        fontFamily: "var(--mono)",
-        letterSpacing: 0,
-        flexShrink: 0,
-      }}
-    >
+    <span className="avatar" style={avatarStyle}>
       {initials}
     </span>
   );
@@ -428,43 +358,13 @@ function AvatarMenu({
       <div
         className="card rise shell-popover-card shell-popover-card-account"
       >
-        <div
-          style={{
-            padding: "8px 14px 10px",
-            borderBottom: "1px solid var(--line-soft)",
-            marginBottom: 4,
-            fontSize: 12,
-            color: "var(--fg-dim)",
-            fontFamily: "var(--mono)",
-          }}
-        >
+        <div className="account-menu-email">
           {email}
         </div>
         <button
           type="button"
           onClick={onLogout}
-          style={{
-            display: "block",
-            width: "100%",
-            textAlign: "left",
-            background: "transparent",
-            border: 0,
-            padding: "7px 14px",
-            fontSize: 13,
-            cursor: "pointer",
-            color: "var(--fg-muted)",
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background =
-              "var(--surface-3)";
-            (e.currentTarget as HTMLButtonElement).style.color = "var(--fg)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background =
-              "transparent";
-            (e.currentTarget as HTMLButtonElement).style.color =
-              "var(--fg-muted)";
-          }}
+          className="account-menu-action"
         >
           Log out
         </button>

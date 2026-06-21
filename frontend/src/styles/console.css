@@ -470,6 +470,111 @@ a:hover { color: var(--signal-bright); }
   background: var(--surface-2);
   transform: translateX(-50%);
 }
+.app-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--surface-3);
+  border: 1px solid var(--line-bright);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+.app-logo-core {
+  width: 9px;
+  height: 9px;
+  border-radius: var(--r-pill);
+  background: var(--signal);
+  box-shadow: 0 0 10px var(--signal-halo);
+}
+.app-logo-frame {
+  position: absolute;
+  inset: 5px;
+  border: 1px solid var(--line-bright);
+  border-radius: 5px;
+  opacity: 0.6;
+}
+.toggle2 {
+  background: var(--bg-deep);
+  border-radius: var(--r-sm);
+  padding: 2px;
+  border: 1px solid var(--line);
+}
+.toggle2-option {
+  padding: 4px 8px;
+  border-radius: 5px;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  background: transparent;
+  color: var(--fg-dim);
+}
+.toggle2-option.text {
+  padding: 4px 9px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.toggle2-option.active {
+  background: var(--surface-4);
+  color: var(--fg);
+}
+.settings-row {
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 11px;
+}
+.settings-row-label { font-size: 13px; }
+.settings-title { margin-bottom: 12px; }
+.settings-hint {
+  margin-top: 12px;
+  line-height: 1.4;
+  color: var(--fg-faint);
+}
+.avatar {
+  width: var(--avatar-size, 30px);
+  height: var(--avatar-size, 30px);
+  border-radius: 50%;
+  background: var(--ctx-work);
+  color: var(--signal-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--avatar-font-size, 12px);
+  font-weight: 700;
+  font-family: var(--mono);
+  letter-spacing: 0;
+  flex-shrink: 0;
+}
+.account-menu-email {
+  padding: 8px 14px 10px;
+  border-bottom: 1px solid var(--line-soft);
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--fg-dim);
+  font-family: var(--mono);
+}
+.account-menu-action {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 7px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--fg-muted);
+}
+.account-menu-action:hover {
+  background: var(--surface-3);
+  color: var(--fg);
+}
 .shell-command-input { margin-bottom: 12px; }
 .cmdk-results {
   overflow-y: auto;
