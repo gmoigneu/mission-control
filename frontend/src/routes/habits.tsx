@@ -60,6 +60,8 @@ const TRACKING_OPTIONS = [
   { value: "score", label: "Score 0-5" },
 ];
 
+const REVIEW_DAYS = 183;
+
 const BUILT_INS: Array<{ key: BuiltInMetric; label: string; tint: string }> = [
   { key: "mood", label: "Mood", tint: "var(--ctx-personal)" },
   { key: "energy", label: "Energy", tint: "var(--signal)" },
@@ -99,8 +101,8 @@ function scoreStat(values: Array<number | null>): string {
 
 function booleanStat(values: Array<boolean | null>): string {
   const done = values.filter(Boolean).length;
-  const percent = Math.round((done / 30) * 100);
-  return `${done}/30 · ${percent}%`;
+  const percent = Math.round((done / values.length) * 100);
+  return `${done}/${values.length} · ${percent}%`;
 }
 
 function cellLabel(row: ReviewRow, day: string, value: number | boolean | null): string {
@@ -127,10 +129,10 @@ function HabitReviewGrid({
 }) {
   return (
     <section className="card" style={{ padding: 18 }}>
-      <SectionLabel>30-day review</SectionLabel>
+      <SectionLabel>6-month review</SectionLabel>
       <div style={{ overflowX: "auto", paddingBottom: 2 }}>
         <table
-          aria-label="30-day habit and check-in review grid"
+          aria-label="Six-month habit and check-in review grid"
           style={{
             borderCollapse: "separate",
             borderSpacing: "4px 6px",
@@ -149,7 +151,7 @@ function HabitReviewGrid({
                 </th>
               ))}
               <th scope="col" style={headerStyle(128, "left")}>
-                30 days
+                6 months
               </th>
               <th scope="col" style={headerStyle(84, "right")}>
                 Actions
@@ -323,10 +325,14 @@ function buildRows(
 
 export function HabitsPage() {
   const today = todayISO();
-  const days = useMemo(() => lastDays(today, 30), [today]);
+  const days = useMemo(() => lastDays(today, REVIEW_DAYS), [today]);
   const { data: habits = [] } = useHabits({ active: "true" });
-  const { data: habitLogs = [] } = useHabitLogs({ days: 30, end: today, active: "true" });
-  const { data: checkIns = [] } = useDailyCheckIns({ days: 30, end: today });
+  const { data: habitLogs = [] } = useHabitLogs({
+    days: REVIEW_DAYS,
+    end: today,
+    active: "true",
+  });
+  const { data: checkIns = [] } = useDailyCheckIns({ days: REVIEW_DAYS, end: today });
   useEditFromSearch(habits, handleEdit);
   const createHabit = useCreateHabit();
   const updateHabit = useUpdateHabit();

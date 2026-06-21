@@ -162,7 +162,7 @@ it("renders the habits page and POSTs when Add is clicked", async () => {
   });
 });
 
-it("renders the combined 30-day review grid", async () => {
+it("renders the combined six-month review grid", async () => {
   const fetchMock = vi.fn(async (url: string) => {
     if (String(url).includes("/auth/me")) {
       return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
@@ -183,7 +183,7 @@ it("renders the combined 30-day review grid", async () => {
 
   renderHabits(fetchMock);
 
-  expect(await screen.findByText(/30-day review/)).toBeInTheDocument();
+  expect(await screen.findByText(/6-month review/)).toBeInTheDocument();
   expect(
     screen.getByLabelText("Mood on 2026-06-20: 4 of 5"),
   ).toBeInTheDocument();
@@ -194,6 +194,14 @@ it("renders the combined 30-day review grid", async () => {
   expect(
     screen.getByLabelText("Sleep quality on 2026-06-20: 4 of 5"),
   ).toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledWith(
+    expect.stringContaining("/habits/logs?days=183"),
+    expect.anything(),
+  );
+  expect(fetchMock).toHaveBeenCalledWith(
+    expect.stringContaining("/daily-checkins?days=183"),
+    expect.anything(),
+  );
 });
 
 it("logs a boolean habit when a grid cell is clicked", async () => {

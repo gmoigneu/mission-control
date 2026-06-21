@@ -21,7 +21,9 @@ from app.models.agent_persona import AgentPersona
 from app.models.audit import AuditLog
 from app.models.company import Company
 from app.models.context import Context
+from app.models.habit import Habit, HabitLog
 from app.models.inbox_item import InboxItem
+from app.models.journal_entry import JournalEntry
 from app.models.observation import Observation
 from app.models.person import Person
 from app.models.project import Project
@@ -39,10 +41,13 @@ _WIPE_TABLES = [
     "agent_run",
     "outbox_event",
     "chunk",
+    "habit_log",
+    "habit",
     "entity_link",
     "entity_tag",
     "task_link",
     "relationship",
+    "journal_entry",
     "observation",
     "inbox_item",
     "task",
@@ -229,9 +234,52 @@ _RELATIONSHIPS = [
     ("leo-martins", "maya-chen", "peer", "work"),
 ]
 
+# (slug, name, cadence, tracking_type)
+_HABITS = [
+    ("morning-pages", "Morning pages", "daily", "boolean"),
+    ("mobility", "Mobility", "daily", "boolean"),
+    ("strength-training", "Strength training", "weekly", "boolean"),
+    ("read-before-bed", "Read before bed", "daily", "boolean"),
+    ("sleep-quality", "Sleep quality", "daily", "score"),
+    ("focus-depth", "Focus depth", "daily", "score"),
+]
+
+_HABIT_REVIEW_DAYS = 183
+
 
 async def _wipe(db: AsyncSession) -> None:
     await db.execute(text(f"TRUNCATE {', '.join(_WIPE_TABLES)} RESTART IDENTITY CASCADE"))
+
+
+def _demo_score(day_index: int, *, phase: int) -> int:
+    wave = (day_index + phase) % 14
+    if wave in {0, 1}:
+        return 2
+    if wave in {2, 3, 4, 11}:
+        return 3
+    if wave in {5, 6, 10, 12}:
+        return 4
+    return 5
+
+
+def _demo_habit_done(slug: str, day: date, day_index: int) -> bool:
+    if slug == "morning-pages":
+        return day_index % 9 not in {2, 6}
+    if slug == "mobility":
+        return day.weekday() < 5 or day_index % 5 == 0
+    if slug == "strength-training":
+        return day.weekday() in {1, 4} and day_index % 6 != 0
+    if slug == "read-before-bed":
+        return day_index % 4 != 1
+    return False
+
+
+def _demo_habit_score(slug: str, day_index: int) -> int:
+    if slug == "sleep-quality":
+        return _demo_score(day_index, phase=3)
+    if slug == "focus-depth":
+        return 0 if day_index % 17 == 0 else _demo_score(day_index, phase=8)
+    return 0
 
 
 async def seed_demo(
@@ -328,6 +376,48 @@ async def seed_demo(
         )
     await db.flush()
 
+    habits: dict[str, Habit] = {}
+    for slug, habit_name, cadence, tracking_type in _HABITS:
+        habits[slug] = Habit(
+            slug=slug,
+            name=habit_name,
+            cadence=cadence,
+            tracking_type=tracking_type,
+            active=True,
+        )
+        db.add(habits[slug])
+    await db.flush()
+
+    habit_logs = 0
+    for day_index in range(_HABIT_REVIEW_DAYS):
+        day = _TODAY - timedelta(days=_HABIT_REVIEW_DAYS - day_index - 1)
+        db.add(
+            JournalEntry(
+                date=day,
+                title=None,
+                body="Demo daily check-in.",
+                mood=_demo_score(day_index, phase=0),
+                energy=_demo_score(day_index, phase=5),
+                productivity=_demo_score(day_index, phase=9),
+                source="demo",
+            )
+        )
+        for slug, habit in habits.items():
+            if habit.tracking_type == "score":
+                score = _demo_habit_score(slug, day_index)
+                db.add(HabitLog(habit_id=habit.id, date=day, done=score > 0, score=score))
+            else:
+                db.add(
+                    HabitLog(
+                        habit_id=habit.id,
+                        date=day,
+                        done=_demo_habit_done(slug, day, day_index),
+                        score=None,
+                    )
+                )
+            habit_logs += 1
+    await db.flush()
+
     # A small recent activity feed for the dashboard (newest first when ordered
     # by created_at desc). Mixes user (ui) and agent (chat/capture) surfaces.
     feed = [
@@ -363,6 +453,9 @@ async def seed_demo(
         "observations": len(_OBSERVATIONS),
         "inbox_items": len(_INBOX_ITEMS),
         "relationships": len(_RELATIONSHIPS),
+        "habits": len(_HABITS),
+        "habit_logs": habit_logs,
+        "daily_checkins": _HABIT_REVIEW_DAYS,
         "activity": len(feed),
         "persona": 1,
     }
