@@ -496,6 +496,83 @@ a:hover { color: var(--signal-bright); }
   border-radius: 5px;
   opacity: 0.6;
 }
+.login-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+.login-logo .app-logo-core {
+  width: 10px;
+  height: 10px;
+  box-shadow: 0 0 12px var(--signal-halo);
+}
+.login-logo .app-logo-frame {
+  inset: 6px;
+  border-radius: 6px;
+}
+.login-loading { padding: 32px; }
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  padding: 24px 16px;
+}
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  padding: 40px 36px 36px;
+}
+.login-brand { margin-bottom: 32px; }
+.login-wordmark {
+  font-size: 16px;
+  font-weight: 460;
+  letter-spacing: 0;
+}
+.login-title { margin: 0 0 28px; }
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.login-label { display: block; }
+.login-error {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--st-danger);
+  font-family: var(--mono);
+}
+.login-button {
+  width: 100%;
+  justify-content: center;
+}
+.login-form > .login-button:first-of-type { margin-top: 4px; }
+.login-divider {
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0;
+}
+.login-divider-line {
+  flex: 1;
+  height: 1px;
+}
+.login-divider-label {
+  color: var(--fg-faint);
+  font-size: 12px;
+}
+.login-footer {
+  margin-top: 24px;
+  text-align: center;
+  color: var(--fg-faint);
+  font-size: 12px;
+}
 .toggle2 {
   background: var(--bg-deep);
   border-radius: var(--r-sm);

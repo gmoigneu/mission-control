@@ -8,38 +8,9 @@ import { rootRoute } from "./root";
 
 function Logo() {
   return (
-    <span
-      style={{
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        background: "var(--surface-3)",
-        border: "1px solid var(--line-bright)",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-        flexShrink: 0,
-      }}
-    >
-      <span
-        style={{
-          width: 10,
-          height: 10,
-          borderRadius: 9,
-          background: "var(--signal)",
-          boxShadow: "0 0 12px var(--signal-halo)",
-        }}
-      />
-      <span
-        style={{
-          position: "absolute",
-          inset: 6,
-          border: "1px solid var(--line-bright)",
-          borderRadius: 6,
-          opacity: 0.6,
-        }}
-      />
+    <span className="app-logo login-logo">
+      <span className="app-logo-core" />
+      <span className="app-logo-frame" />
     </span>
   );
 }
@@ -70,62 +41,37 @@ export function LoginPage() {
 
   if (me.isLoading || me.data) {
     return (
-      <div className="meta" style={{ padding: "32px" }}>
+      <div className="meta login-loading">
         Loading…
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "var(--bg)",
-        padding: "24px 16px",
-      }}
-    >
+    <div className="login-page">
       {/* Card */}
       <div
-        className="card ticks rise"
-        style={{
-          width: "100%",
-          maxWidth: 380,
-          padding: "40px 36px 36px",
-        }}
+        className="card ticks rise login-card"
       >
         {/* Logo + wordmark */}
-        <div
-          className="row gap-3"
-          style={{ marginBottom: 32 }}
-        >
+        <div className="row gap-3 login-brand">
           <Logo />
-          <span
-            className="serif"
-            style={{ fontSize: 16, fontWeight: 460, letterSpacing: "-0.01em" }}
-          >
+          <span className="serif login-wordmark">
             Mission Control
           </span>
         </div>
 
         {/* Heading */}
-        <h1
-          className="title"
-          style={{ margin: "0 0 28px" }}
-        >
+        <h1 className="title login-title">
           Sign in
         </h1>
 
-        <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <form onSubmit={onSubmit} className="login-form">
           {/* Email */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div className="login-field">
             <label
               htmlFor="login-email"
-              className="label"
-              style={{ display: "block" }}
+              className="label login-label"
             >
               Email
             </label>
@@ -142,11 +88,10 @@ export function LoginPage() {
           </div>
 
           {/* Password */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div className="login-field">
             <label
               htmlFor="login-password"
-              className="label"
-              style={{ display: "block" }}
+              className="label login-label"
             >
               Password
             </label>
@@ -164,14 +109,7 @@ export function LoginPage() {
 
           {/* Error */}
           {login.isError && (
-            <p
-              style={{
-                margin: 0,
-                fontSize: 12.5,
-                color: "var(--st-danger)",
-                fontFamily: "var(--mono)",
-              }}
-            >
+            <p className="login-error">
               Invalid credentials — check your email and password.
             </p>
           )}
@@ -179,9 +117,8 @@ export function LoginPage() {
           {/* Submit */}
           <button
             type="submit"
-            className="btn primary"
+            className="btn primary login-button"
             disabled={login.isPending}
-            style={{ width: "100%", justifyContent: "center", marginTop: 4 }}
           >
             {login.isPending ? "Signing in…" : "Sign in"}
           </button>
@@ -189,34 +126,23 @@ export function LoginPage() {
           {/* Passkey sign-in */}
           {passkeySupported && (
             <>
-              <div
-                className="row"
-                style={{ alignItems: "center", gap: 10, margin: "2px 0" }}
-              >
-                <span className="hr" style={{ flex: 1, height: 1 }} />
-                <span className="meta" style={{ color: "var(--fg-faint)", fontSize: 12 }}>
+              <div className="row login-divider">
+                <span className="hr login-divider-line" />
+                <span className="meta login-divider-label">
                   or
                 </span>
-                <span className="hr" style={{ flex: 1, height: 1 }} />
+                <span className="hr login-divider-line" />
               </div>
               <button
                 type="button"
-                className="btn"
+                className="btn login-button"
                 onClick={onPasskey}
                 disabled={passkeyLogin.isPending}
-                style={{ width: "100%", justifyContent: "center" }}
               >
                 {passkeyLogin.isPending ? "Waiting for passkey…" : "Sign in with passkey"}
               </button>
               {passkeyLogin.isError && (
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: 12.5,
-                    color: "var(--st-danger)",
-                    fontFamily: "var(--mono)",
-                  }}
-                >
+                <p className="login-error">
                   Passkey sign-in failed — try again or use your password.
                 </p>
               )}
@@ -225,15 +151,7 @@ export function LoginPage() {
         </form>
 
         {/* Footer note */}
-        <p
-          className="meta"
-          style={{
-            marginTop: 24,
-            textAlign: "center",
-            color: "var(--fg-faint)",
-            fontSize: 12,
-          }}
-        >
+        <p className="meta login-footer">
           Your personal OS. Private by design.
         </p>
       </div>
