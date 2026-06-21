@@ -23,9 +23,10 @@ _POLL_INTERVAL = 5.0  # seconds between polls when no events are pending
 
 async def index_event(db: AsyncSession, aggregate_type: str, op: str, payload: dict) -> None:
     """Apply a single search outbox event to the chunk index."""
-    from app.search.index import INDEXABLE_TYPES, deindex_subject, index_payload
+    from app.search.index import deindex_subject, index_payload
+    from app.search.registry import SEARCHABLE_TYPES
 
-    if aggregate_type not in INDEXABLE_TYPES:
+    if aggregate_type not in SEARCHABLE_TYPES:
         return
     raw_id = payload.get("id")
     if not raw_id:

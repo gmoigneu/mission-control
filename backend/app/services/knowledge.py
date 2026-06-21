@@ -7,7 +7,6 @@ from app.audit.serialize import model_to_dict
 from app.audit.service import record_create, record_delete, record_update
 from app.models.knowledge import Knowledge
 from app.schemas.knowledge import KnowledgeCreate, KnowledgeUpdate
-from app.search.index import deindex_subject, index_subject
 
 ENTITY = "knowledge"
 
@@ -28,7 +27,6 @@ async def create_knowledge(
     db.add(obj)
     await db.flush()
     await record_create(db, ENTITY, obj, surface=surface)
-    await index_subject(db, ENTITY, obj)
     return obj
 
 
@@ -40,7 +38,6 @@ async def update_knowledge(
         setattr(obj, key, value)
     await db.flush()
     await record_update(db, ENTITY, obj, before, surface=surface)
-    await index_subject(db, ENTITY, obj)
     return obj
 
 
@@ -50,4 +47,3 @@ async def delete_knowledge(db: AsyncSession, obj: Knowledge, *, surface: str = "
     await db.delete(obj)
     await db.flush()
     await record_delete(db, ENTITY, before, entity_id, surface=surface)
-    await deindex_subject(db, ENTITY, entity_id)

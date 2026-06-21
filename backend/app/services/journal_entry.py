@@ -15,7 +15,6 @@ from app.schemas.journal_entry import (
     JournalEntryCreate,
     JournalEntryUpdate,
 )
-from app.search.index import deindex_subject, index_subject
 
 ENTITY = "journal_entry"
 
@@ -131,7 +130,6 @@ async def create_journal_entry(
     db.add(obj)
     await db.flush()
     await record_create(db, ENTITY, obj, surface=surface)
-    await index_subject(db, ENTITY, obj)
     return obj
 
 
@@ -143,7 +141,6 @@ async def update_journal_entry(
         setattr(obj, key, value)
     await db.flush()
     await record_update(db, ENTITY, obj, before, surface=surface)
-    await index_subject(db, ENTITY, obj)
     return obj
 
 
@@ -155,4 +152,3 @@ async def delete_journal_entry(
     await db.delete(obj)
     await db.flush()
     await record_delete(db, ENTITY, before, entity_id, surface=surface)
-    await deindex_subject(db, ENTITY, entity_id)

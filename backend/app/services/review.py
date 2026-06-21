@@ -7,7 +7,6 @@ from app.audit.serialize import model_to_dict
 from app.audit.service import record_create, record_delete, record_update
 from app.models.review import Review
 from app.schemas.review import ReviewCreate, ReviewUpdate
-from app.search.index import deindex_subject, index_subject
 
 ENTITY = "review"
 
@@ -26,7 +25,6 @@ async def create_review(db: AsyncSession, data: ReviewCreate, *, surface: str = 
     db.add(obj)
     await db.flush()
     await record_create(db, ENTITY, obj, surface=surface)
-    await index_subject(db, ENTITY, obj)
     return obj
 
 
@@ -38,7 +36,6 @@ async def update_review(
         setattr(obj, key, value)
     await db.flush()
     await record_update(db, ENTITY, obj, before, surface=surface)
-    await index_subject(db, ENTITY, obj)
     return obj
 
 
@@ -48,4 +45,3 @@ async def delete_review(db: AsyncSession, obj: Review, *, surface: str = "api") 
     await db.delete(obj)
     await db.flush()
     await record_delete(db, ENTITY, before, entity_id, surface=surface)
-    await deindex_subject(db, ENTITY, entity_id)
