@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
@@ -19,26 +19,28 @@ async def list_entity_links(  # noqa: B008
     from_id: uuid.UUID | None = None,
     to_type: str | None = None,
     to_id: uuid.UUID | None = None,
+    q: str | None = Query(default=None, min_length=1),
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
     return await svc.list_entity_links(
-        db, from_type=from_type, from_id=from_id, to_type=to_type, to_id=to_id
+        db, from_type=from_type, from_id=from_id, to_type=to_type, to_id=to_id, q=q
     )
 
 
 @router.post("", response_model=EntityLinkOut, status_code=status.HTTP_201_CREATED)
 async def create_entity_link(payload: EntityLinkCreate, db: AsyncSession = Depends(get_db)):  # noqa: B008
     obj = await svc.create_entity_link(db, payload, surface="ui")
+    out = await svc.get_entity_link_out(db, obj.id)
     await db.commit()
-    return obj
+    return out
 
 
 @router.get("/{entity_link_id}", response_model=EntityLinkOut)
 async def get_entity_link(entity_link_id: uuid.UUID, db: AsyncSession = Depends(get_db)):  # noqa: B008
-    obj = await svc.get_entity_link(db, entity_link_id)
-    if obj is None:
+    out = await svc.get_entity_link_out(db, entity_link_id)
+    if out is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
-    return obj
+    return out
 
 
 @router.delete("/{entity_link_id}", status_code=status.HTTP_204_NO_CONTENT)

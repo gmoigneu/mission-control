@@ -27,7 +27,11 @@ class RelationshipOut(BaseModel):
 
     id: uuid.UUID
     from_person_id: uuid.UUID
+    from_person_name: str | None = None
+    from_person_slug: str | None = None
     to_person_id: uuid.UUID
+    to_person_name: str | None = None
+    to_person_slug: str | None = None
     type: str
     context_id: uuid.UUID | None
     since: date | None

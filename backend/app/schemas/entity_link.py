@@ -18,7 +18,11 @@ class EntityLinkOut(BaseModel):
     id: uuid.UUID
     from_type: str
     from_id: uuid.UUID
+    from_name: str | None = None
+    from_slug: str | None = None
     to_type: str
     to_id: uuid.UUID
+    to_name: str | None = None
+    to_slug: str | None = None
     kind: str
     created_at: datetime

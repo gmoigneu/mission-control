@@ -245,7 +245,11 @@ export type TagUpdate = Partial<TagCreate>;
 export interface Relationship {
   id: string;
   from_person_id: string;
+  from_person_name?: string | null;
+  from_person_slug?: string | null;
   to_person_id: string;
+  to_person_name?: string | null;
+  to_person_slug?: string | null;
   type: string;
   context_id: string | null;
   since: string | null;
@@ -375,8 +379,12 @@ export interface EntityLink {
   id: string;
   from_type: string;
   from_id: string;
+  from_name?: string | null;
+  from_slug?: string | null;
   to_type: string;
   to_id: string;
+  to_name?: string | null;
+  to_slug?: string | null;
   kind: string;
   created_at: string;
 }

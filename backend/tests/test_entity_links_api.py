@@ -1,6 +1,7 @@
 import uuid
 
 from app.models.context import Context
+from app.models.person import Person
 from tests.helpers import login
 
 
@@ -35,6 +36,10 @@ async def test_entity_links_crud_flow(client, db):
     assert data["to_type"] == "context"
     assert data["to_id"] == str(ctx_b.id)
     assert data["kind"] == "related"
+    assert data["from_name"] == "EL Context A"
+    assert data["from_slug"] == ctx_a.slug
+    assert data["to_name"] == "EL Context B"
+    assert data["to_slug"] == ctx_b.slug
 
     # Filter by from_type + from_id: should find it
     matched = await client.get(
@@ -65,3 +70,45 @@ async def test_entity_links_crud_flow(client, db):
 async def test_get_missing_entity_link_404(client, db):
     await login(client, db)
     assert (await client.get(f"/entity-links/{uuid.uuid4()}")).status_code == 404
+
+
+async def test_entity_links_search_matches_either_endpoint_name(client, db):
+    await login(client, db)
+
+    person = Person(slug=f"el-person-{uuid.uuid4().hex[:6]}", name="Ada Artist")
+    context = Context(slug=f"el-context-{uuid.uuid4().hex[:6]}", name="Launch Room")
+    other_context = Context(slug=f"el-other-{uuid.uuid4().hex[:6]}", name="Archive Room")
+    db.add_all([person, context, other_context])
+    await db.flush()
+
+    matching = await client.post(
+        "/entity-links",
+        json={
+            "from_type": "person",
+            "from_id": str(person.id),
+            "to_type": "context",
+            "to_id": str(context.id),
+            "kind": "related",
+        },
+    )
+    nonmatching = await client.post(
+        "/entity-links",
+        json={
+            "from_type": "context",
+            "from_id": str(other_context.id),
+            "to_type": "context",
+            "to_id": str(context.id),
+            "kind": "related",
+        },
+    )
+    assert matching.status_code == 201
+    assert nonmatching.status_code == 201
+
+    listing = await client.get("/entity-links?q=ada")
+
+    assert listing.status_code == 200
+    rows = listing.json()
+    assert [row["id"] for row in rows] == [matching.json()["id"]]
+    assert rows[0]["from_name"] == "Ada Artist"
+    assert rows[0]["from_slug"] == person.slug
+    assert rows[0]["to_name"] == "Launch Room"
