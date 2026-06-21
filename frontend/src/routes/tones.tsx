@@ -6,9 +6,11 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { SlugField } from "../components/SlugField";
 import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
-import { Button, Field, Input } from "../components/ui";
+import { resolvedSlug } from "../lib/slug";
+import { Button, Field, Input, Textarea } from "../components/ui";
 import { useCreateTone, useDeleteTone, useTones, useUpdateTone } from "../features/tones/api";
 import type { Tone } from "../lib/types";
 import { rootRoute } from "./root";
@@ -35,7 +37,7 @@ export function TonesPage() {
   useHotkey("c", handleNew, !panelOpen);
 
   function handleChange(key: keyof FormState) {
-    return (e: React.ChangeEvent<HTMLInputElement>) =>
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
   }
 
@@ -66,7 +68,7 @@ export function TonesPage() {
     e.preventDefault();
     const payload = {
       name: form.name,
-      slug: form.slug,
+      slug: resolvedSlug(form.slug, form.name),
       ...(form.description ? { description: form.description } : { description: null }),
       ...(form.sample ? { sample: form.sample } : { sample: null }),
     };
@@ -137,31 +139,29 @@ export function TonesPage() {
                 required
               />
             </Field>
-            <Field label="Slug">
-              <Input
-                value={form.slug}
-                onChange={handleChange("slug")}
-                placeholder="warm"
-                aria-label="Slug"
-                required
-              />
-            </Field>
             <Field label="Description">
-              <Input
+              <Textarea
                 value={form.description}
                 onChange={handleChange("description")}
                 placeholder="Friendly and approachable"
                 aria-label="Description"
+                rows={3}
               />
             </Field>
             <Field label="Sample">
-              <Input
+              <Textarea
                 value={form.sample}
                 onChange={handleChange("sample")}
                 placeholder="A short passage written in this voice"
                 aria-label="Sample"
+                rows={6}
               />
             </Field>
+            <SlugField
+              value={form.slug}
+              source={form.name}
+              onChange={(value) => setForm((prev) => ({ ...prev, slug: value }))}
+            />
             <div className="flex gap-2">
               <Button type="submit">{editingId ? "Save" : "Add"}</Button>
               <Button type="button" onClick={handleClose} className="ghost">

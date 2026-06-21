@@ -8,9 +8,11 @@ import { StatusBadge, contextTint } from "../components/console";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { SlugField } from "../components/SlugField";
 import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
-import { Button, Field, Input, Select } from "../components/ui";
+import { resolvedSlug } from "../lib/slug";
+import { Button, Field, Input, Select, Textarea } from "../components/ui";
 import { useContexts, useCreateContext, useDeleteContext, useUpdateContext } from "../features/contexts/api";
 import type { Context } from "../lib/types";
 import { rootRoute } from "./root";
@@ -46,7 +48,7 @@ export function ContextsPage() {
   useHotkey("c", handleNew, !panelOpen);
 
   function handleChange(key: keyof FormState) {
-    return (e: React.ChangeEvent<HTMLInputElement>) =>
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
   }
 
@@ -82,7 +84,7 @@ export function ContextsPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const payload = {
-      slug: form.slug,
+      slug: resolvedSlug(form.slug, form.name),
       name: form.name,
       category: form.category || undefined,
       description: form.description || null,
@@ -174,15 +176,6 @@ export function ContextsPage() {
                 required
               />
             </Field>
-            <Field label="Slug">
-              <Input
-                value={form.slug}
-                onChange={handleChange("slug")}
-                placeholder="my-context"
-                aria-label="Slug"
-                required
-              />
-            </Field>
             <Field label="Category">
               <Input
                 value={form.category}
@@ -192,11 +185,12 @@ export function ContextsPage() {
               />
             </Field>
             <Field label="Description">
-              <Input
+              <Textarea
                 value={form.description}
                 onChange={handleChange("description")}
                 placeholder="Optional description"
                 aria-label="Description"
+                rows={4}
               />
             </Field>
             <Field label="Status">
@@ -209,6 +203,11 @@ export function ContextsPage() {
             <Field label="Color">
               <ColorPicker value={form.color} onChange={handleSelectChange("color")} />
             </Field>
+            <SlugField
+              value={form.slug}
+              source={form.name}
+              onChange={(value) => setForm((prev) => ({ ...prev, slug: value }))}
+            />
             <div className="flex gap-2">
               <Button type="submit">{editingId ? "Save" : "Add"}</Button>
               <Button type="button" onClick={handleClose} className="ghost">

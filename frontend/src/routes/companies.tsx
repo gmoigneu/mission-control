@@ -6,9 +6,11 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { SlugField } from "../components/SlugField";
 import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
-import { Button, Field, Input } from "../components/ui";
+import { resolvedSlug } from "../lib/slug";
+import { Button, Field, Input, Textarea } from "../components/ui";
 import { useCompanies, useCreateCompany, useDeleteCompany, useUpdateCompany } from "../features/companies/api";
 import type { Company } from "../lib/types";
 import { rootRoute } from "./root";
@@ -35,7 +37,7 @@ export function CompaniesPage() {
   useHotkey("c", handleNew, !panelOpen);
 
   function handleChange(key: keyof FormState) {
-    return (e: React.ChangeEvent<HTMLInputElement>) =>
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
   }
 
@@ -66,7 +68,7 @@ export function CompaniesPage() {
     e.preventDefault();
     const payload = {
       name: form.name,
-      slug: form.slug,
+      slug: resolvedSlug(form.slug, form.name),
       ...(form.domain ? { domain: form.domain } : { domain: null }),
       ...(form.notes ? { notes: form.notes } : { notes: null }),
     };
@@ -144,15 +146,6 @@ export function CompaniesPage() {
                 required
               />
             </Field>
-            <Field label="Slug">
-              <Input
-                value={form.slug}
-                onChange={handleChange("slug")}
-                placeholder="acme-corp"
-                aria-label="Slug"
-                required
-              />
-            </Field>
             <Field label="Domain">
               <Input
                 value={form.domain}
@@ -162,13 +155,19 @@ export function CompaniesPage() {
               />
             </Field>
             <Field label="Notes">
-              <Input
+              <Textarea
                 value={form.notes}
                 onChange={handleChange("notes")}
                 placeholder="Optional notes"
                 aria-label="Notes"
+                rows={5}
               />
             </Field>
+            <SlugField
+              value={form.slug}
+              source={form.name}
+              onChange={(value) => setForm((prev) => ({ ...prev, slug: value }))}
+            />
             <div className="flex gap-2">
               <Button type="submit">{editingId ? "Save" : "Add"}</Button>
               <Button type="button" onClick={handleClose} className="ghost">

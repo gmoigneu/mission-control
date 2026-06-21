@@ -6,9 +6,11 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { SlugField } from "../components/SlugField";
 import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
-import { Button, Field, Input } from "../components/ui";
+import { resolvedSlug } from "../lib/slug";
+import { Button, Field, Input, Textarea } from "../components/ui";
 import {
   useCreateKnowledge,
   useDeleteKnowledge,
@@ -39,7 +41,7 @@ export function KnowledgePage() {
   useHotkey("c", handleNew, !panelOpen);
 
   function handleChange(key: keyof FormState) {
-    return (e: React.ChangeEvent<HTMLInputElement>) =>
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
   }
 
@@ -69,7 +71,7 @@ export function KnowledgePage() {
     e.preventDefault();
     const payload = {
       title: form.title,
-      slug: form.slug,
+      slug: resolvedSlug(form.slug, form.title),
       ...(form.body ? { body: form.body } : { body: null }),
     };
     if (editingId) {
@@ -138,23 +140,20 @@ export function KnowledgePage() {
                 required
               />
             </Field>
-            <Field label="Slug">
-              <Input
-                value={form.slug}
-                onChange={handleChange("slug")}
-                placeholder="rust-ownership-notes"
-                aria-label="Slug"
-                required
-              />
-            </Field>
             <Field label="Body">
-              <Input
+              <Textarea
                 value={form.body}
                 onChange={handleChange("body")}
                 placeholder="Optional note body"
                 aria-label="Body"
+                rows={8}
               />
             </Field>
+            <SlugField
+              value={form.slug}
+              source={form.title}
+              onChange={(value) => setForm((prev) => ({ ...prev, slug: value }))}
+            />
             <div className="flex gap-2">
               <Button type="submit">{editingId ? "Save" : "Add"}</Button>
               <Button type="button" onClick={handleClose} className="ghost">
