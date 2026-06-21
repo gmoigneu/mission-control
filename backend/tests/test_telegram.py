@@ -50,6 +50,95 @@ def test_chunk_long_text_splits_under_limit_without_losing_content():
     assert "".join(pieces).replace("\n", "") == text.replace("\n", "")
 
 
+def test_markdown_to_telegram_html_renders_common_reply_markdown():
+    html = tg_client._markdown_to_telegram_html(
+        "# Plan\n\n"
+        "This is **bold**, *emphasis*, `code`, and [a link](https://example.com?a=1&b=2).\n\n"
+        "- First\n"
+        "- Second"
+    )
+
+    assert "<b>Plan</b>" in html
+    assert "This is <b>bold</b>, <i>emphasis</i>, <code>code</code>" in html
+    assert '<a href="https://example.com?a=1&amp;b=2">a link</a>' in html
+    assert "- First" in html
+    assert "- Second" in html
+
+
+def test_markdown_to_telegram_html_escapes_raw_html_and_unsafe_links():
+    html = tg_client._markdown_to_telegram_html(
+        "<script>alert('x')</script>\n\n"
+        "[bad](ftp://example.com/file)\n\n"
+        "[deep link](tg://join?invite=abc)"
+    )
+
+    assert "&lt;script&gt;" in html
+    assert "<script>" not in html
+    assert "<a " not in html
+    assert "bad" in html
+    assert "deep link" in html
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_send_message_uses_telegram_html_parse_mode(monkeypatch):
+    sent: list[dict] = []
+
+    async def fake_call(method: str, payload: dict) -> dict:
+        sent.append({"method": method, "payload": payload})
+        return {}
+
+    monkeypatch.setattr(tg_client, "_call", fake_call)
+
+    await tg_client.send_message(123, "Hello **there**")
+
+    assert sent == [
+        {
+            "method": "sendMessage",
+            "payload": {
+                "chat_id": 123,
+                "text": "Hello <b>there</b>",
+                "parse_mode": "HTML",
+            },
+        }
+    ]
+
+
+def test_chunk_telegram_html_rebalances_open_tags():
+    html = tg_client._markdown_to_telegram_html(f"**{'a' * (tg_client.MAX_MESSAGE_LEN + 100)}**")
+
+    pieces = tg_client._chunk_telegram_html(html)
+
+    assert len(pieces) == 2
+    assert all(len(piece) <= tg_client.MAX_MESSAGE_LEN for piece in pieces)
+    assert all(piece.count("<b>") == piece.count("</b>") for piece in pieces)
+    assert pieces[0].startswith("<b>")
+    assert pieces[0].endswith("</b>")
+    assert pieces[1].startswith("<b>")
+    assert pieces[1].endswith("</b>")
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_send_message_chunks_rendered_html(monkeypatch):
+    sent: list[dict] = []
+
+    async def fake_call(method: str, payload: dict) -> dict:
+        sent.append({"method": method, "payload": payload})
+        return {}
+
+    monkeypatch.setattr(tg_client, "_call", fake_call)
+
+    await tg_client.send_message(123, f"**{'a' * (tg_client.MAX_MESSAGE_LEN + 100)}**")
+
+    assert len(sent) == 2
+    assert all(item["method"] == "sendMessage" for item in sent)
+    assert all(len(item["payload"]["text"]) <= tg_client.MAX_MESSAGE_LEN for item in sent)
+    assert all(item["payload"]["parse_mode"] == "HTML" for item in sent)
+    assert all(
+        item["payload"]["text"].count("<b>") == item["payload"]["text"].count("</b>")
+        for item in sent
+    )
+
+
 # ---------------------------------------------------------------------------
 # gateway.handle_update
 # ---------------------------------------------------------------------------
