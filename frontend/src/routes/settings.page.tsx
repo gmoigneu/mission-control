@@ -4,6 +4,16 @@ import { AppShell } from "../components/AppShell";
 import { ConfirmButton } from "../components/ConfirmButton";
 import { RequireAuth } from "../components/RequireAuth";
 import { Button, Card, Field, Input, Textarea } from "../components/ui";
+import type {
+  NotificationChannel,
+  NotificationPolicy,
+  NotificationRoutine,
+  NotificationUrgency,
+} from "../features/notifications/api";
+import {
+  useNotificationPolicy,
+  useSaveNotificationPolicy,
+} from "../features/notifications/api";
 import type { Persona, PersonaUpdate } from "../features/persona/api";
 import { usePersona, useResetPersona, useSavePersona } from "../features/persona/api";
 import { useDeletePasskey, usePasskeys, useRegisterPasskey } from "../lib/auth";
@@ -31,6 +41,29 @@ const EMPTY_FORM: SoulForm = {
   enabled: true,
 };
 
+const ROUTINES: Array<{ key: NotificationRoutine; label: string }> = [
+  { key: "daily_planning", label: "Daily planning" },
+  { key: "task_drift", label: "Task drift" },
+  { key: "inbox_digest", label: "Inbox digest" },
+  { key: "relationship_followup", label: "Relationship follow-up" },
+  { key: "telos_review", label: "TELOS review" },
+  { key: "system_alert", label: "System alert" },
+];
+
+const CHANNELS: Array<{ value: NotificationChannel; label: string }> = [
+  { value: "none", label: "None" },
+  { value: "in_app", label: "In-app" },
+  { value: "telegram", label: "Telegram" },
+  { value: "both", label: "Both" },
+];
+
+const URGENCIES: Array<{ value: NotificationUrgency; label: string }> = [
+  { value: "low", label: "Low" },
+  { value: "normal", label: "Normal" },
+  { value: "high", label: "High" },
+  { value: "critical", label: "Critical" },
+];
+
 function personaToForm(p: Persona): SoulForm {
   return {
     name: p.name ?? "",
@@ -56,6 +89,11 @@ function formToPayload(form: SoulForm): PersonaUpdate {
     instructions: orNull(form.instructions),
     enabled: form.enabled,
   };
+}
+
+function numberOrNull(value: string): number | null {
+  if (value.trim() === "") return null;
+  return Math.max(0, Number(value));
 }
 
 function SoulCard() {
@@ -207,6 +245,427 @@ function SoulCard() {
   );
 }
 
+function NotificationPolicyCard() {
+  const { data: policy } = useNotificationPolicy();
+  const save = useSaveNotificationPolicy();
+  const [draft, setDraft] = useState<{
+    source: NotificationPolicy;
+    form: NotificationPolicy;
+  } | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const form = policy ? (draft?.source === policy ? draft.form : policy) : null;
+
+  function update(next: (current: NotificationPolicy) => NotificationPolicy) {
+    setDraft((current) => {
+      const source = policy ?? current?.source;
+      if (!source) return current;
+      const currentForm = current?.source === source ? current.form : source;
+      return { source, form: next(currentForm) };
+    });
+    setSaved(false);
+    setSaveError(null);
+  }
+
+  function updateRoutine(
+    routine: NotificationRoutine,
+    next: Partial<NotificationPolicy["routines"][NotificationRoutine]>,
+  ) {
+    update((current) => ({
+      ...current,
+      routines: {
+        ...current.routines,
+        [routine]: {
+          ...current.routines[routine],
+          ...next,
+        },
+      },
+    }));
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form) return;
+    save.mutate(form, {
+      onSuccess: () => {
+        setSaved(true);
+        setSaveError(null);
+      },
+      onError: (error) => {
+        setSaved(false);
+        setSaveError(
+          error instanceof Error ? error.message : "Could not save notification policy.",
+        );
+      },
+    });
+  }
+
+  return (
+    <section className="space-y-3">
+      <div>
+        <h2 className="text-lg font-semibold">Proactive Aya</h2>
+        <p className="text-sm text-gray-400">
+          Attention policy for Aya-initiated notifications.
+        </p>
+      </div>
+
+      <Card>
+        {!form ? (
+          <p className="text-sm text-gray-400">Loading notification policy...</p>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <NotificationPolicySwitches form={form} update={update} />
+            <NotificationDefaults form={form} update={update} />
+            <NotificationUrgencyOverrides form={form} update={update} />
+            <NotificationRoutineList form={form} updateRoutine={updateRoutine} />
+
+            <div className="flex items-center gap-2">
+              <Button type="submit" disabled={save.isPending}>
+                {save.isPending ? "Saving..." : "Save notification policy"}
+              </Button>
+              {saved && <span className="text-sm text-green-600">Notification policy saved</span>}
+            </div>
+            {saveError && (
+              <p className="meta" role="alert" style={{ color: "var(--st-danger)" }}>
+                {saveError}
+              </p>
+            )}
+          </form>
+        )}
+      </Card>
+    </section>
+  );
+}
+
+function NotificationPolicySwitches({
+  form,
+  update,
+}: {
+  form: NotificationPolicy;
+  update: (next: (current: NotificationPolicy) => NotificationPolicy) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-4">
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={form.enabled}
+          onChange={(e) => update((current) => ({ ...current, enabled: e.target.checked }))}
+          aria-label="Proactive Aya enabled"
+        />
+        <span>Enable proactive Aya</span>
+      </label>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={form.quiet_hours.enabled}
+          onChange={(e) =>
+            update((current) => ({
+              ...current,
+              quiet_hours: { ...current.quiet_hours, enabled: e.target.checked },
+            }))
+          }
+          aria-label="Quiet hours enabled"
+        />
+        <span>Quiet hours</span>
+      </label>
+    </div>
+  );
+}
+
+function NotificationDefaults({
+  form,
+  update,
+}: {
+  form: NotificationPolicy;
+  update: (next: (current: NotificationPolicy) => NotificationPolicy) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+      <Field label="Quiet start">
+        <Input
+          type="time"
+          value={form.quiet_hours.start}
+          onChange={(e) =>
+            update((current) => ({
+              ...current,
+              quiet_hours: { ...current.quiet_hours, start: e.target.value },
+            }))
+          }
+          aria-label="Quiet start"
+        />
+      </Field>
+      <Field label="Quiet end">
+        <Input
+          type="time"
+          value={form.quiet_hours.end}
+          onChange={(e) =>
+            update((current) => ({
+              ...current,
+              quiet_hours: { ...current.quiet_hours, end: e.target.value },
+            }))
+          }
+          aria-label="Quiet end"
+        />
+      </Field>
+      <Field label="UTC offset">
+        <Input
+          type="number"
+          value={form.quiet_hours.timezone_offset_minutes}
+          onChange={(e) =>
+            update((current) => ({
+              ...current,
+              quiet_hours: {
+                ...current.quiet_hours,
+                timezone_offset_minutes: Math.max(-840, Math.min(840, Number(e.target.value))),
+              },
+            }))
+          }
+          aria-label="Quiet hours UTC offset minutes"
+        />
+      </Field>
+      <Field label="Default channel">
+        <select
+          className="input"
+          value={form.default_channel}
+          onChange={(e) =>
+            update((current) => ({
+              ...current,
+              default_channel: e.target.value as NotificationChannel,
+            }))
+          }
+          aria-label="Default channel"
+        >
+          {CHANNELS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Default max/day">
+        <Input
+          type="number"
+          min={0}
+          value={form.default_max_per_day}
+          onChange={(e) =>
+            update((current) => ({
+              ...current,
+              default_max_per_day: Math.max(0, Number(e.target.value)),
+            }))
+          }
+          aria-label="Default max per day"
+        />
+      </Field>
+    </div>
+  );
+}
+
+function NotificationUrgencyOverrides({
+  form,
+  update,
+}: {
+  form: NotificationPolicy;
+  update: (next: (current: NotificationPolicy) => NotificationPolicy) => void;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+      <Field label="Default cooldown">
+        <Input
+          type="number"
+          min={0}
+          value={form.default_cooldown_minutes}
+          onChange={(e) =>
+            update((current) => ({
+              ...current,
+              default_cooldown_minutes: Math.max(0, Number(e.target.value)),
+            }))
+          }
+          aria-label="Default cooldown minutes"
+        />
+      </Field>
+      <Field label="Quiet override">
+        <UrgencySelect
+          value={form.urgency_overrides.quiet_hours_min_urgency}
+          label="Quiet hours override urgency"
+          onChange={(value) =>
+            update((current) => ({
+              ...current,
+              urgency_overrides: {
+                ...current.urgency_overrides,
+                quiet_hours_min_urgency: value,
+              },
+            }))
+          }
+        />
+      </Field>
+      <Field label="Cap override">
+        <UrgencySelect
+          value={form.urgency_overrides.frequency_cap_min_urgency}
+          label="Frequency cap override urgency"
+          onChange={(value) =>
+            update((current) => ({
+              ...current,
+              urgency_overrides: {
+                ...current.urgency_overrides,
+                frequency_cap_min_urgency: value,
+              },
+            }))
+          }
+        />
+      </Field>
+      <Field label="Cooldown override">
+        <UrgencySelect
+          value={form.urgency_overrides.cooldown_min_urgency}
+          label="Cooldown override urgency"
+          onChange={(value) =>
+            update((current) => ({
+              ...current,
+              urgency_overrides: {
+                ...current.urgency_overrides,
+                cooldown_min_urgency: value,
+              },
+            }))
+          }
+        />
+      </Field>
+    </div>
+  );
+}
+
+function UrgencySelect({
+  value,
+  label,
+  onChange,
+}: {
+  value: NotificationUrgency;
+  label: string;
+  onChange: (value: NotificationUrgency) => void;
+}) {
+  return (
+    <select
+      className="input"
+      value={value}
+      onChange={(e) => onChange(e.target.value as NotificationUrgency)}
+      aria-label={label}
+    >
+      {URGENCIES.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function NotificationRoutineList({
+  form,
+  updateRoutine,
+}: {
+  form: NotificationPolicy;
+  updateRoutine: (
+    routine: NotificationRoutine,
+    next: Partial<NotificationPolicy["routines"][NotificationRoutine]>,
+  ) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      {ROUTINES.map((routine) => (
+        <NotificationRoutineRow
+          key={routine.key}
+          routine={routine}
+          routinePolicy={form.routines[routine.key]}
+          updateRoutine={updateRoutine}
+        />
+      ))}
+    </div>
+  );
+}
+
+function NotificationRoutineRow({
+  routine,
+  routinePolicy,
+  updateRoutine,
+}: {
+  routine: { key: NotificationRoutine; label: string };
+  routinePolicy: NotificationPolicy["routines"][NotificationRoutine];
+  updateRoutine: (
+    routine: NotificationRoutine,
+    next: Partial<NotificationPolicy["routines"][NotificationRoutine]>,
+  ) => void;
+}) {
+  const channelId = `notification-${routine.key}-channel`;
+  const maxId = `notification-${routine.key}-max`;
+  const cooldownId = `notification-${routine.key}-cooldown`;
+
+  return (
+    <div className="grid grid-cols-2 gap-3 border-t border-gray-800 pt-3 md:grid-cols-[minmax(150px,1fr)_120px_120px_120px]">
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={routinePolicy.enabled}
+          onChange={(e) => updateRoutine(routine.key, { enabled: e.target.checked })}
+          aria-label={`${routine.label} enabled`}
+        />
+        <span>{routine.label}</span>
+      </label>
+      <label className="text-xs text-gray-400" htmlFor={channelId}>
+        Channel
+        <select
+          id={channelId}
+          className="input mt-1"
+          value={routinePolicy.channel ?? ""}
+          onChange={(e) =>
+            updateRoutine(routine.key, {
+              channel: e.target.value === "" ? null : (e.target.value as NotificationChannel),
+            })
+          }
+          aria-label={`${routine.label} channel`}
+        >
+          <option value="">Default</option>
+          {CHANNELS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="text-xs text-gray-400" htmlFor={maxId}>
+        Max/day
+        <Input
+          id={maxId}
+          type="number"
+          min={0}
+          value={routinePolicy.max_per_day ?? ""}
+          onChange={(e) =>
+            updateRoutine(routine.key, {
+              max_per_day: numberOrNull(e.target.value),
+            })
+          }
+          aria-label={`${routine.label} max per day`}
+          className="mt-1"
+        />
+      </label>
+      <label className="text-xs text-gray-400" htmlFor={cooldownId}>
+        Cooldown
+        <Input
+          id={cooldownId}
+          type="number"
+          min={0}
+          value={routinePolicy.cooldown_minutes ?? ""}
+          onChange={(e) =>
+            updateRoutine(routine.key, {
+              cooldown_minutes: numberOrNull(e.target.value),
+            })
+          }
+          aria-label={`${routine.label} cooldown minutes`}
+          className="mt-1"
+        />
+      </label>
+    </div>
+  );
+}
+
 function PasskeysCard() {
   const supported = isWebAuthnSupported();
   const { data: passkeys = [], isLoading } = usePasskeys();
@@ -324,6 +783,7 @@ export function SettingsPage() {
             </p>
           </div>
 
+          <NotificationPolicyCard />
           <SoulCard />
           <PasskeysCard />
         </div>
