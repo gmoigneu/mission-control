@@ -512,6 +512,41 @@ a:focus-visible {
 .capture-trigger:hover { border-color: var(--line-bright); background: var(--surface-1); }
 .log-line:hover .log-edit { opacity: 1 !important; }
 
+.journal-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+.journal-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.journal-entry-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+  text-align: left;
+}
+.journal-entry-row:hover,
+.journal-entry-row[aria-pressed="true"] {
+  background: var(--surface-3);
+  border-color: var(--line-soft);
+  color: var(--fg);
+}
+.journal-entry-row:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+
 /* ---------------------------------------------------------------------
    MOBILE PRIMITIVES — scroll regions, bottom sheet, full-screen Aya
    --------------------------------------------------------------------- */
@@ -617,6 +652,7 @@ a:focus-visible {
   .task-row { flex-wrap: wrap; align-items: flex-start; }
   .task-row-meta { width: 100%; padding-left: 30px; }
   .dash-grid, .person-grid, .journal-grid, .rel-grid { grid-template-columns: 1fr !important; }
+  .journal-form-grid { grid-template-columns: 1fr; }
   .people-split { grid-template-columns: 1fr !important; }
   .people-rail { display: none; }
 }
