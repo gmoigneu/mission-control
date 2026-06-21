@@ -86,14 +86,19 @@ it("acts on a nav entry via ArrowDown + Enter and closes the palette", async () 
   });
 });
 
-it("exposes the highlighted option via aria-activedescendant", async () => {
+it("marks the highlighted command as current", async () => {
   const user = userEvent.setup();
   renderShell();
   await openPalette(user);
 
-  const input = screen.getByRole("textbox", { name: "Command palette search" });
-  // With no query, the first nav option (Dashboard) is active.
-  expect(input).toHaveAttribute("aria-activedescendant", "cmdk-nav-dashboard");
+  // With no query, the first nav command (Dashboard) is active.
+  expect(document.getElementById("cmdk-nav-dashboard")).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
   await user.keyboard("{ArrowDown}");
-  expect(input).toHaveAttribute("aria-activedescendant", "cmdk-nav-contexts");
+  expect(document.getElementById("cmdk-nav-contexts")).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
 });

@@ -470,6 +470,63 @@ a:hover { color: var(--signal-bright); }
   background: var(--surface-2);
   transform: translateX(-50%);
 }
+.shell-command-input { margin-bottom: 12px; }
+.cmdk-results {
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cmdk-action,
+.cmdk-nav-option {
+  text-align: left;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+}
+.cmdk-action {
+  padding: 8px 12px;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.cmdk-action-capture {
+  background: var(--surface-3);
+  border: 1px solid var(--signal-ghost);
+  color: var(--signal);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.cmdk-action-capture.selected { background: var(--surface-4); }
+.cmdk-action-capture.pending {
+  background: var(--surface-2);
+  cursor: default;
+  opacity: 0.7;
+}
+.cmdk-action-search {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--fg-muted);
+}
+.cmdk-action-search.selected { background: var(--surface-3); }
+.cmdk-nav-option {
+  background: transparent;
+  border: 0;
+  padding: 7px 10px;
+  gap: 10px;
+  color: var(--fg-muted);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.cmdk-nav-option.selected {
+  background: var(--surface-3);
+  color: var(--fg);
+}
+.spin-icon { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ---------------------------------------------------------------------
    POPOVER MENU — small dropdown anchored to a trigger (e.g. status badge)
@@ -677,8 +734,7 @@ a:hover { color: var(--signal-bright); }
 .capture-trigger:focus-visible,
 .bottom-fab:focus-visible,
 .bottomnav button:focus-visible,
-[role="dialog"] button:focus-visible,
-[role="dialog"] [role="option"]:focus-visible {
+[role="dialog"] button:focus-visible {
   outline: 2px solid var(--signal);
   outline-offset: 2px;
   border-radius: var(--r-sm);

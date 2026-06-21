@@ -597,66 +597,42 @@ function CommandPalette({
       <div className="card rise shell-command-card">
         <input
           ref={inputRef}
-          className="input"
+          className="input shell-command-input"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           aria-label="Command palette search"
           placeholder="Capture anything… or navigate"
-          style={{ marginBottom: 12 }}
           disabled={isPending}
-          aria-controls="cmdk-listbox"
-          aria-activedescendant={activeId}
-          aria-autocomplete="list"
+          aria-controls="cmdk-results"
           onKeyDown={handleInputKeyDown}
         />
         <div
-          id="cmdk-listbox"
-          role="listbox"
-          aria-label="Results"
-          style={{
-            overflowY: "auto",
-            overflowX: "hidden",
-            minWidth: 0,
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-          }}
+          id="cmdk-results"
+          className="cmdk-results"
         >
           {/* Primary: capture with Aya */}
           {query.trim() && (
             <button
               type="button"
               id="cmdk-action-capture"
-              role="option"
-              aria-selected={activeId === "cmdk-action-capture"}
+              aria-current={
+                activeId === "cmdk-action-capture" ? "true" : undefined
+              }
               onClick={() => void handleCapture()}
               onMouseMove={() => setActiveIndex(0)}
               disabled={isPending}
-              style={{
-                textAlign: "left",
-                background: isPending
-                  ? "var(--surface-2)"
-                  : activeId === "cmdk-action-capture"
-                    ? "var(--surface-4)"
-                    : "var(--surface-3)",
-                border: "1px solid var(--signal-ghost)",
-                borderRadius: "var(--r-sm)",
-                padding: "8px 12px",
-                cursor: isPending ? "default" : "pointer",
-                fontSize: 13,
-                color: "var(--signal)",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 4,
-                opacity: isPending ? 0.7 : 1,
-                minWidth: 0,
-                overflowWrap: "anywhere",
-              }}
+              className={
+                "cmdk-action cmdk-action-capture" +
+                (activeId === "cmdk-action-capture" ? " selected" : "") +
+                (isPending ? " pending" : "")
+              }
             >
               {isPending ? (
-                <Loader2 size={14} strokeWidth={1.6} style={{ animation: "spin 1s linear infinite" }} />
+                <Loader2
+                  size={14}
+                  strokeWidth={1.6}
+                  className="spin-icon"
+                />
               ) : (
                 <Sparkles size={14} strokeWidth={1.6} />
               )}
@@ -668,27 +644,15 @@ function CommandPalette({
             <button
               type="button"
               id="cmdk-action-search"
-              role="option"
-              aria-selected={activeId === "cmdk-action-search"}
+              aria-current={
+                activeId === "cmdk-action-search" ? "true" : undefined
+              }
               onClick={handleSearch}
               onMouseMove={() => setActiveIndex(1)}
-              style={{
-                textAlign: "left",
-                background:
-                  activeId === "cmdk-action-search"
-                    ? "var(--surface-3)"
-                    : "transparent",
-                border: "1px solid var(--line)",
-                borderRadius: "var(--r-sm)",
-                padding: "8px 12px",
-                cursor: "pointer",
-                fontSize: 13,
-                color: "var(--fg-muted)",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 4,
-              }}
+              className={
+                "cmdk-action cmdk-action-search" +
+                (activeId === "cmdk-action-search" ? " selected" : "")
+              }
             >
               <Search size={14} strokeWidth={1.6} />
               Search for &ldquo;{query}&rdquo;
@@ -703,25 +667,10 @@ function CommandPalette({
                 type="button"
                 key={entry.key}
                 id={optionId}
-                role="option"
-                aria-selected={selected}
+                aria-current={selected ? "true" : undefined}
                 onClick={() => handleAction(entry.to)}
                 onMouseMove={() => setActiveIndex(navOffset + i)}
-                style={{
-                  textAlign: "left",
-                  background: selected ? "var(--surface-3)" : "transparent",
-                  border: 0,
-                  borderRadius: "var(--r-sm)",
-                  padding: "7px 10px",
-                  cursor: "pointer",
-                  fontSize: 13,
-                  color: selected ? "var(--fg)" : "var(--fg-muted)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  transition:
-                    "background var(--dur) var(--ease), color var(--dur) var(--ease)",
-                }}
+                className={"cmdk-nav-option" + (selected ? " selected" : "")}
               >
                 <entry.Icon size={15} strokeWidth={1.6} />
                 {entry.label}
