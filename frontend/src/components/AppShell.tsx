@@ -44,6 +44,7 @@ import {
   useEffect,
   useEffectEvent,
   useRef,
+  useReducer,
   useState,
 } from "react";
 import { useLogout, useMe } from "../lib/auth";
@@ -101,6 +102,81 @@ interface Toast {
   text: string;
   undo?: boolean;
   onUndo?: () => void | Promise<void>;
+}
+
+interface ShellState {
+  theme: string;
+  navOpen: boolean;
+  mobileNav: boolean;
+  settingsOpen: boolean;
+  avatarMenuOpen: boolean;
+  captureOpen: boolean;
+  toasts: Toast[];
+}
+
+type ShellAction =
+  | { type: "setTheme"; theme: string }
+  | { type: "setNavOpen"; open: boolean }
+  | { type: "toggleMobileNav" }
+  | { type: "closeMobileNav" }
+  | { type: "toggleSettings" }
+  | { type: "closeSettings" }
+  | { type: "toggleAvatarMenu" }
+  | { type: "closeAvatarMenu" }
+  | { type: "openCapture" }
+  | { type: "closeCapture" }
+  | { type: "addToast"; toast: Toast }
+  | { type: "dismissToast"; id: number };
+
+function initialShellState(): ShellState {
+  let theme = "dark";
+  let navOpen = true;
+  if (typeof window !== "undefined") {
+    theme = localStorage.getItem("mc-theme") ?? "dark";
+    const savedNavOpen = localStorage.getItem("mc-nav-open");
+    navOpen = savedNavOpen !== null ? savedNavOpen === "true" : true;
+  }
+  return {
+    theme,
+    navOpen,
+    mobileNav: false,
+    settingsOpen: false,
+    avatarMenuOpen: false,
+    captureOpen: false,
+    toasts: [],
+  };
+}
+
+function shellReducer(state: ShellState, action: ShellAction): ShellState {
+  switch (action.type) {
+    case "setTheme":
+      return { ...state, theme: action.theme };
+    case "setNavOpen":
+      return { ...state, navOpen: action.open };
+    case "toggleMobileNav":
+      return { ...state, mobileNav: !state.mobileNav };
+    case "closeMobileNav":
+      return { ...state, mobileNav: false };
+    case "toggleSettings":
+      return { ...state, settingsOpen: !state.settingsOpen };
+    case "closeSettings":
+      return { ...state, settingsOpen: false };
+    case "toggleAvatarMenu":
+      return { ...state, avatarMenuOpen: !state.avatarMenuOpen };
+    case "closeAvatarMenu":
+      return { ...state, avatarMenuOpen: false };
+    case "openCapture":
+      return { ...state, captureOpen: true };
+    case "closeCapture":
+      return { ...state, captureOpen: false };
+    case "addToast":
+      return { ...state, toasts: [...state.toasts, action.toast] };
+    case "dismissToast":
+      return {
+        ...state,
+        toasts: state.toasts.filter((toast) => toast.id !== action.id),
+      };
+  }
 }
 
 // ─── Local components ─────────────────────────────────────────────────────────
@@ -859,29 +935,24 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  // Persistent state
-  const [theme, setTheme] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("mc-theme") ?? "dark";
-    }
-    return "dark";
-  });
-  const [navOpen, setNavOpen] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("mc-nav-open");
-      return saved !== null ? saved === "true" : true;
-    }
-    return true;
-  });
+  const [shell, dispatchShell] = useReducer(
+    shellReducer,
+    undefined,
+    initialShellState,
+  );
+  const {
+    theme,
+    navOpen,
+    mobileNav,
+    settingsOpen,
+    avatarMenuOpen,
+    captureOpen,
+    toasts,
+  } = shell;
   // Aya is a bottom "quake" window mounted once at the route root; AppShell only
   // holds the buttons that toggle it, via shared context.
   const aya = useAya();
-  const [mobileNav, setMobileNav] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsJustClosed = useRef(false);
-  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
-  const [captureOpen, setCaptureOpen] = useState(false);
-  const [toasts, setToasts] = useState<Toast[]>([]);
 
   // Sync theme to DOM + localStorage
   useEffect(() => {
@@ -899,7 +970,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     function handleKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setCaptureOpen(true);
+        dispatchShell({ type: "openCapture" });
       }
     }
     window.addEventListener("keydown", handleKey);
@@ -908,17 +979,17 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   function addToast(t: Omit<Toast, "id">) {
     const id = Date.now() + Math.random();
-    setToasts((ts) => [...ts, { ...t, id }]);
-    setTimeout(() => setToasts((ts) => ts.filter((x) => x.id !== id)), 7000);
+    dispatchShell({ type: "addToast", toast: { ...t, id } });
+    setTimeout(() => dispatchShell({ type: "dismissToast", id }), 7000);
   }
 
   function dismissToast(id: number) {
-    setToasts((ts) => ts.filter((x) => x.id !== id));
+    dispatchShell({ type: "dismissToast", id });
   }
 
   function goTo(to: string) {
     navigate({ to } as Parameters<typeof navigate>[0]);
-    setMobileNav(false);
+    dispatchShell({ type: "closeMobileNav" });
   }
 
   const userInitial = me.data?.email?.[0]?.toUpperCase() ?? me.data?.name?.[0]?.toUpperCase() ?? "?";
@@ -937,27 +1008,29 @@ export function AppShell({ children }: { children: ReactNode }) {
         avatarMenuOpen={avatarMenuOpen}
         settingsOpen={settingsOpen}
         theme={theme}
-        onSetTheme={setTheme}
-        onSetNavOpen={setNavOpen}
-        onToggleMobileNav={() => setMobileNav((v) => !v)}
+        onSetTheme={(nextTheme) =>
+          dispatchShell({ type: "setTheme", theme: nextTheme })
+        }
+        onSetNavOpen={(open) => dispatchShell({ type: "setNavOpen", open })}
+        onToggleMobileNav={() => dispatchShell({ type: "toggleMobileNav" })}
         onVoiceCapture={() => addToast({ text: "Listening…", undo: false })}
         onToggleSettings={() => {
           if (settingsJustClosed.current) {
             settingsJustClosed.current = false;
             return;
           }
-          setSettingsOpen((v) => !v);
+          dispatchShell({ type: "toggleSettings" });
         }}
         onToggleAya={aya.toggle}
-        onToggleAvatarMenu={() => setAvatarMenuOpen((v) => !v)}
-        onCloseAvatarMenu={() => setAvatarMenuOpen(false)}
+        onToggleAvatarMenu={() => dispatchShell({ type: "toggleAvatarMenu" })}
+        onCloseAvatarMenu={() => dispatchShell({ type: "closeAvatarMenu" })}
         onLogout={() => {
-          setAvatarMenuOpen(false);
+          dispatchShell({ type: "closeAvatarMenu" });
           logout.mutate();
         }}
         onCloseSettings={() => {
           settingsJustClosed.current = true;
-          setSettingsOpen(false);
+          dispatchShell({ type: "closeSettings" });
         }}
       />
 
@@ -966,7 +1039,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         navOpen={navOpen}
         mobileNav={mobileNav}
         onNavigate={goTo}
-        onToggleNavOpen={() => setNavOpen((v) => !v)}
+        onToggleNavOpen={() =>
+          dispatchShell({ type: "setNavOpen", open: !navOpen })
+        }
       />
 
       {/* Nav scrim (mobile) */}
@@ -976,7 +1051,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           className="nav-scrim"
           aria-label="Close navigation"
           tabIndex={-1}
-          onClick={() => setMobileNav(false)}
+          onClick={() => dispatchShell({ type: "closeMobileNav" })}
         />
       )}
 
@@ -989,14 +1064,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         pathname={pathname}
         ayaOpen={aya.open}
         onNavigate={goTo}
-        onCapture={() => setCaptureOpen(true)}
+        onCapture={() => dispatchShell({ type: "openCapture" })}
         onOpenAya={aya.openAya}
       />
 
       {/* ===== Command palette ===== */}
       {captureOpen && (
         <CommandPalette
-          onClose={() => setCaptureOpen(false)}
+          onClose={() => dispatchShell({ type: "closeCapture" })}
           onNavigate={() => {}}
           onToast={(text, onUndo) =>
             addToast({ text, undo: !!onUndo, onUndo })
