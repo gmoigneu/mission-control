@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -12,6 +12,12 @@ class ProactivePreference(Base):
     __tablename__ = "proactive_preference"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("app_user.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     preference_type: Mapped[str] = mapped_column(String, index=True)
     scope: Mapped[str] = mapped_column(String, index=True)  # global|routine|entity_topic|trigger
     routine_type: Mapped[str | None] = mapped_column(String, nullable=True, index=True)

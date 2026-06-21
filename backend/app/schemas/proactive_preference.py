@@ -32,6 +32,7 @@ class ProactiveFeedbackCreate(BaseModel):
     frequency: str | None = None
     remind_until: datetime | None = None
     never_at_time: str | None = Field(default=None, pattern=r"^\d{2}:\d{2}$")
+    timezone_offset_minutes: int | None = None
     confirmed: bool = False
 
     @model_validator(mode="after")
@@ -48,6 +49,8 @@ class ProactiveFeedbackCreate(BaseModel):
             raise ValueError("frequency is required to change frequency")
         if self.action == "never_at_this_time" and not self.never_at_time:
             raise ValueError("never_at_time is required")
+        if self.action == "do_not_show_again" and not self.trigger_ref:
+            raise ValueError("trigger_ref is required to hide this exact trigger")
         return self
 
 
@@ -59,6 +62,7 @@ class ProactivePreferenceOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    user_id: uuid.UUID
     preference_type: str
     scope: str
     routine_type: str | None

@@ -1,9 +1,11 @@
 import { Link } from "@tanstack/react-router";
+import { Radio, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "../components/AppShell";
 import { ConfirmButton } from "../components/ConfirmButton";
+import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
-import { Button, Card, Field, Input, Textarea } from "../components/ui";
+import { Badge, Button, Card, Field, Input, Select, Textarea } from "../components/ui";
 import type {
   NotificationChannel,
   NotificationPolicy,
@@ -16,6 +18,12 @@ import {
 } from "../features/notifications/api";
 import type { Persona, PersonaUpdate } from "../features/persona/api";
 import { usePersona, useResetPersona, useSavePersona } from "../features/persona/api";
+import type { ProactivePreference } from "../features/proactivePreferences/api";
+import {
+  useCreateProactiveFeedback,
+  useProactivePreferences,
+  useUpdateProactivePreference,
+} from "../features/proactivePreferences/api";
 import { useDeletePasskey, usePasskeys, useRegisterPasskey } from "../lib/auth";
 import { isWebAuthnSupported } from "../lib/webauthn";
 
@@ -769,6 +777,200 @@ function PasskeysCard() {
   );
 }
 
+function preferenceLabel(pref: ProactivePreference): string {
+  if (pref.trigger_ref) return pref.trigger_ref;
+  if (pref.entity_ref) {
+    return pref.entity_type ? `${pref.entity_type}:${pref.entity_ref}` : pref.entity_ref;
+  }
+  if (pref.routine_type) return pref.routine_type;
+  return "global";
+}
+
+function sourceLabel(pref: ProactivePreference): string {
+  if (!pref.source_proactive_run_id) return "manual";
+  return `run ${pref.source_proactive_run_id.slice(0, 8)}`;
+}
+
+const PROACTIVE_ROUTINE_OPTIONS = [
+  { value: "__global", label: "All routines" },
+  { value: "daily_planning", label: "Daily planning" },
+  { value: "morning_triage", label: "Morning triage" },
+  { value: "midday_replan", label: "Midday replan" },
+  { value: "follow_through_nudge", label: "Follow-through nudge" },
+  { value: "task_drift", label: "Task drift" },
+  { value: "weekly_review", label: "Weekly review" },
+];
+
+function ProactivePreferencesCard() {
+  const {
+    data: preferences = [],
+    isError: preferencesErrored,
+    error: preferencesError,
+  } = useProactivePreferences();
+  const createFeedback = useCreateProactiveFeedback();
+  const updatePreference = useUpdateProactivePreference();
+  const [channel, setChannel] = useState("in_app");
+  const [frequency, setFrequency] = useState("daily");
+  const [scopeRoutine, setScopeRoutine] = useState("__global");
+  const [mutationError, setMutationError] = useState<string | null>(null);
+
+  function selectedRoutineType() {
+    return scopeRoutine === "__global" ? null : scopeRoutine;
+  }
+
+  function mutationFailed(error: unknown) {
+    setMutationError(
+      error instanceof Error ? error.message : "Could not save proactive preference.",
+    );
+  }
+
+  const columns = [
+    {
+      header: "Preference",
+      cell: (row: ProactivePreference) => row.preference_type.replaceAll("_", " "),
+    },
+    { header: "Scope", cell: (row: ProactivePreference) => preferenceLabel(row) },
+    {
+      header: "Source",
+      cell: (row: ProactivePreference) => (
+        <span className="row gap-2">
+          {sourceLabel(row)}
+          {row.requires_confirmation && <Badge>confirmed</Badge>}
+        </span>
+      ),
+    },
+    { header: "State", cell: (row: ProactivePreference) => (row.active ? "Active" : "Off") },
+    {
+      header: "Edit",
+      cell: (row: ProactivePreference) => (
+        <ConfirmButton
+          disabled={!row.active || updatePreference.isPending}
+          onConfirm={() =>
+            updatePreference.mutate(
+              { id: row.id, active: false },
+              {
+                onSuccess: () => setMutationError(null),
+                onError: mutationFailed,
+              },
+            )
+          }
+        >
+          Disable
+        </ConfirmButton>
+      ),
+    },
+  ];
+
+  return (
+    <section className="space-y-3">
+      <div>
+        <h2 className="text-lg font-semibold">Proactive preferences</h2>
+        <p className="text-sm text-gray-400">
+          Learned from direct feedback. Broad policy edits require confirmation.
+        </p>
+      </div>
+
+      <Card>
+        <div className="space-y-5">
+          <div className="row gap-3" style={{ flexWrap: "wrap", alignItems: "flex-end" }}>
+            <Field label="Scope">
+              <Select
+                value={scopeRoutine}
+                onChange={setScopeRoutine}
+                options={PROACTIVE_ROUTINE_OPTIONS}
+              />
+            </Field>
+            <Field label="Channel">
+              <Select
+                value={channel}
+                onChange={setChannel}
+                options={[
+                  { value: "in_app", label: "In app" },
+                  { value: "telegram", label: "Telegram" },
+                  { value: "email", label: "Email" },
+                ]}
+              />
+            </Field>
+            <ConfirmButton
+              disabled={createFeedback.isPending}
+              onConfirm={() =>
+                createFeedback.mutate(
+                  {
+                    action: "change_channel",
+                    routine_type: selectedRoutineType(),
+                    channel,
+                    confirmed: true,
+                  },
+                  {
+                    onSuccess: () => setMutationError(null),
+                    onError: mutationFailed,
+                  },
+                )
+              }
+            >
+              <span className="row gap-1">
+                <Radio size={13} /> Change channel
+              </span>
+            </ConfirmButton>
+
+            <Field label="Frequency">
+              <Select
+                value={frequency}
+                onChange={setFrequency}
+                options={[
+                  { value: "hourly", label: "Hourly" },
+                  { value: "daily", label: "Daily" },
+                  { value: "weekly", label: "Weekly" },
+                ]}
+              />
+            </Field>
+            <ConfirmButton
+              disabled={createFeedback.isPending}
+              onConfirm={() =>
+                createFeedback.mutate(
+                  {
+                    action: "change_frequency",
+                    routine_type: selectedRoutineType(),
+                    frequency,
+                    confirmed: true,
+                  },
+                  {
+                    onSuccess: () => setMutationError(null),
+                    onError: mutationFailed,
+                  },
+                )
+              }
+            >
+              <span className="row gap-1">
+                <SlidersHorizontal size={13} /> Change frequency
+              </span>
+            </ConfirmButton>
+          </div>
+
+          {mutationError && (
+            <p className="meta" role="alert" style={{ color: "var(--st-danger)" }}>
+              {mutationError}
+            </p>
+          )}
+
+          {preferencesErrored && (
+            <p className="meta" style={{ color: "var(--st-danger)" }}>
+              Could not load proactive preferences
+              {preferencesError instanceof Error ? `: ${preferencesError.message}` : "."}
+            </p>
+          )}
+
+          <DataTable
+            rows={preferences}
+            columns={columns}
+            empty="No learned proactive preferences yet."
+          />
+        </div>
+      </Card>
+    </section>
+  );
+}
+
 export function SettingsPage() {
   return (
     <RequireAuth>
@@ -785,6 +987,7 @@ export function SettingsPage() {
 
           <NotificationPolicyCard />
           <SoulCard />
+          <ProactivePreferencesCard />
           <PasskeysCard />
         </div>
       </AppShell>
