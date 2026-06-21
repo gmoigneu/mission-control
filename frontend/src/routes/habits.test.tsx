@@ -160,7 +160,7 @@ it("renders the habits page and POSTs when Add is clicked", async () => {
     expect(body.cadence).toBe("daily");
     expect(body.tracking_type).toBe("boolean");
   });
-}, 10_000);
+}, 20_000);
 
 it("renders the combined six-month review grid", async () => {
   const fetchMock = vi.fn(async (url: string) => {

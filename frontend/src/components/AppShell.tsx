@@ -38,7 +38,7 @@ import {
   Undo2,
   Users,
 } from "lucide-react";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useLogout, useMe } from "../lib/auth";
 import { useFocusTrap } from "../lib/useFocusTrap";
 import {
@@ -586,18 +586,14 @@ function CommandPalette({
   // Ordered list of selectable actions so ArrowUp/Down + Enter can drive the
   // palette from the keyboard. The input keeps DOM focus; selection is visual
   // and exposed via aria-activedescendant for assistive tech.
-  const actions = useMemo(() => {
-    const list: { id: string; run: () => void }[] = [];
-    if (query.trim()) {
-      list.push({ id: "cmdk-action-capture", run: () => void handleCapture() });
-      list.push({ id: "cmdk-action-search", run: handleSearch });
-    }
-    for (const entry of filtered) {
-      list.push({ id: `cmdk-nav-${entry.key}`, run: () => handleAction(entry.to) });
-    }
-    return list;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, filtered]);
+  const actions: { id: string; run: () => void }[] = [];
+  if (query.trim()) {
+    actions.push({ id: "cmdk-action-capture", run: () => void handleCapture() });
+    actions.push({ id: "cmdk-action-search", run: handleSearch });
+  }
+  for (const entry of filtered) {
+    actions.push({ id: `cmdk-nav-${entry.key}`, run: () => handleAction(entry.to) });
+  }
 
   // Clamp the highlighted index to the current result set at render time — the
   // set shrinks/grows as the query changes, and we never want a stale index

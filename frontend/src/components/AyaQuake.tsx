@@ -21,6 +21,11 @@ import {
 
 const DEFAULT_GREETING = "Hi G — I'm Aya. Tell me what to do, and I'll act on your data.";
 
+function conversationMessageKey(message: ConversationMessage): string {
+  const writeIds = message.writes.map((write) => write.id).join(",");
+  return `${message.role}:${message.run_id ?? "pending"}:${message.text}:${writeIds}`;
+}
+
 // ─── Writes card (Undo) ─────────────────────────────────────────────────────────
 
 function WritesCard({
@@ -303,11 +308,14 @@ function AyaQuakeInner() {
           }}
         >
           {isEmpty && <AssistantBubble text={greeting} />}
-          {serverMessages.map((m, i) =>
+          {serverMessages.map((m) =>
             m.role === "user" ? (
-              <UserBubble key={i} text={m.text} />
+              <UserBubble key={conversationMessageKey(m)} text={m.text} />
             ) : (
-              <div key={i} style={{ alignSelf: "flex-start", maxWidth: "88%" }}>
+              <div
+                key={conversationMessageKey(m)}
+                style={{ alignSelf: "flex-start", maxWidth: "88%" }}
+              >
                 <AssistantBubble text={m.text} error={m.error} />
                 {m.writes.length > 0 && m.run_id && (
                   <WritesCard

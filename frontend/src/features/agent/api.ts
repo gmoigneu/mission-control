@@ -85,12 +85,17 @@ export function useCurrentConversation() {
 }
 
 export function useChat() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: { message: string; conversation_id?: string | null }) =>
       apiFetch<AgentResponse>("/agent/chat", {
         method: "POST",
         body: JSON.stringify(payload),
       }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: CONVERSATION_KEY, refetchType: "none" });
+      invalidateForWrites(qc, data.writes);
+    },
   });
 }
 
@@ -107,20 +112,30 @@ export function useNewConversation() {
 }
 
 export function useCapture() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: { text: string }) =>
       apiFetch<AgentResponse>("/agent/capture", {
         method: "POST",
         body: JSON.stringify(payload),
       }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: CONVERSATION_KEY, refetchType: "none" });
+      invalidateForWrites(qc, data.writes);
+    },
   });
 }
 
 export function useRevertRun() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (runId: string) =>
       apiFetch<{ reverted: boolean }>(`/agent/runs/${runId}/revert`, {
         method: "POST",
       }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: CONVERSATION_KEY, refetchType: "none" });
+      qc.invalidateQueries({ queryKey: ["audit"] });
+    },
   });
 }

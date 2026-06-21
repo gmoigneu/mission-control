@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useEffectEvent, type ReactNode } from "react";
 import { useFocusTrap } from "../lib/useFocusTrap";
 
 /**
@@ -22,15 +22,16 @@ export function SidePanel({
   children: ReactNode;
 }) {
   const ref = useFocusTrap<HTMLDivElement>(open);
+  const close = useEffectEvent(onClose);
 
   useEffect(() => {
     if (!open) return;
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") close();
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

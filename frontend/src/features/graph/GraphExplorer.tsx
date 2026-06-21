@@ -41,7 +41,7 @@ export function GraphExplorer() {
     [snapshot.data],
   );
 
-  // Create/recreate the Cytoscape instance whenever the element set changes.
+  // Create/recreate the Cytoscape instance whenever the element set or layout changes.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -53,14 +53,7 @@ export function GraphExplorer() {
       cy.destroy();
       cyRef.current = null;
     };
-    // Layout changes are handled by a separate effect; recreate only on data change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [elements]);
-
-  // Re-run layout when the layout selection changes.
-  useEffect(() => {
-    cyRef.current?.layout(LAYOUTS[layout]).run();
-  }, [layout]);
+  }, [elements, layout]);
 
   // Apply node-type visibility filters.
   useEffect(() => {
