@@ -104,7 +104,16 @@ it("requires confirmation before rebuilding the graph from the toolbar", async (
         return new Response(JSON.stringify([]), { status: 200 });
       }
       if (u.includes("/admin/rebuild-graph")) {
-        return new Response(JSON.stringify({ ok: true }), { status: 200 });
+        return new Response(
+          JSON.stringify({ id: "job-1", kind: "rebuild_graph", status: "queued" }),
+          { status: 202 },
+        );
+      }
+      if (u.includes("/admin/jobs/job-1")) {
+        return new Response(
+          JSON.stringify({ id: "job-1", kind: "rebuild_graph", status: "succeeded" }),
+          { status: 200 },
+        );
       }
       return new Response(JSON.stringify({}), { status: 200 });
     }),
@@ -158,7 +167,16 @@ it("requires confirmation before rebuilding from the empty graph state", async (
         return new Response(JSON.stringify([]), { status: 200 });
       }
       if (u.includes("/admin/rebuild-graph")) {
-        return new Response(JSON.stringify({ ok: true }), { status: 200 });
+        return new Response(
+          JSON.stringify({ id: "job-1", kind: "rebuild_graph", status: "queued" }),
+          { status: 202 },
+        );
+      }
+      if (u.includes("/admin/jobs/job-1")) {
+        return new Response(
+          JSON.stringify({ id: "job-1", kind: "rebuild_graph", status: "succeeded" }),
+          { status: 200 },
+        );
       }
       return new Response(JSON.stringify({}), { status: 200 });
     }),

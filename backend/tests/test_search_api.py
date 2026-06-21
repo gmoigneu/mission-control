@@ -32,7 +32,7 @@ async def test_search_ranks_person_first_and_type_filter(client, db):
     assert ctx_resp.status_code == 201
 
     # Belt-and-suspenders reindex.
-    reindex_resp = await client.post("/admin/reindex")
+    reindex_resp = await client.post("/admin/reindex?wait=true")
     assert reindex_resp.status_code == 200
 
     # Search for "python engineer" — person should rank first.

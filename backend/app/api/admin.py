@@ -1,6 +1,9 @@
-from fastapi import APIRouter, Depends
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import JSONResponse
 
 from app.audit.serialize import model_to_dict
 from app.db import get_db
@@ -17,6 +20,7 @@ from app.models.task import Task
 from app.models.task_link import TaskLink
 from app.search.index import index_subject
 from app.search.registry import iter_searchable_specs
+from app.services.admin_jobs import get_admin_job, schedule_admin_job
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(get_current_user)])
 
@@ -39,7 +43,17 @@ _EDGE_ENTITY_TYPES = [
 
 
 @router.post("/reindex")
-async def reindex(db: AsyncSession = Depends(get_db)):  # noqa: B008
+async def reindex(
+    wait: bool = Query(default=False),
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+):
+    if wait:
+        return await reindex_all(db)
+    job = schedule_admin_job("reindex", reindex_all)
+    return JSONResponse(status_code=status.HTTP_202_ACCEPTED, content=job.as_dict())
+
+
+async def reindex_all(db: AsyncSession) -> dict:
     count = 0
     for spec in iter_searchable_specs():
         rows = (await db.execute(select(spec.model))).scalars().all()
@@ -51,7 +65,17 @@ async def reindex(db: AsyncSession = Depends(get_db)):  # noqa: B008
 
 
 @router.post("/rebuild-graph")
-async def rebuild_graph(db: AsyncSession = Depends(get_db)) -> dict:  # noqa: B008
+async def rebuild_graph(
+    wait: bool = Query(default=False),
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+):
+    if wait:
+        return await rebuild_graph_projection(db)
+    job = schedule_admin_job("rebuild_graph", rebuild_graph_projection)
+    return JSONResponse(status_code=status.HTTP_202_ACCEPTED, content=job.as_dict())
+
+
+async def rebuild_graph_projection(db: AsyncSession) -> dict:
     """Wipe the Neo4j graph and re-project every entity from Postgres."""
     from sqlalchemy import func as sqla_func
 
@@ -92,3 +116,11 @@ async def rebuild_graph(db: AsyncSession = Depends(get_db)) -> dict:  # noqa: B0
     await db.commit()
 
     return {"projected": projected}
+
+
+@router.get("/jobs/{job_id}")
+async def get_job(job_id: uuid.UUID) -> dict:
+    job = get_admin_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
+    return job.as_dict()
