@@ -38,6 +38,8 @@ async def test_entity_tags_crud_flow(client, db):
         f"/entity-tags?subject_type=person&subject_id={person.id}"
     )
     assert matched.status_code == 200
+    assert matched.headers["X-Total-Count"] == "1"
+    assert matched.headers["X-Limit"] == "50"
     assert any(e["id"] == etid for e in matched.json())
 
     # Filter with a different subject_id: should not find it
@@ -46,6 +48,7 @@ async def test_entity_tags_crud_flow(client, db):
         f"/entity-tags?subject_type=person&subject_id={other_id}"
     )
     assert unmatched.status_code == 200
+    assert unmatched.headers["X-Total-Count"] == "0"
     assert all(e["id"] != etid for e in unmatched.json())
 
     # GET by id

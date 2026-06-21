@@ -59,6 +59,27 @@ async def test_inbox_status_filter(client, db):
     assert "already processed" in processed_bodies
 
 
+async def test_inbox_list_pagination_headers(client, db):
+    await login(client, db)
+
+    for i in range(3):
+        created = await client.post("/inbox", json={"body": f"paged inbox {i}"})
+        assert created.status_code == 201
+
+    first = await client.get("/inbox?limit=2&offset=0")
+    assert first.status_code == 200
+    assert len(first.json()) == 2
+    assert first.headers["X-Total-Count"] == "3"
+    assert first.headers["X-Limit"] == "2"
+    assert first.headers["X-Offset"] == "0"
+    assert first.headers["X-Next-Offset"] == "2"
+
+    last = await client.get("/inbox?limit=2&offset=2")
+    assert last.status_code == 200
+    assert len(last.json()) == 1
+    assert "X-Next-Offset" not in last.headers
+
+
 async def test_get_missing_inbox_item_404(client, db):
     await login(client, db)
 
