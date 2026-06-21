@@ -94,6 +94,20 @@ export interface HabitLogCreate {
   date: string;
   done?: boolean;
 }
+
+export interface DailyCheckIn {
+  id: string | null;
+  date: string;
+  mood: number | null;
+  energy: number | null;
+  productivity: number | null;
+  updated_at: string | null;
+}
+export interface DailyCheckInUpdate {
+  mood?: number | null;
+  energy?: number | null;
+  productivity?: number | null;
+}
 export interface Meeting {
   id: string;
   slug: string;
@@ -277,6 +291,7 @@ export interface JournalEntry {
   body: string;
   mood: number | null;
   energy: number | null;
+  productivity: number | null;
   source: string | null;
   created_at: string;
   updated_at: string;
@@ -295,6 +310,7 @@ export interface JournalEntryCreate {
   title?: string | null;
   mood?: number | null;
   energy?: number | null;
+  productivity?: number | null;
   source?: string | null;
 }
 export type JournalEntryUpdate = Partial<JournalEntryCreate>;

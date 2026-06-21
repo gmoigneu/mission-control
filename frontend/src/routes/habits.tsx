@@ -6,9 +6,11 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { SectionLabel } from "../components/console";
 import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input, Select } from "../components/ui";
+import { useDailyCheckIns } from "../features/journal/api";
 import {
   useCreateHabit,
   useDeleteHabit,
@@ -32,6 +34,12 @@ const CADENCE_OPTIONS = [
   { value: "weekly", label: "Weekly" },
 ];
 
+const CHECKIN_METRICS = [
+  { key: "mood", label: "Mood", tint: "var(--ctx-personal)" },
+  { key: "energy", label: "Energy", tint: "var(--signal)" },
+  { key: "productivity", label: "Productivity", tint: "var(--st-done)" },
+] as const;
+
 function todayISO(): string {
   const d = new Date();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -39,8 +47,127 @@ function todayISO(): string {
   return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
+function shortDate(iso: string): string {
+  return iso.slice(5);
+}
+
+function CheckInHistory({
+  checkIns,
+}: {
+  checkIns: Array<{
+    date: string;
+    mood: number | null;
+    energy: number | null;
+    productivity: number | null;
+  }>;
+}) {
+  return (
+    <section className="card" style={{ padding: 18 }}>
+      <SectionLabel>Daily check-in · past 30 days</SectionLabel>
+      <div style={{ overflowX: "auto", paddingBottom: 2 }}>
+        <table
+          aria-label="Daily check-in history for past 30 days"
+          style={{
+            borderCollapse: "separate",
+            borderSpacing: "4px 6px",
+            width: "max-content",
+            minWidth: "100%",
+          }}
+        >
+          <thead>
+            <tr>
+              <th
+                scope="col"
+                style={{
+                  width: 96,
+                  textAlign: "left",
+                  fontSize: 11,
+                  color: "var(--fg-faint)",
+                  fontWeight: 600,
+                }}
+              >
+                Metric
+              </th>
+              {checkIns.map((entry) => (
+                <th
+                  key={entry.date}
+                  scope="col"
+                  title={entry.date}
+                  style={{
+                    width: 26,
+                    minWidth: 26,
+                    textAlign: "center",
+                    fontSize: 10,
+                    color: "var(--fg-faint)",
+                    fontWeight: 500,
+                  }}
+                >
+                  {entry.date.slice(8)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {CHECKIN_METRICS.map((metric) => (
+              <tr key={metric.key}>
+                <th
+                  scope="row"
+                  style={{
+                    width: 96,
+                    textAlign: "left",
+                    fontSize: 12,
+                    color: "var(--fg-muted)",
+                    fontWeight: 600,
+                  }}
+                >
+                  {metric.label}
+                </th>
+                {checkIns.map((entry) => {
+                  const value = entry[metric.key];
+                  const label =
+                    value == null
+                      ? `${metric.label} on ${entry.date}: no entry`
+                      : `${metric.label} on ${entry.date}: ${value} of 5`;
+                  return (
+                    <td key={`${metric.key}-${entry.date}`} style={{ padding: 0 }}>
+                      <span
+                        role="img"
+                        aria-label={label}
+                        title={`${shortDate(entry.date)} · ${metric.label}: ${value ?? "-"}`}
+                        style={{
+                          display: "inline-flex",
+                          width: 24,
+                          height: 22,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          borderRadius: 5,
+                          border: "1px solid var(--line-soft)",
+                          background:
+                            value == null
+                              ? "var(--surface-2)"
+                              : `color-mix(in oklch, ${metric.tint} ${18 + value * 12}%, var(--surface-2))`,
+                          color: value == null ? "var(--fg-faint)" : "var(--fg)",
+                          fontSize: 11,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {value ?? "·"}
+                      </span>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 export function HabitsPage() {
   const { data: habits = [] } = useHabits();
+  const { data: checkIns = [] } = useDailyCheckIns({ days: 30, end: todayISO() });
   useEditFromSearch(habits, handleEdit);
   const createHabit = useCreateHabit();
   const updateHabit = useUpdateHabit();
@@ -170,6 +297,8 @@ export function HabitsPage() {
               </Button>
             </div>
           </div>
+
+          <CheckInHistory checkIns={checkIns} />
 
           <DataTable rows={habits} columns={columns} empty="No habits yet." />
         </div>

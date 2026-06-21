@@ -57,6 +57,25 @@ const HABIT = {
   updated_at: "2026-01-01T00:00:00Z",
 };
 
+const CHECKINS = [
+  {
+    id: null,
+    date: "2026-06-19",
+    mood: null,
+    energy: null,
+    productivity: null,
+    updated_at: null,
+  },
+  {
+    id: "j1",
+    date: "2026-06-20",
+    mood: 4,
+    energy: 3,
+    productivity: 5,
+    updated_at: "2026-06-20T08:00:00Z",
+  },
+];
+
 it("renders the habits page and POSTs when Add is clicked", async () => {
   const calls: Array<[string, RequestInit | undefined]> = [];
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
@@ -65,6 +84,9 @@ it("renders the habits page and POSTs when Add is clicked", async () => {
       return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
         status: 200,
       });
+    }
+    if (String(url).includes("/daily-checkins")) {
+      return new Response(JSON.stringify(CHECKINS), { status: 200 });
     }
     if (String(url).includes("/habits") && (!init?.method || init.method === "GET")) {
       return new Response(JSON.stringify([]), { status: 200 });
@@ -98,6 +120,33 @@ it("renders the habits page and POSTs when Add is clicked", async () => {
   });
 });
 
+it("renders the daily check-in table graph", async () => {
+  const fetchMock = vi.fn(async (url: string) => {
+    if (String(url).includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
+        status: 200,
+      });
+    }
+    if (String(url).includes("/daily-checkins")) {
+      return new Response(JSON.stringify(CHECKINS), { status: 200 });
+    }
+    if (String(url).includes("/habits")) {
+      return new Response(JSON.stringify([HABIT]), { status: 200 });
+    }
+    return new Response(JSON.stringify({}), { status: 200 });
+  });
+
+  renderHabits(fetchMock);
+
+  expect(await screen.findByText(/Daily check-in/)).toBeInTheDocument();
+  expect(
+    screen.getByLabelText("Mood on 2026-06-20: 4 of 5"),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByLabelText("Productivity on 2026-06-20: 5 of 5"),
+  ).toBeInTheDocument();
+});
+
 it("logs a check-in for today when the Today cell is clicked", async () => {
   const calls: Array<[string, RequestInit | undefined]> = [];
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
@@ -106,6 +155,9 @@ it("logs a check-in for today when the Today cell is clicked", async () => {
       return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
         status: 200,
       });
+    }
+    if (String(url).includes("/daily-checkins")) {
+      return new Response(JSON.stringify(CHECKINS), { status: 200 });
     }
     if (String(url).includes("/habits/h1/logs") && init?.method === "POST") {
       return new Response(JSON.stringify({ id: "l1" }), { status: 201 });
