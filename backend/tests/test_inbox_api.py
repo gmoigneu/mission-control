@@ -1,5 +1,9 @@
 import uuid
 
+from sqlalchemy import select
+
+from app.models.person import Person
+from app.models.task import Task
 from tests.helpers import login
 
 
@@ -84,3 +88,44 @@ async def test_get_missing_inbox_item_404(client, db):
     await login(client, db)
 
     assert (await client.get(f"/inbox/{uuid.uuid4()}")).status_code == 404
+
+
+async def test_inbox_item_promotes_to_task_and_marks_processed(client, db):
+    await login(client, db, email="promote-task@example.com", password="pw")
+    created = await client.post("/inbox", json={"body": "Call Sarah about pricing"})
+    item_id = created.json()["id"]
+
+    promoted = await client.post(
+        f"/inbox/{item_id}/promote",
+        json={"target": "task", "title": "Call Sarah"},
+    )
+    assert promoted.status_code == 200, promoted.text
+    assert any(w["entity_type"] == "task" for w in promoted.json()["writes"])
+
+    item = (await client.get(f"/inbox/{item_id}")).json()
+    assert item["status"] == "processed"
+
+    tasks = list((await db.execute(select(Task))).scalars().all())
+    assert len(tasks) == 1
+    assert tasks[0].source == f"inbox:{item_id}"
+
+
+async def test_inbox_item_promotes_to_observation(client, db):
+    await login(client, db, email="promote-observation@example.com", password="pw")
+    person = Person(slug="sarah", name="Sarah")
+    db.add(person)
+    await db.flush()
+    created = await client.post("/inbox", json={"body": "Sarah prefers async updates"})
+    item_id = created.json()["id"]
+
+    promoted = await client.post(
+        f"/inbox/{item_id}/promote",
+        json={
+            "target": "observation",
+            "body": "Prefers async updates",
+            "subject_type": "person",
+            "subject_id": str(person.id),
+        },
+    )
+    assert promoted.status_code == 200, promoted.text
+    assert any(w["entity_type"] == "observation" for w in promoted.json()["writes"])

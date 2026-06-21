@@ -2,6 +2,7 @@ from app.models.agent_conversation import AgentConversation  # noqa: F401
 from app.models.agent_persona import AgentPersona  # noqa: F401
 from app.models.agent_run import AgentRun  # noqa: F401
 from app.models.audit import AuditLog  # noqa: F401
+from app.models.capture import Capture  # noqa: F401
 from app.models.chunk import Chunk  # noqa: F401
 from app.models.company import Company  # noqa: F401
 from app.models.context import Context  # noqa: F401

@@ -6,7 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.pagination import Page, page_params, set_pagination_headers
 from app.db import get_db
 from app.deps import get_current_user
+from app.schemas.capture import CaptureApplyResponse, InboxPromotionRequest
 from app.schemas.inbox_item import InboxItemCreate, InboxItemOut, InboxItemUpdate
+from app.services import capture as capture_svc
 from app.services import inbox_item as svc
 
 router = APIRouter(
@@ -64,3 +66,26 @@ async def delete_inbox_item(item_id: uuid.UUID, db: AsyncSession = Depends(get_d
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
     await svc.delete_inbox_item(db, obj, surface="ui")
     await db.commit()
+
+
+@router.post("/{item_id}/promote", response_model=CaptureApplyResponse)
+async def promote_inbox_item(
+    item_id: uuid.UUID,
+    payload: InboxPromotionRequest,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> CaptureApplyResponse:
+    try:
+        writes, run_id = await capture_svc.promote_inbox_item(db, item_id, payload)
+    except ValueError as exc:
+        detail = str(exc)
+        code = status.HTTP_404_NOT_FOUND if "not found" in detail else status.HTTP_422_UNPROCESSABLE_ENTITY
+        raise HTTPException(status_code=code, detail=detail) from exc
+    await db.commit()
+    obj = await svc.get_inbox_item(db, item_id)
+    capture = await capture_svc.get_capture(db, obj.capture_id) if obj and obj.capture_id else None
+    return CaptureApplyResponse(
+        agent_run_id=run_id,
+        reply="Inbox item promoted.",
+        writes=writes,
+        capture=capture,  # type: ignore[arg-type]
+    )
