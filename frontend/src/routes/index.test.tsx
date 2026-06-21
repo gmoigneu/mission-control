@@ -10,7 +10,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import { AyaProvider } from "../features/agent/AyaContext";
-import { Dashboard } from "./index";
+import { Dashboard } from "./index.page";
 
 afterEach(() => {
   vi.restoreAllMocks();
