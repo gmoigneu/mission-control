@@ -7,8 +7,10 @@ import { DataTable } from "../components/DataTable";
 import { Pagination } from "../components/Pagination";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { SlugField } from "../components/SlugField";
 import { useHotkey } from "../lib/useHotkey";
-import { Button, Field, Input, Select } from "../components/ui";
+import { resolvedSlug } from "../lib/slug";
+import { Button, Field, Input, Select, Textarea } from "../components/ui";
 import { useCompanies } from "../features/companies/api";
 import { useContexts } from "../features/contexts/api";
 import {
@@ -52,7 +54,7 @@ const EMPTY_FORM: FormState = {
 function buildPayload(form: FormState, isEdit: boolean) {
   return {
     name: form.name,
-    slug: form.slug,
+    slug: resolvedSlug(form.slug, form.name),
     ...(form.role ? { role: form.role } : { role: null }),
     ...(isEdit
       ? { company_id: form.company_id || null }
@@ -85,7 +87,7 @@ export function PeoplePage() {
   useHotkey("c", handleNew, !panelOpen);
 
   function handleChange(key: keyof FormState) {
-    return (e: React.ChangeEvent<HTMLInputElement>) =>
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
   }
 
@@ -213,15 +215,6 @@ export function PeoplePage() {
                 required
               />
             </Field>
-            <Field label="Slug">
-              <Input
-                value={form.slug}
-                onChange={handleChange("slug")}
-                placeholder="jane-doe"
-                aria-label="Slug"
-                required
-              />
-            </Field>
             <Field label="Role">
               <Input
                 value={form.role}
@@ -272,13 +265,19 @@ export function PeoplePage() {
               />
             </Field>
             <Field label="Summary">
-              <Input
+              <Textarea
                 value={form.summary}
                 onChange={handleChange("summary")}
                 placeholder="Optional summary"
                 aria-label="Summary"
+                rows={5}
               />
             </Field>
+            <SlugField
+              value={form.slug}
+              source={form.name}
+              onChange={(value) => setForm((prev) => ({ ...prev, slug: value }))}
+            />
             <div className="flex gap-2">
               <Button type="submit">{editingId ? "Save" : "Add"}</Button>
               <Button type="button" onClick={handleClose} className="ghost">

@@ -8,7 +8,7 @@ import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
 import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
-import { Button, Field, Input, Select } from "../components/ui";
+import { Button, Field, Input, Select, Textarea } from "../components/ui";
 import {
   useCreateReview,
   useDeleteReview,
@@ -63,7 +63,7 @@ export function ReviewsPage() {
   useHotkey("c", handleNew, !panelOpen);
 
   function handleChange(key: keyof FormState) {
-    return (e: React.ChangeEvent<HTMLInputElement>) =>
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
   }
 
@@ -189,19 +189,21 @@ export function ReviewsPage() {
               />
             </Field>
             <Field label="Highlights">
-              <Input
+              <Textarea
                 value={form.highlights}
                 onChange={handleChange("highlights")}
                 placeholder="Wins worth remembering"
                 aria-label="Highlights"
+                rows={4}
               />
             </Field>
             <Field label="Body">
-              <Input
+              <Textarea
                 value={form.body}
                 onChange={handleChange("body")}
                 placeholder="What happened, what's next"
                 aria-label="Body"
+                rows={8}
               />
             </Field>
             <div className="flex gap-2">

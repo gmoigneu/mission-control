@@ -8,7 +8,7 @@ import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
 import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
-import { Button, Field, Input, Select } from "../components/ui";
+import { Button, Field, Input, Select, Textarea } from "../components/ui";
 import {
   useCreateTelos,
   useDeleteTelos,
@@ -48,7 +48,7 @@ export function TelosPage() {
   useHotkey("c", handleNew, !panelOpen);
 
   function handleChange(key: keyof FormState) {
-    return (e: React.ChangeEvent<HTMLInputElement>) =>
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
   }
 
@@ -170,11 +170,12 @@ export function TelosPage() {
               />
             </Field>
             <Field label="Body">
-              <Input
+              <Textarea
                 value={form.body}
                 onChange={handleChange("body")}
                 placeholder="Optional detail"
                 aria-label="Body"
+                rows={7}
               />
             </Field>
             <Field label="Parent">

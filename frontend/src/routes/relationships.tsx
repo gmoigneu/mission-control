@@ -8,7 +8,7 @@ import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
 import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
-import { Button, Field, Input, Select } from "../components/ui";
+import { Button, Field, Input, Select, Textarea } from "../components/ui";
 import { useContexts } from "../features/contexts/api";
 import { usePeople } from "../features/people/api";
 import {
@@ -74,7 +74,7 @@ export function RelationshipsPage() {
   const personMap = Object.fromEntries(people.map((p) => [p.id, p.name]));
 
   function handleChange(key: keyof FormState) {
-    return (e: React.ChangeEvent<HTMLInputElement>) =>
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
   }
 
@@ -216,11 +216,12 @@ export function RelationshipsPage() {
               />
             </Field>
             <Field label="Notes">
-              <Input
+              <Textarea
                 value={form.notes}
                 onChange={handleChange("notes")}
                 placeholder="Optional notes"
                 aria-label="Notes"
+                rows={5}
               />
             </Field>
             <div className="flex gap-2">

@@ -7,7 +7,7 @@ import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
 import { useHotkey } from "../lib/useHotkey";
-import { Button, Field, Input, Select } from "../components/ui";
+import { Button, Field, Input, Select, Textarea } from "../components/ui";
 import {
   useCreateInboxItem,
   useDeleteInboxItem,
@@ -41,7 +41,7 @@ export function InboxPage() {
   useHotkey("c", handleNew, !panelOpen);
 
   function handleChange(key: keyof FormState) {
-    return (e: React.ChangeEvent<HTMLInputElement>) =>
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
   }
 
@@ -134,12 +134,13 @@ export function InboxPage() {
         <SidePanel open={panelOpen} onClose={handleClose} title="New inbox item">
           <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
             <Field label="Body">
-              <Input
+              <Textarea
                 value={form.body}
                 onChange={handleChange("body")}
                 placeholder="Capture a raw note to triage later"
                 aria-label="Body"
                 required
+                rows={5}
               />
             </Field>
             <Field label="Source">
