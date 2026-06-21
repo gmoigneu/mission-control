@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
-import { JournalPage } from "./journal";
+import { JournalPage } from "./journal.page";
 
 const today = new Date().toISOString().slice(0, 10);
 const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
