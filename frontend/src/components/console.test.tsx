@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { contextTint, paletteVar } from "./console";
+import { contextTint, paletteVar } from "./console-data";
 
 describe("paletteVar", () => {
   it("returns the palette var for a known key", () => {

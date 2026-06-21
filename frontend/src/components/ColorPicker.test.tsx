@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ColorPicker } from "./ColorPicker";
-import { PALETTE } from "./console";
+import { PALETTE } from "./console-data";
 
 describe("ColorPicker", () => {
   it("calls onChange with the picked palette key", async () => {

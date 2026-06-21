@@ -15,15 +15,14 @@ const journalResource = resource<JournalEntry, JournalEntryCreate, JournalEntryU
   "/journal-entries",
 );
 
-export const {
-  useList: useJournalEntries,
-  useCreate: useCreateJournalEntry,
-  useUpdate: useUpdateJournalEntry,
-  useRemove: useDeleteJournalEntry,
-} = makeResourceHooks<JournalEntry, JournalEntryCreate, JournalEntryUpdate>(
+const journalHooks = makeResourceHooks<JournalEntry, JournalEntryCreate, JournalEntryUpdate>(
   "journal-entries",
   journalResource,
 );
+
+export const useJournalEntries = journalHooks.useList;
+export const useCreateJournalEntry = journalHooks.useCreate;
+export const useUpdateJournalEntry = journalHooks.useUpdate;
 
 interface DailyCheckInQuery {
   days?: number;

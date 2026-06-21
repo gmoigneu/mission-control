@@ -7,10 +7,8 @@ import {
   ContextChip,
   PriorityDot,
   SectionLabel,
-  dueChip,
-  fmtDate,
-  contextTint,
 } from "../components/console";
+import { contextTint, dueChip, fmtDate } from "../components/console-data";
 import { RequireAuth } from "../components/RequireAuth";
 import { useAudit, useRevert } from "../features/audit/api";
 import { useContexts } from "../features/contexts/api";

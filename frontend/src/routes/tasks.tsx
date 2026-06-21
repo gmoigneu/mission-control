@@ -6,10 +6,9 @@ import { BottomSheet } from "../components/BottomSheet";
 import { useIsMobile } from "../lib/useIsMobile";
 import {
   PriorityIcon,
-  STATUS,
   StatusBadgeMenu,
-  contextTint,
 } from "../components/console";
+import { STATUS, contextTint } from "../components/console-data";
 import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { Markdown } from "../components/Markdown";
