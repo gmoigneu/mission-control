@@ -25,7 +25,9 @@ interface FormState {
 const EMPTY_FORM: FormState = { name: "", slug: "", domain: "", notes: "" };
 
 export function CompaniesPage() {
-  const { data: companies = [] } = useCompanies();
+  const [search, setSearch] = useState("");
+  const query = search.trim();
+  const { data: companies = [] } = useCompanies(query ? { q: query } : undefined);
   useEditFromSearch(companies, handleEdit);
   const createCompany = useCreateCompany();
   const updateCompany = useUpdateCompany();
@@ -39,6 +41,10 @@ export function CompaniesPage() {
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
+  }
+
+  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setSearch(e.target.value);
   }
 
   function handleNew() {
@@ -83,7 +89,18 @@ export function CompaniesPage() {
   }
 
   const columns = [
-    { header: "Name", cell: (row: Company) => row.name },
+    {
+      header: "Name",
+      cell: (row: Company) => (
+        <Link
+          to="/companies/$slug"
+          params={{ slug: row.slug }}
+          className="underline hover:text-gray-600"
+        >
+          {row.name}
+        </Link>
+      ),
+    },
     { header: "Slug", cell: (row: Company) => row.slug },
     { header: "Domain", cell: (row: Company) => row.domain ?? "" },
     {
@@ -128,7 +145,21 @@ export function CompaniesPage() {
             </div>
           </div>
 
-          <DataTable rows={companies} columns={columns} empty="No companies yet." />
+          <form role="search" className="row gap-2" onSubmit={(e) => e.preventDefault()}>
+            <Input
+              type="search"
+              value={search}
+              onChange={handleSearchChange}
+              placeholder="Search companies"
+              aria-label="Search companies"
+            />
+          </form>
+
+          <DataTable
+            rows={companies}
+            columns={columns}
+            empty={query ? `No companies match "${query}".` : "No companies yet."}
+          />
         </div>
 
         <SidePanel

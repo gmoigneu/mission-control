@@ -8,7 +8,7 @@ import { useContexts } from "../features/contexts/api";
 import { useNeighbors } from "../features/graph/api";
 import { useObservations } from "../features/observations/api";
 import { usePersonBySlug } from "../features/people/api";
-import type { Observation, Person } from "../lib/types";
+import type { Company, Observation, Person } from "../lib/types";
 import { rootRoute } from "./root";
 
 /** A single labelled field in the person summary card. */
@@ -26,11 +26,11 @@ function DetailField({ label, value }: { label: string; value: React.ReactNode }
 /** Observations timeline + mini relationship graph for a resolved person. */
 function PersonDetailContent({
   person,
-  companyName,
+  company,
   contextName,
 }: {
   person: Person;
-  companyName: string | null;
+  company: Company | null;
   contextName: string | null;
 }) {
   // Observations filtered to this person (subject_type=person + subject_id).
@@ -69,7 +69,20 @@ function PersonDetailContent({
         <div className="grid grid-cols-3 gap-4">
           <DetailField label="Slug" value={person.slug} />
           <DetailField label="Role" value={person.role} />
-          <DetailField label="Company" value={companyName} />
+          <DetailField
+            label="Company"
+            value={
+              company ? (
+                <Link
+                  to="/companies/$slug"
+                  params={{ slug: company.slug }}
+                  className="underline hover:text-gray-600"
+                >
+                  {company.name}
+                </Link>
+              ) : null
+            }
+          />
           <DetailField label="Primary context" value={contextName} />
           <DetailField
             label="Email"
@@ -151,14 +164,14 @@ export function PersonDetailPage() {
       </div>
     );
   } else {
-    const companyName = person.company_id
-      ? (companies.find((c) => c.id === person.company_id)?.name ?? person.company_id)
+    const company = person.company_id
+      ? (companies.find((c) => c.id === person.company_id) ?? null)
       : null;
     const contextName = person.primary_context_id
       ? (contexts.find((c) => c.id === person.primary_context_id)?.name ?? person.primary_context_id)
       : null;
     body = (
-      <PersonDetailContent person={person} companyName={companyName} contextName={contextName} />
+      <PersonDetailContent person={person} company={company} contextName={contextName} />
     );
   }
 
