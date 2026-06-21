@@ -6,15 +6,23 @@ import {
   createRoute,
   createRouter,
 } from "@tanstack/react-router";
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { JournalPage } from "./journal";
 
-afterEach(() => vi.restoreAllMocks());
+const today = new Date().toISOString().slice(0, 10);
+const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 function renderJournal(fetchMock: ReturnType<typeof vi.fn>) {
   vi.stubGlobal("fetch", fetchMock);
+  window.scrollTo = vi.fn();
 
   const root = createRootRoute();
   const journal = createRoute({
@@ -45,46 +53,61 @@ function renderJournal(fetchMock: ReturnType<typeof vi.fn>) {
   );
 }
 
-it("renders the journal page and POSTs when Add is clicked", async () => {
+function journalEntry(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "j1",
+    date: today,
+    title: "Today",
+    body: "# Morning\n\nAlready started.",
+    mood: 4,
+    energy: 3,
+    source: null,
+    created_at: `${today}T00:00:00Z`,
+    updated_at: `${today}T00:00:00Z`,
+    ...overrides,
+  };
+}
+
+function okJson(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), { status });
+}
+
+function findJournalEditor() {
+  return screen.findByRole("textbox", { name: /journal entry/i }, { timeout: 5000 });
+}
+
+it("opens today as an editable markdown draft and creates it after debounce", async () => {
   const calls: Array<[string, RequestInit | undefined]> = [];
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     calls.push([String(url), init]);
     if (String(url).includes("/auth/me")) {
-      return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
-        status: 200,
-      });
+      return okJson({ id: "u1", email: "g@x.com", name: "G" });
     }
     if (String(url).includes("/journal-entries") && (!init?.method || init.method === "GET")) {
-      return new Response(JSON.stringify([]), { status: 200 });
+      return okJson([]);
     }
     if (String(url).includes("/journal-entries") && init?.method === "POST") {
-      return new Response(
-        JSON.stringify({
-          id: "j1",
-          date: "2026-05-29",
-          title: "Friday",
-          body: "Shipped the journal feature.",
-          mood: 4,
-          energy: 3,
-          source: null,
-          created_at: "2026-05-29T00:00:00Z",
-          updated_at: "2026-05-29T00:00:00Z",
-        }),
-        { status: 201 },
-      );
+      return okJson(journalEntry({ body: "# Today\n\nAdded a note." }), 201);
     }
-    return new Response(JSON.stringify({}), { status: 200 });
+    return okJson({});
   });
 
   renderJournal(fetchMock);
 
   await screen.findByRole("heading", { name: "Journal" });
+  const editor = await findJournalEditor();
 
-  await userEvent.click(screen.getByRole("button", { name: /create/i }));
+  vi.useFakeTimers();
+  fireEvent.change(editor, {
+    target: { value: "# Today\n\nAdded a note." },
+  });
 
-  await userEvent.type(screen.getByRole("textbox", { name: /entry/i }), "Shipped the journal feature.");
+  expect(screen.getByRole("status")).toHaveTextContent("Unsaved changes");
 
-  await userEvent.click(screen.getByRole("button", { name: /^add$/i }));
+  await act(async () => {
+    vi.advanceTimersByTime(2100);
+  });
+  vi.useRealTimers();
 
   await waitFor(() => {
     const postCall = calls.find(
@@ -92,99 +115,109 @@ it("renders the journal page and POSTs when Add is clicked", async () => {
     );
     expect(postCall).toBeDefined();
     const body = JSON.parse(postCall![1]!.body as string);
-    expect(body.body).toBe("Shipped the journal feature.");
-    expect(body.date).toBeTruthy();
+    expect(body.date).toBe(today);
+    expect(body.body).toBe("# Today\n\nAdded a note.");
   });
-  await screen.findByRole("heading", { name: "Friday" });
 });
 
-it("does not show raw markdown syntax in the entry rail preview", async () => {
-  const fetchMock = vi.fn(async (url: string) => {
+it("autosaves edits to an existing entry with PATCH after debounce", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    calls.push([String(url), init]);
     if (String(url).includes("/auth/me")) {
-      return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
-        status: 200,
-      });
+      return okJson({ id: "u1", email: "g@x.com", name: "G" });
     }
-    if (String(url).includes("/journal-entries")) {
-      return new Response(
-        JSON.stringify([
-          {
-            id: "j1",
-            date: "2026-05-29",
-            title: "Friday",
-            body: "# Big day\n\n**Bold idea** and _notes_",
-            mood: 4,
-            energy: 3,
-            source: null,
-            created_at: "2026-05-29T00:00:00Z",
-            updated_at: "2026-05-29T00:00:00Z",
-          },
-        ]),
-        { status: 200 },
-      );
+    if (String(url).includes("/journal-entries") && (!init?.method || init.method === "GET")) {
+      return okJson([journalEntry()]);
     }
-    return new Response(JSON.stringify({}), { status: 200 });
+    if (String(url).includes("/journal-entries/j1") && init?.method === "PATCH") {
+      return okJson(journalEntry({ body: "# Morning\n\nAlready started.\n\nFollow-up." }));
+    }
+    return okJson({});
   });
 
   renderJournal(fetchMock);
 
   await screen.findByRole("heading", { name: "Journal" });
-  expect(await screen.findByText("Big day Bold idea and notes")).toBeInTheDocument();
-  expect(screen.queryByText(/# Big day/)).not.toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.getByRole("textbox", { name: /journal entry/i })).toHaveValue(
+      "# Morning\n\nAlready started.",
+    );
+  }, { timeout: 5000 });
+  const editor = screen.getByRole("textbox", { name: /journal entry/i });
+
+  vi.useFakeTimers();
+  fireEvent.change(editor, {
+    target: { value: "# Morning\n\nAlready started.\n\nFollow-up." },
+  });
+
+  await act(async () => {
+    vi.advanceTimersByTime(2100);
+  });
+  vi.useRealTimers();
+
+  await waitFor(() => {
+    const patchCall = calls.find(
+      ([url, init]) => String(url).includes("/journal-entries/j1") && init?.method === "PATCH",
+    );
+    expect(patchCall).toBeDefined();
+    const body = JSON.parse(patchCall![1]!.body as string);
+    expect(body.body).toBe("# Morning\n\nAlready started.\n\nFollow-up.");
+  });
 });
 
-it("hides a deleted selected entry while the refetch catches up", async () => {
+it("saves dirty changes before navigating to the previous journal day", async () => {
   const calls: Array<[string, RequestInit | undefined]> = [];
-  const entries = [
-    {
-      id: "j1",
-      date: "2026-05-30",
-      title: "Newest",
-      body: "Delete me.",
-      mood: 4,
-      energy: 3,
-      source: null,
-      created_at: "2026-05-30T00:00:00Z",
-      updated_at: "2026-05-30T00:00:00Z",
-    },
-    {
-      id: "j2",
-      date: "2026-05-29",
-      title: "Previous",
-      body: "Keep me.",
-      mood: 3,
-      energy: 3,
-      source: null,
-      created_at: "2026-05-29T00:00:00Z",
-      updated_at: "2026-05-29T00:00:00Z",
-    },
-  ];
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     calls.push([String(url), init]);
     if (String(url).includes("/auth/me")) {
-      return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
-        status: 200,
-      });
+      return okJson({ id: "u1", email: "g@x.com", name: "G" });
     }
-    if (String(url).includes("/journal-entries") && init?.method === "DELETE") {
-      return new Response(null, { status: 204 });
+    if (String(url).includes("/journal-entries") && (!init?.method || init.method === "GET")) {
+      return okJson([
+        journalEntry(),
+        journalEntry({
+          id: "j0",
+          date: yesterday,
+          title: "Yesterday",
+          body: "Older notes.",
+          created_at: `${yesterday}T00:00:00Z`,
+          updated_at: `${yesterday}T00:00:00Z`,
+        }),
+      ]);
     }
-    if (String(url).includes("/journal-entries")) {
-      return new Response(JSON.stringify(entries), { status: 200 });
+    if (String(url).includes("/journal-entries/j1") && init?.method === "PATCH") {
+      return okJson(journalEntry({ body: "# Morning\n\nSaved before leaving." }));
     }
-    return new Response(JSON.stringify({}), { status: 200 });
+    return okJson({});
   });
 
   renderJournal(fetchMock);
 
-  await screen.findByRole("heading", { name: "Newest" });
-  await userEvent.click(screen.getByRole("button", { name: /edit/i }));
-  await userEvent.click(screen.getByRole("button", { name: /^delete$/i }));
-  await userEvent.click(screen.getByRole("button", { name: /confirm/i }));
+  await screen.findByRole("heading", { name: "Journal" });
 
-  await screen.findByRole("heading", { name: "Previous" });
-  expect(screen.queryByRole("heading", { name: "Newest" })).not.toBeInTheDocument();
-  expect(
-    calls.some(([url, init]) => String(url).includes("/journal-entries/j1") && init?.method === "DELETE"),
-  ).toBe(true);
+  await waitFor(() => {
+    expect(screen.getByRole("textbox", { name: /journal entry/i })).toHaveValue(
+      "# Morning\n\nAlready started.",
+    );
+  }, { timeout: 5000 });
+  const editor = screen.getByRole("textbox", { name: /journal entry/i });
+
+  fireEvent.change(editor, {
+    target: { value: "# Morning\n\nSaved before leaving." },
+  });
+
+  fireEvent.click(screen.getByRole("button", { name: /previous journal day/i }));
+
+  await waitFor(() => {
+    const patchCall = calls.find(
+      ([url, init]) => String(url).includes("/journal-entries/j1") && init?.method === "PATCH",
+    );
+    expect(patchCall).toBeDefined();
+    const body = JSON.parse(patchCall![1]!.body as string);
+    expect(body.body).toBe("# Morning\n\nSaved before leaving.");
+  });
+
+  await screen.findByRole("heading", { name: yesterday });
+  expect(screen.getByRole("textbox", { name: /journal entry/i })).toHaveValue("Older notes.");
 });

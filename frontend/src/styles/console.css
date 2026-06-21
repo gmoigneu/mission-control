@@ -567,6 +567,82 @@ a:focus-visible {
   outline: 2px solid var(--signal);
   outline-offset: 2px;
 }
+.journal-editor-page {
+  display: flex;
+  min-height: calc(100vh - 56px);
+  flex-direction: column;
+  gap: 18px;
+}
+.journal-editor-header,
+.journal-editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.journal-editor-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 14px;
+}
+.journal-meta-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(90px, 120px) minmax(90px, 120px);
+  gap: 12px;
+}
+.journal-save-status {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-faint);
+}
+.journal-save-status.unsaved { color: var(--st-warn); }
+.journal-save-status.saving { color: var(--signal); }
+.journal-save-status.saved { color: var(--st-done); }
+.journal-save-status.error,
+.journal-save-error { color: var(--st-danger); }
+.journal-save-error {
+  margin: 0;
+  font-size: 13px;
+}
+.journal-editor-shell .w-md-editor {
+  min-height: 360px !important;
+  flex: 1;
+  border-color: var(--line);
+  background: var(--surface-1);
+  box-shadow: none;
+}
+.journal-editor-loading {
+  display: grid;
+  min-height: 360px;
+  flex: 1;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--fg-faint);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.journal-editor-shell .w-md-editor-toolbar {
+  border-color: var(--line);
+  background: var(--surface-2);
+}
+.journal-editor-shell .w-md-editor-text,
+.journal-editor-shell .w-md-editor-text-pre,
+.journal-editor-shell .w-md-editor-text-input {
+  font-family: var(--mono) !important;
+  font-size: 14px !important;
+  line-height: 1.65 !important;
+}
+.journal-editor-shell .w-md-editor-text-input {
+  color: var(--fg) !important;
+  caret-color: var(--signal);
+}
+.journal-editor-shell .w-md-editor-preview {
+  background: var(--surface-1);
+}
 
 /* ---------------------------------------------------------------------
    MOBILE PRIMITIVES — scroll regions, bottom sheet, full-screen Aya
@@ -674,6 +750,9 @@ a:focus-visible {
   .task-row-meta { width: 100%; padding-left: 30px; }
   .dash-grid, .person-grid, .journal-grid, .rel-grid { grid-template-columns: 1fr !important; }
   .journal-form-grid { grid-template-columns: 1fr; }
+  .journal-editor-header,
+  .journal-editor-toolbar { align-items: stretch; flex-direction: column; }
+  .journal-meta-grid { grid-template-columns: 1fr; }
   .people-split { grid-template-columns: 1fr !important; }
   .people-rail { display: none; }
 }
