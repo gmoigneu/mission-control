@@ -36,9 +36,11 @@ it("submits search on Enter", async () => {
   expect(props.onSearchSubmit).toHaveBeenCalled();
 });
 
-it("fires rebuild", async () => {
+it("requires confirmation before rebuilding", async () => {
   const props = setup();
   await userEvent.click(screen.getByRole("button", { name: /rebuild graph/i }));
+  expect(props.onRebuild).not.toHaveBeenCalled();
+  await userEvent.click(screen.getByRole("button", { name: /confirm rebuild/i }));
   expect(props.onRebuild).toHaveBeenCalled();
 });
 

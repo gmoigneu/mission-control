@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button, Field, Input, Select } from "../../components/ui";
 import { LAYOUTS, NODE_TYPES, TYPE_COLORS, type LayoutName } from "./cytoscape-config";
 
@@ -22,6 +23,7 @@ interface GraphControlsProps {
 }
 
 export function GraphControls(props: GraphControlsProps) {
+  const [confirmRebuild, setConfirmRebuild] = useState(false);
   const layoutOptions = (Object.keys(LAYOUTS) as LayoutName[]).map((l) => ({
     value: l,
     label: l,
@@ -79,8 +81,24 @@ export function GraphControls(props: GraphControlsProps) {
         />
       </Field>
 
-      <Button onClick={props.onRebuild} disabled={props.rebuilding}>
-        {props.rebuilding ? "Rebuilding…" : "Rebuild graph"}
+      <Button
+        type="button"
+        onBlur={() => setConfirmRebuild(false)}
+        onClick={() => {
+          if (confirmRebuild) {
+            setConfirmRebuild(false);
+            props.onRebuild();
+          } else {
+            setConfirmRebuild(true);
+          }
+        }}
+        disabled={props.rebuilding}
+      >
+        {props.rebuilding
+          ? "Rebuilding..."
+          : confirmRebuild
+            ? "Confirm rebuild"
+            : "Rebuild graph"}
       </Button>
     </div>
   );
