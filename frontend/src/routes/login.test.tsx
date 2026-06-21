@@ -36,9 +36,12 @@ function renderLogin() {
 }
 
 it("submits credentials and calls the login endpoint", async () => {
-  const fetchMock = vi.fn(async () =>
-    new Response(JSON.stringify({ id: "1", email: "g@x.com" }), { status: 200 }),
-  );
+  const fetchMock = vi.fn(async (url: string) => {
+    if (String(url).includes("/auth/me")) {
+      return new Response(JSON.stringify({ detail: "unauthenticated" }), { status: 401 });
+    }
+    return new Response(JSON.stringify({ id: "1", email: "g@x.com" }), { status: 200 });
+  });
   vi.stubGlobal("fetch", fetchMock);
   renderLogin();
   await screen.findByRole("button", { name: "Sign in" });
@@ -52,7 +55,15 @@ it("submits credentials and calls the login endpoint", async () => {
 });
 
 it("hides the passkey button when WebAuthn is unsupported", async () => {
-  vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 200 })));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (String(url).includes("/auth/me")) {
+        return new Response(JSON.stringify({ detail: "unauthenticated" }), { status: 401 });
+      }
+      return new Response("{}", { status: 200 });
+    }),
+  );
   renderLogin();
   await screen.findByRole("button", { name: "Sign in" });
   expect(
@@ -71,9 +82,12 @@ it("shows the passkey button and starts the assertion when supported", async () 
       }),
     },
   });
-  const fetchMock = vi.fn(async () =>
-    new Response(JSON.stringify({ challenge: "abc" }), { status: 200 }),
-  );
+  const fetchMock = vi.fn(async (url: string) => {
+    if (String(url).includes("/auth/me")) {
+      return new Response(JSON.stringify({ detail: "unauthenticated" }), { status: 401 });
+    }
+    return new Response(JSON.stringify({ challenge: "abc" }), { status: 200 });
+  });
   vi.stubGlobal("fetch", fetchMock);
 
   renderLogin();
@@ -83,4 +97,23 @@ it("shows the passkey button and starts the assertion when supported", async () 
     const calls = fetchMock.mock.calls.map((c) => String((c as unknown[])[0]));
     expect(calls.some((u) => u.includes("/auth/webauthn/authenticate/options"))).toBe(true);
   });
+});
+
+it("redirects authenticated users away from the login page", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (String(url).includes("/auth/me")) {
+        return new Response(JSON.stringify({ id: "1", email: "g@x.com", name: "G" }), {
+          status: 200,
+        });
+      }
+      return new Response(JSON.stringify({}), { status: 200 });
+    }),
+  );
+
+  renderLogin();
+
+  await screen.findByText("dashboard-home");
+  expect(screen.queryByRole("button", { name: "Sign in" })).not.toBeInTheDocument();
 });
