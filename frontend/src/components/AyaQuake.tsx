@@ -49,23 +49,12 @@ function WritesCard({
   }
 
   return (
-    <div
-      className="card"
-      style={{
-        marginTop: 6,
-        padding: "8px 10px",
-        background: "var(--surface-2)",
-        border: "1px solid var(--line)",
-        borderRadius: "var(--r-sm)",
-        fontSize: 12,
-        color: "var(--fg-dim)",
-      }}
-    >
-      <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: reverted ? 0 : 8 }}>
+    <div className="card aya-writes-card">
+      <div className={"aya-writes-list" + (reverted ? " reverted" : "")}>
         {writes.map((w) => (
-          <span key={w.id} className="row gap-1" style={{ gap: 5 }}>
-            <span className="spark" style={{ fontSize: 12 }}>✦</span>
-            <span style={{ color: "var(--fg-muted)" }}>
+          <span key={w.id} className="row gap-1 aya-write-row">
+            <span className="spark aya-write-spark">✦</span>
+            <span className="aya-write-label">
               {w.action} {w.entity_type.replace("_", " ")}
             </span>
           </span>
@@ -74,20 +63,19 @@ function WritesCard({
       {!reverted ? (
         <button
           type="button"
-          className="btn ghost sm"
           onClick={() => void handleUndo()}
           disabled={revert.isPending}
-          style={{ display: "flex", alignItems: "center", gap: 4 }}
+          className="btn ghost sm aya-undo-button"
         >
           {revert.isPending ? (
-            <Loader2 size={11} strokeWidth={1.6} style={{ animation: "spin 1s linear infinite" }} />
+            <Loader2 size={11} strokeWidth={1.6} className="spin-icon" />
           ) : (
             <Undo2 size={11} strokeWidth={1.6} />
           )}
           Undo
         </button>
       ) : (
-        <span style={{ fontSize: 12, color: "var(--fg-faint)", fontStyle: "italic" }}>
+        <span className="aya-reverted-label">
           Reverted
         </span>
       )}
@@ -256,19 +244,12 @@ function AyaQuakeInner() {
       )}
       <section className="aya-quake-panel">
         {/* Header */}
-        <div
-          className="row gap-2"
-          style={{
-            padding: "12px 14px",
-            borderBottom: "1px solid var(--line-soft)",
-            flexShrink: 0,
-          }}
-        >
+        <div className="row gap-2 aya-quake-header">
           <span className="aya-orb" />
-          <span className="serif" style={{ fontSize: 15, fontWeight: 460, flex: 1 }}>
+          <span className="serif aya-title">
             {ayaName}
           </span>
-          <span className="meta" style={{ color: "var(--fg-faint)", fontSize: 12 }}>
+          <span className="meta aya-status">
             {chat.isPending ? "thinking…" : "idle"}
           </span>
           <button
@@ -288,34 +269,14 @@ function AyaQuakeInner() {
             title="Close Aya (Esc)"
             aria-label="Close Aya"
           >
-            <span
-              style={{
-                fontSize: 16,
-                lineHeight: 1,
-                color: "var(--fg-dim)",
-                fontFamily: "var(--mono)",
-              }}
-            >
-              ×
-            </span>
+            <span className="aya-close-mark">×</span>
           </button>
         </div>
 
         {/* Transcript */}
         <div
           ref={transcriptRef}
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: "16px 14px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-            width: "100%",
-            maxWidth: 900,
-            margin: "0 auto",
-            boxSizing: "border-box",
-          }}
+          className="aya-transcript"
         >
           {isEmpty && <AssistantBubble text={greeting} />}
           {serverMessages.map((m) =>
@@ -324,7 +285,7 @@ function AyaQuakeInner() {
             ) : (
               <div
                 key={conversationMessageKey(m)}
-                style={{ alignSelf: "flex-start", maxWidth: "88%" }}
+                className="aya-assistant-message-wrap"
               >
                 <AssistantBubble text={m.text} error={m.error} />
                 {m.writes.length > 0 && m.run_id && (
@@ -342,17 +303,8 @@ function AyaQuakeInner() {
           )}
           {pending && <UserBubble text={pending} />}
           {chat.isPending && (
-            <div
-              style={{
-                alignSelf: "flex-start",
-                background:
-                  "linear-gradient(135deg, var(--signal-ghost), oklch(0.80 0.13 215 / 0.06))",
-                border: "1px solid var(--signal-ghost)",
-                borderRadius: "0 var(--r-md) var(--r-md) var(--r-md)",
-                padding: "10px 16px",
-              }}
-            >
-              <span className="dots" style={{ color: "var(--signal)" }}>
+            <div className="aya-pending-bubble">
+              <span className="dots aya-thinking-dots">
                 <span />
                 <span />
                 <span />
@@ -362,29 +314,15 @@ function AyaQuakeInner() {
         </div>
 
         {/* Composer */}
-        <div
-          style={{
-            padding: "10px 12px",
-            borderTop: "1px solid var(--line-soft)",
-            flexShrink: 0,
-            display: "flex",
-            gap: 8,
-            alignItems: "flex-end",
-            width: "100%",
-            maxWidth: 900,
-            margin: "0 auto",
-            boxSizing: "border-box",
-          }}
-        >
+        <div className="aya-composer">
           <input
             ref={inputRef}
-            className="input"
+            className="input aya-composer-input"
             placeholder="Message Aya…  (/new for a fresh thread)"
             aria-label="Message Aya"
             value={msg}
             onChange={(e) => setMsg(e.target.value)}
             disabled={chat.isPending}
-            style={{ flex: 1 }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -394,12 +332,11 @@ function AyaQuakeInner() {
           />
           <button
             type="button"
-            className="iconbtn"
             onClick={() => void handleSend()}
             disabled={!msg.trim() || chat.isPending}
             title="Send"
             aria-label="Send"
-            style={{ opacity: !msg.trim() || chat.isPending ? 0.4 : 1, flexShrink: 0 }}
+            className="iconbtn aya-send-button"
           >
             <Send size={15} strokeWidth={1.6} />
           </button>
@@ -411,19 +348,7 @@ function AyaQuakeInner() {
 
 function UserBubble({ text }: { text: string }) {
   return (
-    <div
-      style={{
-        alignSelf: "flex-end",
-        maxWidth: "88%",
-        background: "var(--surface-3)",
-        border: "1px solid var(--line)",
-        borderRadius: "var(--r-md) var(--r-md) 0 var(--r-md)",
-        padding: "9px 13px",
-        fontSize: 13,
-        lineHeight: 1.5,
-        color: "var(--fg)",
-      }}
-    >
+    <div className="aya-bubble aya-bubble-user">
       {text}
     </div>
   );
@@ -431,21 +356,7 @@ function UserBubble({ text }: { text: string }) {
 
 function AssistantBubble({ text, error }: { text: string; error?: boolean }) {
   return (
-    <div
-      style={{
-        alignSelf: "flex-start",
-        maxWidth: "88%",
-        background: error
-          ? "oklch(0.40 0.08 25 / 0.15)"
-          : "linear-gradient(135deg, var(--signal-ghost), oklch(0.80 0.13 215 / 0.06))",
-        border: error ? "1px solid oklch(0.55 0.12 25 / 0.4)" : "1px solid var(--signal-ghost)",
-        borderRadius: "0 var(--r-md) var(--r-md) var(--r-md)",
-        padding: "10px 13px",
-        fontSize: 13,
-        lineHeight: 1.5,
-        color: "var(--fg-muted)",
-      }}
-    >
+    <div className={"aya-bubble aya-bubble-assistant" + (error ? " error" : "")}>
       <Markdown>{text}</Markdown>
     </div>
   );
