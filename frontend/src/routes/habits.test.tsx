@@ -185,7 +185,7 @@ it("renders the combined six-month review grid", async () => {
 
   expect(await screen.findByText(/6-month review/)).toBeInTheDocument();
   expect(
-    screen.getByLabelText("Mood on 2026-06-20: 4 of 5"),
+    await screen.findByLabelText("Mood on 2026-06-20: 4 of 5"),
   ).toBeInTheDocument();
   expect(
     screen.getByLabelText("Productivity on 2026-06-20: 5 of 5"),

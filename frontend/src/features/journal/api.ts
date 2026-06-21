@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { makeResourceHooks } from "../../lib/hooks";
 import { apiFetch } from "../../lib/api";
+import { useAuthenticatedQueryEnabled } from "../../lib/auth";
 import { resource } from "../../lib/resource";
 import type {
   DailyCheckIn,
@@ -30,8 +31,10 @@ interface DailyCheckInQuery {
 }
 
 export function useDailyCheckIns(query: DailyCheckInQuery = {}) {
+  const enabled = useAuthenticatedQueryEnabled();
   return useQuery({
     queryKey: ["daily-checkins", query],
+    enabled,
     queryFn: () => {
       const params = new URLSearchParams();
       if (query.days !== undefined) params.set("days", String(query.days));

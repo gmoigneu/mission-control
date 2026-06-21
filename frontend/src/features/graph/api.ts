@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "../../lib/api";
+import { useAuthenticatedQueryEnabled } from "../../lib/auth";
 import type { GraphNode, GraphNodeDetail, GraphSnapshot } from "../../lib/types";
 
 interface GraphQueryBody {
@@ -37,9 +38,10 @@ function graphQuery<T>(body: GraphQueryBody): Promise<T> {
 
 /** Fetch the nodes directly connected to a person (any relationship type). */
 export function useNeighbors(personId: string | undefined) {
+  const enabled = useAuthenticatedQueryEnabled(Boolean(personId));
   return useQuery({
     queryKey: ["graph", "neighbors", personId ?? ""],
-    enabled: !!personId,
+    enabled,
     queryFn: () =>
       graphQuery<GraphNode[]>({ intent: "neighbors", params: { person_id: personId! } }),
   });
@@ -47,8 +49,10 @@ export function useNeighbors(personId: string | undefined) {
 
 /** Fetch the whole graph snapshot, optionally narrowed to one context slug. */
 export function useGraphSnapshot(context?: string) {
+  const enabled = useAuthenticatedQueryEnabled();
   return useQuery({
     queryKey: ["graph", "full", context ?? ""],
+    enabled,
     queryFn: () =>
       apiFetch<GraphSnapshot>(
         context ? `/graph/full?context=${encodeURIComponent(context)}` : "/graph/full",
@@ -58,9 +62,10 @@ export function useGraphSnapshot(context?: string) {
 
 /** Fetch a single node's properties + relationships for the inspector panel. */
 export function useNodeDetail(nodeId: string | undefined) {
+  const enabled = useAuthenticatedQueryEnabled(Boolean(nodeId));
   return useQuery({
     queryKey: ["graph", "node", nodeId ?? ""],
-    enabled: !!nodeId,
+    enabled,
     queryFn: () => apiFetch<GraphNodeDetail>(`/graph/node/${nodeId ?? ""}`),
   });
 }

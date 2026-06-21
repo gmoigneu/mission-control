@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "../../lib/api";
+import { useAuthenticatedQueryEnabled } from "../../lib/auth";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -78,9 +79,11 @@ export function invalidateForWrites(qc: QueryClient, writes: AgentWrite[]) {
  * mount of the Aya window (and resumes the same thread on other devices).
  */
 export function useCurrentConversation() {
+  const enabled = useAuthenticatedQueryEnabled();
   return useQuery({
     queryKey: CONVERSATION_KEY,
     queryFn: () => apiFetch<Conversation>("/agent/conversation/current"),
+    enabled,
   });
 }
 

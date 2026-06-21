@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { makeResourceHooks } from "../../lib/hooks";
 import { apiFetch } from "../../lib/api";
+import { useAuthenticatedQueryEnabled } from "../../lib/auth";
 import { resource } from "../../lib/resource";
 import type { Habit, HabitCreate, HabitLog, HabitLogCreate, HabitUpdate } from "../../lib/types";
 
@@ -36,8 +37,10 @@ interface HabitLogQuery {
 }
 
 export function useHabitLogs(query: HabitLogQuery = {}) {
+  const enabled = useAuthenticatedQueryEnabled();
   return useQuery({
     queryKey: ["habit-logs", query],
+    enabled,
     queryFn: () => {
       const params = new URLSearchParams();
       if (query.days !== undefined) params.set("days", String(query.days));

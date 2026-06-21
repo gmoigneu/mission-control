@@ -21,7 +21,14 @@ it("useList resolves data from fetch", async () => {
   const items: Item[] = [{ id: "1", name: "First" }];
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () => new Response(JSON.stringify(items), { status: 200 })),
+    vi.fn(async (url: string) => {
+      if (url.includes("/auth/me")) {
+        return new Response(JSON.stringify({ id: "u1", email: "user@example.com", name: null }), {
+          status: 200,
+        });
+      }
+      return new Response(JSON.stringify(items), { status: 200 });
+    }),
   );
   const res = resource<Item, { name: string }, { name?: string }>("/items");
   const { useList } = makeResourceHooks<Item, { name: string }, { name?: string }>("items", res);
@@ -29,8 +36,30 @@ it("useList resolves data from fetch", async () => {
   await waitFor(() => expect(result.current.data).toEqual(items));
 });
 
+it("useList waits for an authenticated session before fetching resources", async () => {
+  const fetchMock = vi.fn(async (url: string) => {
+    if (url.includes("/auth/me")) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+    return new Response(JSON.stringify([{ id: "1", name: "Leaked" }]), { status: 200 });
+  });
+  vi.stubGlobal("fetch", fetchMock);
+
+  const res = resource<Item, { name: string }, { name?: string }>("/items");
+  const { useList } = makeResourceHooks<Item, { name: string }, { name?: string }>("items", res);
+  const { result } = renderHook(() => useList(), { wrapper });
+
+  await waitFor(() => expect(result.current.fetchStatus).toBe("idle"));
+  expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual(["/api/auth/me"]);
+});
+
 it("useCreate triggers a refetch after mutating", async () => {
   const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+    if (_url.includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "u1", email: "user@example.com", name: null }), {
+        status: 200,
+      });
+    }
     if (init?.method === "POST") {
       return new Response(JSON.stringify({ id: "2", name: "New" }), { status: 200 });
     }
