@@ -55,4 +55,5 @@ async def test_neighbors_emits_correct_cypher() -> None:
     assert len(fake.calls) == 1
     cypher, params = fake.calls[0]
     assert "Person {id" in cypher or "Person {id:" in cypher or "id: $id" in cypher
+    assert "n.slug AS slug" in cypher
     assert params.get("id") == "p1"

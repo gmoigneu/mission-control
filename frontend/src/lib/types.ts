@@ -378,6 +378,7 @@ export interface GraphNode {
   label: string;
   rel: string;
   label_text: string | null;
+  slug?: string | null;
 }
 
 export interface EntityLink {

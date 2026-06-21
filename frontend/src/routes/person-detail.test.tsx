@@ -115,7 +115,20 @@ it("renders the person detail with observations timeline and graph neighbors", a
     if (u.includes("/graph/query") && init?.method === "POST") {
       return new Response(
         JSON.stringify([
-          { id: "p2", label: "Person", rel: "KNOWS", label_text: "John Roe" },
+          {
+            id: "p2",
+            label: "Person",
+            rel: "KNOWS",
+            label_text: "John Roe",
+            slug: "john-roe",
+          },
+          {
+            id: "c1",
+            label: "Company",
+            rel: "WORKS_AT",
+            label_text: "Acme Corp",
+            slug: "acme",
+          },
         ]),
         { status: 200 },
       );
@@ -135,7 +148,10 @@ it("renders the person detail with observations timeline and graph neighbors", a
   await screen.findByText("Met Jane at a conference");
 
   // Mini relationship graph (neighbors) renders the connected node.
-  await screen.findByText("John Roe");
+  const connectionLink = await screen.findByRole("link", { name: "John Roe" });
+  expect(connectionLink).toHaveAttribute("href", "/people/john-roe");
+  const companyLinks = await screen.findAllByRole("link", { name: "Acme Corp" });
+  expect(companyLinks.some((link) => link.getAttribute("href") === "/companies/acme")).toBe(true);
 
   // Observations were requested filtered to subject_type=person + subject_id.
   await waitFor(() => {
