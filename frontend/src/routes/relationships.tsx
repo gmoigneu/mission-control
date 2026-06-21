@@ -58,7 +58,11 @@ function buildPayload(form: FormState, isEdit: boolean) {
 }
 
 export function RelationshipsPage() {
-  const { data: relationships = [] } = useRelationships();
+  const [searchText, setSearchText] = useState("");
+  const searchQuery = searchText.trim();
+  const { data: relationships = [] } = useRelationships(
+    searchQuery ? { q: searchQuery } : undefined,
+  );
   useEditFromSearch(relationships, handleEdit);
   const { data: people = [] } = usePeople();
   const { data: contexts = [] } = useContexts();
@@ -71,7 +75,35 @@ export function RelationshipsPage() {
   const [panelOpen, setPanelOpen] = useState(false);
   useHotkey("c", handleNew, !panelOpen);
 
-  const personMap = Object.fromEntries(people.map((p) => [p.id, p.name]));
+  const personMap = Object.fromEntries(people.map((p) => [p.id, p]));
+
+  function derivedPersonName(id: string) {
+    const compactId = id.length > 12 ? id.slice(0, 8) : id;
+    return `Unknown person ${compactId}`;
+  }
+
+  function personReference(row: Relationship, side: "from" | "to") {
+    const personId = side === "from" ? row.from_person_id : row.to_person_id;
+    const person = personMap[personId];
+    const name =
+      side === "from"
+        ? (row.from_person_name ?? person?.name ?? derivedPersonName(personId))
+        : (row.to_person_name ?? person?.name ?? derivedPersonName(personId));
+    const slug =
+      side === "from" ? (row.from_person_slug ?? person?.slug) : (row.to_person_slug ?? person?.slug);
+
+    if (!slug) return <span>{name}</span>;
+
+    return (
+      <Link
+        to="/people/$slug"
+        params={{ slug }}
+        className="underline hover:text-gray-600"
+      >
+        {name}
+      </Link>
+    );
+  }
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -121,8 +153,8 @@ export function RelationshipsPage() {
   }
 
   const columns = [
-    { header: "From", cell: (row: Relationship) => personMap[row.from_person_id] ?? row.from_person_id },
-    { header: "To", cell: (row: Relationship) => personMap[row.to_person_id] ?? row.to_person_id },
+    { header: "From", cell: (row: Relationship) => personReference(row, "from") },
+    { header: "To", cell: (row: Relationship) => personReference(row, "to") },
     { header: "Type", cell: (row: Relationship) => row.type },
     {
       header: "Actions",
@@ -164,6 +196,16 @@ export function RelationshipsPage() {
                 <Plus size={15} /> Create
               </Button>
             </div>
+          </div>
+
+          <div className="flex items-center gap-3" role="search">
+            <Input
+              type="search"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder="Search by person name"
+              aria-label="Search relationships"
+            />
           </div>
 
           <DataTable rows={relationships} columns={columns} empty="No relationships yet." />

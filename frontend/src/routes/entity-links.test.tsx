@@ -32,9 +32,14 @@ function renderEntityLinks(fetchMock: ReturnType<typeof vi.fn>) {
     path: "/activity",
     component: () => <div>activity-page</div>,
   });
+  const personDetail = createRoute({
+    getParentRoute: () => root,
+    path: "/people/$slug",
+    component: () => <div>person-detail</div>,
+  });
   const history = createMemoryHistory({ initialEntries: ["/entity-links"] });
   const router = createRouter({
-    routeTree: root.addChildren([entityLinks, login, activity]),
+    routeTree: root.addChildren([entityLinks, login, activity, personDetail]),
     history,
   });
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -163,5 +168,62 @@ it("renders the entity-links page and POSTs with from_type/from_id/to_type/to_id
     expect(body.from_id).toBe("p1");
     expect(body.to_type).toBe("context");
     expect(body.to_id).toBe("c1");
+  });
+});
+
+it("renders generic entity references by name and searches entity links by endpoint name", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    const u = String(url);
+    calls.push([u, init]);
+    if (u.includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
+        status: 200,
+      });
+    }
+    if (u.includes("/entity-links") && (!init?.method || init.method === "GET")) {
+      return new Response(
+        JSON.stringify([
+          {
+            id: "el1",
+            from_type: "person",
+            from_id: "p1",
+            from_name: "Ada Lovelace",
+            from_slug: "ada-lovelace",
+            to_type: "context",
+            to_id: "c1",
+            to_name: "Research Context",
+            to_slug: "research-context",
+            kind: "related",
+            created_at: "2026-01-01T00:00:00Z",
+          },
+        ]),
+        { status: 200 },
+      );
+    }
+    return new Response(JSON.stringify([]), { status: 200 });
+  });
+
+  renderEntityLinks(fetchMock);
+
+  await screen.findByRole("heading", { name: "Entity Links" });
+  const personLink = await screen.findByRole("link", { name: "Ada Lovelace" });
+  expect(personLink).toHaveAttribute("href", "/people/ada-lovelace");
+  expect(screen.getByRole("link", { name: "Research Context" })).toHaveAttribute(
+    "href",
+    "/contexts",
+  );
+  expect(screen.queryByText("p1")).not.toBeInTheDocument();
+
+  await userEvent.type(screen.getByRole("searchbox", { name: "Search entity links" }), "ada");
+
+  await waitFor(() => {
+    const searchCall = calls.find(
+      ([url, init]) =>
+        url.includes("/entity-links") &&
+        url.includes("q=ada") &&
+        (!init?.method || init.method === "GET"),
+    );
+    expect(searchCall).toBeDefined();
   });
 });

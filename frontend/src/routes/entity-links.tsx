@@ -30,7 +30,11 @@ const EMPTY_FORM: FormState = {
 };
 
 export function EntityLinksPage() {
-  const { data: entityLinks = [] } = useEntityLinks();
+  const [searchText, setSearchText] = useState("");
+  const searchQuery = searchText.trim();
+  const { data: entityLinks = [] } = useEntityLinks(
+    searchQuery ? { q: searchQuery } : undefined,
+  );
   const createEntityLink = useCreateEntityLink();
   const deleteEntityLink = useDeleteEntityLink();
 
@@ -70,14 +74,59 @@ export function EntityLinksPage() {
     );
   }
 
+  function entityHref(type: string, slug?: string | null) {
+    if (type === "person" && slug) return `/people/${slug}`;
+    const listRoutes: Record<string, string> = {
+      company: "/companies",
+      context: "/contexts",
+      habit: "/habits",
+      inbox_item: "/inbox",
+      journal_entry: "/journal",
+      knowledge: "/knowledge",
+      meeting: "/meetings",
+      project: "/projects",
+      review: "/reviews",
+      task: "/tasks",
+      telos: "/telos",
+      tone: "/tones",
+    };
+    return listRoutes[type];
+  }
+
+  function entityTypeLabel(type: string) {
+    return type.replaceAll("_", " ");
+  }
+
+  function entityReference(row: EntityLink, side: "from" | "to") {
+    const type = side === "from" ? row.from_type : row.to_type;
+    const id = side === "from" ? row.from_id : row.to_id;
+    const name = side === "from" ? row.from_name : row.to_name;
+    const slug = side === "from" ? row.from_slug : row.to_slug;
+    const label = name ?? `${entityTypeLabel(type)} ${id.slice(0, 8)}`;
+    const href = entityHref(type, slug);
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        {href ? (
+          <a href={href} className="underline hover:text-gray-600">
+            {label}
+          </a>
+        ) : (
+          <span>{label}</span>
+        )}
+        <span className="meta">{entityTypeLabel(type)}</span>
+      </div>
+    );
+  }
+
   const columns = [
     {
       header: "From",
-      cell: (row: EntityLink) => `${row.from_type} / ${row.from_id.slice(0, 8)}`,
+      cell: (row: EntityLink) => entityReference(row, "from"),
     },
     {
       header: "To",
-      cell: (row: EntityLink) => `${row.to_type} / ${row.to_id.slice(0, 8)}`,
+      cell: (row: EntityLink) => entityReference(row, "to"),
     },
     { header: "Kind", cell: (row: EntityLink) => row.kind },
     {
@@ -111,6 +160,16 @@ export function EntityLinksPage() {
                 <Plus size={15} /> Create
               </Button>
             </div>
+          </div>
+
+          <div className="flex items-center gap-3" role="search">
+            <Input
+              type="search"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder="Search by entity name"
+              aria-label="Search entity links"
+            />
           </div>
 
           <DataTable rows={entityLinks} columns={columns} empty="No entity links yet." />
