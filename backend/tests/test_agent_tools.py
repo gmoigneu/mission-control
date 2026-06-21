@@ -106,6 +106,30 @@ async def test_journal_capture_handlers_are_idempotent_per_day(db):
 
 
 @pytest.mark.asyncio(loop_scope="session")
+async def test_set_daily_checkin_handler_updates_journal_scores(db):
+    handler = TOOL_HANDLERS["set_daily_checkin"]
+
+    result = await handler(
+        db,
+        {"date": "2026-06-21", "mood": 4, "energy": 3, "productivity": 5},
+    )
+    await db.flush()
+
+    entry = await db.get(JournalEntry, uuid.UUID(result["id"]))
+    assert entry is not None
+    assert entry.date.isoformat() == "2026-06-21"
+    assert entry.mood == 4
+    assert entry.energy == 3
+    assert entry.productivity == 5
+
+    patched = await handler(db, {"date": "2026-06-21", "energy": 2})
+    await db.flush()
+    assert patched["mood"] == 4
+    assert patched["energy"] == 2
+    assert patched["productivity"] == 5
+
+
+@pytest.mark.asyncio(loop_scope="session")
 async def test_find_person_handler(db):
     """find_person resolves an existing person by name without the search index."""
     await TOOL_HANDLERS["create_person"](db, {"slug": "zoe-finder", "name": "Zoe Finder"})

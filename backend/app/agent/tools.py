@@ -29,6 +29,7 @@ from app.schemas.entity_link import EntityLinkCreate
 from app.schemas.entity_tag import EntityTagCreate
 from app.schemas.habit import HabitCreate, HabitLogCreate
 from app.schemas.inbox_item import InboxItemCreate
+from app.schemas.journal_entry import DailyCheckInUpdate
 from app.schemas.knowledge import KnowledgeCreate
 from app.schemas.meeting import MeetingCreate
 from app.schemas.observation import ObservationCreate
@@ -270,6 +271,22 @@ async def _set_journal_summary(db: AsyncSession, args: dict) -> dict:
     )
     await db.flush()
     return {"id": str(obj.id)}
+
+
+async def _set_daily_checkin(db: AsyncSession, args: dict) -> dict:
+    day = _parse_date(args.get("date")) or datetime.now(UTC).date()
+    payload = DailyCheckInUpdate(
+        **{key: args[key] for key in ("mood", "energy", "productivity") if key in args}
+    )
+    obj = await journal_svc.set_daily_checkin(db, day, payload, surface=_surface())
+    await db.flush()
+    return {
+        "id": str(obj.id),
+        "date": obj.date.isoformat(),
+        "mood": obj.mood,
+        "energy": obj.energy,
+        "productivity": obj.productivity,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -725,6 +742,24 @@ TOOLS: list[dict] = [
             "required": ["entry_id"],
         },
         "handler": _set_journal_summary,
+    },
+    {
+        "name": "set_daily_checkin",
+        "description": (
+            "Set daily mood, energy, and/or productivity scores on a 1-5 scale. "
+            "Use this when the user mentions mood, energy, productivity, focus, "
+            "or a daily check-in score. Defaults to today."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "date": {"type": "string", "format": "date"},
+                "mood": {"type": "integer", "minimum": 1, "maximum": 5},
+                "energy": {"type": "integer", "minimum": 1, "maximum": 5},
+                "productivity": {"type": "integer", "minimum": 1, "maximum": 5},
+            },
+        },
+        "handler": _set_daily_checkin,
     },
     # ── Meetings, reviews, habits, knowledge, telos ────────────────────────
     {
