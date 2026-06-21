@@ -388,13 +388,8 @@ export function TasksPage() {
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
-  function handleChange(key: keyof FormState) {
-    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      dispatch({ type: "updateForm", key, value: e.target.value });
-  }
-
-  function handleSelectChange(key: keyof FormState) {
-    return (value: string) => dispatch({ type: "updateForm", key, value });
+  function updateForm(key: keyof FormState, value: string) {
+    dispatch({ type: "updateForm", key, value });
   }
 
   function handleNew() {
@@ -600,141 +595,192 @@ export function TasksPage() {
           )}
         </div>
 
-        <SidePanel
+        <TaskEditorPanel
           open={panelOpen}
+          editing={Boolean(editingId)}
+          form={form}
+          descTab={descTab}
+          contexts={contexts}
+          projects={projects}
           onClose={handleClose}
-          title={editingId ? "Edit task" : "New task"}
-        >
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
-            <Field label="Title">
-              <Input
-                value={form.title}
-                onChange={handleChange("title")}
-                placeholder="Task title"
-                aria-label="Title"
-                required
-              />
-            </Field>
-            <Field label="Status">
-              <Select
-                value={form.status}
-                onChange={handleSelectChange("status")}
-                options={STATUS_OPTIONS}
-              />
-            </Field>
-            <Field label="Priority">
-              <Select
-                value={form.priority}
-                onChange={handleSelectChange("priority")}
-                options={PRIORITY_OPTIONS}
-              />
-            </Field>
-            <Field label="Due">
-              <Input
-                type="date"
-                value={form.due}
-                onChange={handleChange("due")}
-                aria-label="Due"
-              />
-            </Field>
-            <Field label="Scheduled">
-              <Input
-                type="date"
-                value={form.scheduled}
-                onChange={handleChange("scheduled")}
-                aria-label="Scheduled"
-              />
-            </Field>
-            <Field label="Context">
-              <Select
-                value={form.context_id}
-                onChange={handleSelectChange("context_id")}
-                options={contexts.map((c) => ({ value: c.id, label: c.name }))}
-                placeholder="— none —"
-              />
-            </Field>
-            <Field label="Project">
-              <Select
-                value={form.project_id}
-                onChange={handleSelectChange("project_id")}
-                options={projects.map((p) => ({ value: p.id, label: p.title }))}
-                placeholder="— none —"
-              />
-            </Field>
-            <Field label="Outcome">
-              <Input
-                value={form.outcome}
-                onChange={handleChange("outcome")}
-                placeholder="Optional outcome"
-                aria-label="Outcome"
-              />
-            </Field>
-            <div>
-              <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
-                <span className="label">Description</span>
-                <fieldset
-                  aria-label="Description editor mode"
-                  className="control-group flex gap-2"
-                >
-                  <Button
-                    type="button"
-                    aria-pressed={descTab === "write"}
-                    className={descTab === "write" ? "primary sm" : "ghost sm"}
-                    onClick={() => dispatch({ type: "setDescTab", tab: "write" })}
-                  >
-                    Write
-                  </Button>
-                  <Button
-                    type="button"
-                    aria-pressed={descTab === "preview"}
-                    className={descTab === "preview" ? "primary sm" : "ghost sm"}
-                    onClick={() => dispatch({ type: "setDescTab", tab: "preview" })}
-                  >
-                    Preview
-                  </Button>
-                </fieldset>
-              </div>
-              {descTab === "write" ? (
-                <Textarea
-                  value={form.body}
-                  onChange={handleChange("body")}
-                  placeholder="Details — markdown supported"
-                  aria-label="Description"
-                  rows={8}
-                />
-              ) : (
-                <div
-                  data-testid="description-preview"
-                  style={{
-                    minHeight: 160,
-                    padding: "10px 12px",
-                    background: "var(--bg-deep)",
-                    border: "1px solid var(--line)",
-                    borderRadius: "var(--r-sm)",
-                  }}
-                >
-                  <Markdown>{form.body || "_Nothing to preview._"}</Markdown>
-                </div>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button type="submit">{editingId ? "Save" : "Add"}</Button>
-              <Button type="button" onClick={handleClose} className="ghost">
-                Cancel
-              </Button>
-            </div>
-            {editingId && (
-              <>
-                <hr className="hr" />
-                <div className="flex justify-end">
-                  <ConfirmButton onConfirm={handleDelete}>Delete task</ConfirmButton>
-                </div>
-              </>
-            )}
-          </form>
-        </SidePanel>
+          onSubmit={handleSubmit}
+          onDelete={handleDelete}
+          onFormChange={updateForm}
+          onDescTabChange={(tab) => dispatch({ type: "setDescTab", tab })}
+        />
       </AppShell>
     </RequireAuth>
+  );
+}
+
+function TaskEditorPanel({
+  open,
+  editing,
+  form,
+  descTab,
+  contexts,
+  projects,
+  onClose,
+  onSubmit,
+  onDelete,
+  onFormChange,
+  onDescTabChange,
+}: {
+  open: boolean;
+  editing: boolean;
+  form: FormState;
+  descTab: DescTab;
+  contexts: Context[];
+  projects: Project[];
+  onClose: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+  onDelete: () => void;
+  onFormChange: (key: keyof FormState, value: string) => void;
+  onDescTabChange: (tab: DescTab) => void;
+}) {
+  function handleChange(key: keyof FormState) {
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      onFormChange(key, e.target.value);
+  }
+
+  function handleSelectChange(key: keyof FormState) {
+    return (value: string) => onFormChange(key, value);
+  }
+
+  return (
+    <SidePanel
+      open={open}
+      onClose={onClose}
+      title={editing ? "Edit task" : "New task"}
+    >
+      <form onSubmit={onSubmit} className="grid grid-cols-1 gap-4">
+        <Field label="Title">
+          <Input
+            value={form.title}
+            onChange={handleChange("title")}
+            placeholder="Task title"
+            aria-label="Title"
+            required
+          />
+        </Field>
+        <Field label="Status">
+          <Select
+            value={form.status}
+            onChange={handleSelectChange("status")}
+            options={STATUS_OPTIONS}
+          />
+        </Field>
+        <Field label="Priority">
+          <Select
+            value={form.priority}
+            onChange={handleSelectChange("priority")}
+            options={PRIORITY_OPTIONS}
+          />
+        </Field>
+        <Field label="Due">
+          <Input
+            type="date"
+            value={form.due}
+            onChange={handleChange("due")}
+            aria-label="Due"
+          />
+        </Field>
+        <Field label="Scheduled">
+          <Input
+            type="date"
+            value={form.scheduled}
+            onChange={handleChange("scheduled")}
+            aria-label="Scheduled"
+          />
+        </Field>
+        <Field label="Context">
+          <Select
+            value={form.context_id}
+            onChange={handleSelectChange("context_id")}
+            options={contexts.map((c) => ({ value: c.id, label: c.name }))}
+            placeholder="— none —"
+          />
+        </Field>
+        <Field label="Project">
+          <Select
+            value={form.project_id}
+            onChange={handleSelectChange("project_id")}
+            options={projects.map((p) => ({ value: p.id, label: p.title }))}
+            placeholder="— none —"
+          />
+        </Field>
+        <Field label="Outcome">
+          <Input
+            value={form.outcome}
+            onChange={handleChange("outcome")}
+            placeholder="Optional outcome"
+            aria-label="Outcome"
+          />
+        </Field>
+        <div>
+          <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+            <span className="label">Description</span>
+            <fieldset
+              aria-label="Description editor mode"
+              className="control-group flex gap-2"
+            >
+              <Button
+                type="button"
+                aria-pressed={descTab === "write"}
+                className={descTab === "write" ? "primary sm" : "ghost sm"}
+                onClick={() => onDescTabChange("write")}
+              >
+                Write
+              </Button>
+              <Button
+                type="button"
+                aria-pressed={descTab === "preview"}
+                className={descTab === "preview" ? "primary sm" : "ghost sm"}
+                onClick={() => onDescTabChange("preview")}
+              >
+                Preview
+              </Button>
+            </fieldset>
+          </div>
+          {descTab === "write" ? (
+            <Textarea
+              value={form.body}
+              onChange={handleChange("body")}
+              placeholder="Details — markdown supported"
+              aria-label="Description"
+              rows={8}
+            />
+          ) : (
+            <div
+              data-testid="description-preview"
+              style={{
+                minHeight: 160,
+                padding: "10px 12px",
+                background: "var(--bg-deep)",
+                border: "1px solid var(--line)",
+                borderRadius: "var(--r-sm)",
+              }}
+            >
+              <Markdown>{form.body || "_Nothing to preview._"}</Markdown>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button type="submit">{editing ? "Save" : "Add"}</Button>
+          <Button type="button" onClick={onClose} className="ghost">
+            Cancel
+          </Button>
+        </div>
+        {editing && (
+          <>
+            <hr className="hr" />
+            <div className="flex justify-end">
+              <ConfirmButton onConfirm={onDelete}>Delete task</ConfirmButton>
+            </div>
+          </>
+        )}
+      </form>
+    </SidePanel>
   );
 }
 
