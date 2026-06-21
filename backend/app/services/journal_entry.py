@@ -1,5 +1,5 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from datetime import date as date_cls
 from typing import Any
 
@@ -9,7 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.audit.serialize import model_to_dict
 from app.audit.service import record_create, record_delete, record_update
 from app.models.journal_entry import JournalEntry
-from app.schemas.journal_entry import JournalEntryCreate, JournalEntryUpdate
+from app.schemas.journal_entry import (
+    DailyCheckInOut,
+    DailyCheckInUpdate,
+    JournalEntryCreate,
+    JournalEntryUpdate,
+)
 from app.search.index import deindex_subject, index_subject
 
 ENTITY = "journal_entry"
@@ -41,6 +46,46 @@ async def get_or_create_journal_entry(
         return existing
     return await create_journal_entry(
         db, JournalEntryCreate(date=day, body=""), surface=surface
+    )
+
+
+async def list_daily_checkins(
+    db: AsyncSession, *, days: int = 30, end: date_cls | None = None
+) -> list[DailyCheckInOut]:
+    last_day = end or datetime.now(UTC).date()
+    first_day = last_day - timedelta(days=days - 1)
+    result = await db.execute(
+        select(JournalEntry)
+        .where(JournalEntry.date >= first_day, JournalEntry.date <= last_day)
+        .order_by(JournalEntry.date, JournalEntry.created_at)
+    )
+    by_day: dict[date_cls, JournalEntry] = {}
+    for entry in result.scalars().all():
+        by_day.setdefault(entry.date, entry)
+
+    return [
+        DailyCheckInOut(
+            id=entry.id if entry else None,
+            date=day,
+            mood=entry.mood if entry else None,
+            energy=entry.energy if entry else None,
+            productivity=entry.productivity if entry else None,
+            updated_at=entry.updated_at if entry else None,
+        )
+        for day in (first_day + timedelta(days=i) for i in range(days))
+        for entry in [by_day.get(day)]
+    ]
+
+
+async def set_daily_checkin(
+    db: AsyncSession, day: date_cls, data: DailyCheckInUpdate, *, surface: str = "api"
+) -> JournalEntry:
+    obj = await get_or_create_journal_entry(db, day, surface=surface)
+    return await update_journal_entry(
+        db,
+        obj,
+        JournalEntryUpdate(**data.model_dump(exclude_unset=True)),
+        surface=surface,
     )
 
 

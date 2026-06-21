@@ -10,6 +10,7 @@ from app.api import (
     auth,
     companies,
     contexts,
+    daily_checkins,
     entity_links,
     entity_tags,
     graph,
@@ -80,6 +81,7 @@ def create_app() -> FastAPI:
     app.include_router(tasks.router)
     app.include_router(relationships.router)
     app.include_router(observations.router)
+    app.include_router(daily_checkins.router)
     app.include_router(journal_entries.router)
     app.include_router(reviews.router)
     app.include_router(habits.router)
