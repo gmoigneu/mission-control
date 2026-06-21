@@ -374,7 +374,9 @@ it("renders a markdown preview of the description", async () => {
   await userEvent.click(screen.getByRole("button", { name: /^preview$/i }));
 
   const preview = screen.getByTestId("description-preview");
-  expect(within(preview).getByRole("heading", { name: "Preview Heading" })).toBeDefined();
+  expect(
+    await within(preview).findByRole("heading", { name: "Preview Heading" }),
+  ).toBeDefined();
 });
 
 it("deletes a task from the edit panel", async () => {

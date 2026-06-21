@@ -2,15 +2,15 @@ import { render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 import { Markdown } from "./Markdown";
 
-it("renders basic markdown formatting", () => {
+it("renders basic markdown formatting", async () => {
   render(<Markdown>{"# Title\n\nSome **bold** text."}</Markdown>);
-  expect(screen.getByRole("heading", { name: "Title" })).toBeDefined();
+  expect(await screen.findByRole("heading", { name: "Title" })).toBeDefined();
   expect(screen.getByText("bold")).toBeDefined();
 });
 
-it("renders GFM task lists", () => {
+it("renders GFM task lists", async () => {
   render(<Markdown>{"- [x] done\n- [ ] todo"}</Markdown>);
-  const boxes = screen.getAllByRole("checkbox");
+  const boxes = await screen.findAllByRole("checkbox");
   expect(boxes).toHaveLength(2);
   expect((boxes[0] as HTMLInputElement).checked).toBe(true);
   expect((boxes[1] as HTMLInputElement).checked).toBe(false);
