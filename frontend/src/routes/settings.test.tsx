@@ -9,7 +9,7 @@ import {
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { SettingsPage } from "./settings";
+import { SettingsPage } from "./settings.page";
 
 beforeEach(() => {
   // Make isWebAuthnSupported() return true under jsdom.
