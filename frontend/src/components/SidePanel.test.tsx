@@ -47,14 +47,16 @@ describe("SidePanel", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("calls onClose when Escape is pressed", async () => {
+  it("calls onClose when the dialog is canceled", () => {
     const onClose = vi.fn();
     render(
       <SidePanel open onClose={onClose} title="New context">
         <input aria-label="Name" />
       </SidePanel>,
     );
-    await userEvent.keyboard("{Escape}");
+    screen
+      .getByRole("dialog", { name: "New context" })
+      .dispatchEvent(new Event("cancel", { cancelable: true }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

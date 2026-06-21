@@ -33,13 +33,26 @@ it("closes via the close button", async () => {
   expect(onClose).toHaveBeenCalledTimes(1);
 });
 
-it("closes on Escape", async () => {
+it("closes via the backdrop", async () => {
   const onClose = vi.fn();
   render(
     <BottomSheet open onClose={onClose} title="Filters">
       x
     </BottomSheet>,
   );
-  await userEvent.keyboard("{Escape}");
+  await userEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+  expect(onClose).toHaveBeenCalledTimes(1);
+});
+
+it("closes when the dialog is canceled", () => {
+  const onClose = vi.fn();
+  render(
+    <BottomSheet open onClose={onClose} title="Filters">
+      x
+    </BottomSheet>,
+  );
+  screen
+    .getByRole("dialog", { name: "Filters" })
+    .dispatchEvent(new Event("cancel", { cancelable: true }));
   expect(onClose).toHaveBeenCalledTimes(1);
 });

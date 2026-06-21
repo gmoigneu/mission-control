@@ -23,3 +23,23 @@ if (typeof window !== "undefined" && !window.matchMedia) {
 if (typeof window !== "undefined") {
   window.scrollTo = () => {};
 }
+
+// Native dialog methods are still missing in jsdom. Components use the real
+// browser API, and tests only need enough behavior for role queries and cleanup.
+if (
+  typeof window !== "undefined" &&
+  typeof window.HTMLDialogElement !== "undefined"
+) {
+  if (!window.HTMLDialogElement.prototype.showModal) {
+    window.HTMLDialogElement.prototype.showModal = function showModal() {
+      this.open = true;
+      this.setAttribute("open", "");
+    };
+  }
+  if (!window.HTMLDialogElement.prototype.close) {
+    window.HTMLDialogElement.prototype.close = function close() {
+      this.open = false;
+      this.removeAttribute("open");
+    };
+  }
+}

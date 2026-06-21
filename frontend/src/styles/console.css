@@ -366,15 +366,26 @@ a:hover { color: var(--signal-bright); }
 /* ---------------------------------------------------------------------
    SLIDE-OVER DRAWER — right-edge panel for create/edit forms
    --------------------------------------------------------------------- */
-.drawer-backdrop {
+.drawer-dialog {
   position: fixed; inset: 0; z-index: 60;
-  display: block; border: 0; padding: 0; cursor: default;
+  display: flex; justify-content: flex-end;
+  width: 100vw; height: 100dvh; max-width: none; max-height: none;
+  margin: 0; border: 0; padding: 0; overflow: hidden; cursor: default;
+  color: inherit; background: transparent;
+}
+.drawer-dialog::backdrop {
   background: oklch(0.05 0.02 258 / 0.5);
   animation: backdrop-in 200ms var(--ease) both;
 }
 @keyframes backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+.drawer-backdrop-hitbox {
+  position: absolute; inset: 0;
+  border: 0; padding: 0; cursor: default;
+  background: transparent;
+}
 .drawer-panel {
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: 61;
+  position: relative;
+  min-height: 100dvh;
   display: flex; flex-direction: column;
   width: min(440px, 100vw);
   background: var(--surface-1);
@@ -669,13 +680,25 @@ a:focus-visible {
 }
 
 /* Bottom sheet — see BottomSheet.tsx */
-.sheet-scrim {
-  position: fixed; inset: 0; z-index: 70; border: 0; padding: 0; cursor: default;
+.sheet-dialog {
+  position: fixed; inset: 0; z-index: 70;
+  display: flex; align-items: flex-end;
+  width: 100vw; height: 100dvh; max-width: none; max-height: none;
+  margin: 0; border: 0; padding: 0; overflow: hidden; cursor: default;
+  color: inherit; background: transparent;
+}
+.sheet-dialog::backdrop {
   background: oklch(0.1 0.01 258 / 0.55);
   animation: backdrop-in 160ms var(--ease) both;
 }
+.sheet-backdrop-hitbox {
+  position: absolute; inset: 0;
+  border: 0; padding: 0; cursor: default;
+  background: transparent;
+}
 .sheet {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 71;
+  position: relative;
+  width: 100%;
   display: flex; flex-direction: column;
   max-height: 85vh;
   padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
