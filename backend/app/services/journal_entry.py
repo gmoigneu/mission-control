@@ -15,15 +15,25 @@ from app.schemas.journal_entry import (
     JournalEntryCreate,
     JournalEntryUpdate,
 )
+from app.services.pagination import apply_window, count_rows
 
 ENTITY = "journal_entry"
 
 
-async def list_journal_entries(db: AsyncSession) -> list[JournalEntry]:
-    result = await db.execute(
-        select(JournalEntry).order_by(JournalEntry.date.desc(), JournalEntry.created_at.desc())
+async def list_journal_entries(
+    db: AsyncSession, *, limit: int | None = None, offset: int = 0
+) -> list[JournalEntry]:
+    stmt = apply_window(
+        select(JournalEntry).order_by(JournalEntry.date.desc(), JournalEntry.created_at.desc()),
+        limit=limit,
+        offset=offset,
     )
+    result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def count_journal_entries(db: AsyncSession) -> int:
+    return await count_rows(db, select(JournalEntry))
 
 
 async def get_or_create_journal_entry(
