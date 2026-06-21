@@ -25,6 +25,12 @@ interface FormState {
   energy: string;
 }
 
+interface SelectionState {
+  selectedId: string | null | undefined;
+  pendingCreatedEntry: JournalEntry | null;
+  hiddenEntryIds: Set<string>;
+}
+
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -38,7 +44,19 @@ function entryTitle(entry: JournalEntry): string {
 }
 
 function shortPreview(entry: JournalEntry): string {
-  return entry.body.replace(/\s+/g, " ").trim().slice(0, 120);
+  return entry.body
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*\d+\.\s+/gm, "")
+    .replace(/^>\s?/gm, "")
+    .replace(/[*_~]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
 }
 
 function metric(value: number | null, label: string) {
@@ -60,15 +78,32 @@ export function JournalPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<SelectionState>(() => ({
+    selectedId: undefined,
+    pendingCreatedEntry: null,
+    hiddenEntryIds: new Set(),
+  }));
   useHotkey("c", handleNew, !editorOpen);
 
   const sortedEntries = useMemo(
-    () => entries.toSorted((a, b) => b.date.localeCompare(a.date)),
-    [entries],
+    () => {
+      const hidden = selection.hiddenEntryIds;
+      const base = entries.filter((entry) => !hidden.has(entry.id));
+      const withPending =
+        selection.pendingCreatedEntry &&
+        !base.some((entry) => entry.id === selection.pendingCreatedEntry?.id)
+          ? [selection.pendingCreatedEntry, ...base]
+          : base;
+      return withPending.toSorted((a, b) => b.date.localeCompare(a.date));
+    },
+    [entries, selection],
   );
   const selected =
-    sortedEntries.find((entry) => entry.id === selectedId) ?? sortedEntries[0] ?? null;
+    selection.selectedId === undefined
+      ? (sortedEntries[0] ?? null)
+      : selection.selectedId
+        ? (sortedEntries.find((entry) => entry.id === selection.selectedId) ?? null)
+        : null;
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -83,7 +118,7 @@ export function JournalPage() {
 
   function handleEdit(row: JournalEntry) {
     setEditingId(row.id);
-    setSelectedId(row.id);
+    setSelection((prev) => ({ ...prev, selectedId: row.id }));
     setForm({
       date: row.date,
       title: row.title ?? "",
@@ -114,7 +149,7 @@ export function JournalPage() {
         { id: editingId, data: payload },
         {
           onSuccess: () => {
-            setSelectedId(editingId);
+            setSelection((prev) => ({ ...prev, selectedId: editingId }));
             handleClose();
           },
         },
@@ -122,7 +157,15 @@ export function JournalPage() {
     } else {
       createEntry.mutate(payload, {
         onSuccess: (entry) => {
-          setSelectedId(entry.id);
+          setSelection((prev) => {
+            const hiddenEntryIds = new Set(prev.hiddenEntryIds);
+            hiddenEntryIds.delete(entry.id);
+            return {
+              selectedId: entry.id,
+              pendingCreatedEntry: entry,
+              hiddenEntryIds,
+            };
+          });
           handleClose();
         },
       });
@@ -132,7 +175,19 @@ export function JournalPage() {
   function handleDelete(id: string) {
     deleteEntry.mutate(id, {
       onSuccess: () => {
-        if (selectedId === id) setSelectedId(null);
+        const nextEntry = sortedEntries.find((entry) => entry.id !== id);
+        setSelection((prev) => {
+          const hiddenEntryIds = new Set(prev.hiddenEntryIds);
+          hiddenEntryIds.add(id);
+          return {
+            ...prev,
+            hiddenEntryIds,
+            selectedId:
+              prev.selectedId === id || prev.selectedId === undefined
+                ? (nextEntry?.id ?? null)
+                : prev.selectedId,
+          };
+        });
         handleClose();
       },
     });
@@ -174,7 +229,7 @@ export function JournalPage() {
                         key={entry.id}
                         type="button"
                         onClick={() => {
-                          setSelectedId(entry.id);
+                          setSelection((prev) => ({ ...prev, selectedId: entry.id }));
                           setEditorOpen(false);
                         }}
                         className="journal-entry-row"

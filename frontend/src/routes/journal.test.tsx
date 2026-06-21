@@ -95,4 +95,96 @@ it("renders the journal page and POSTs when Add is clicked", async () => {
     expect(body.body).toBe("Shipped the journal feature.");
     expect(body.date).toBeTruthy();
   });
+  await screen.findByRole("heading", { name: "Friday" });
+});
+
+it("does not show raw markdown syntax in the entry rail preview", async () => {
+  const fetchMock = vi.fn(async (url: string) => {
+    if (String(url).includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
+        status: 200,
+      });
+    }
+    if (String(url).includes("/journal-entries")) {
+      return new Response(
+        JSON.stringify([
+          {
+            id: "j1",
+            date: "2026-05-29",
+            title: "Friday",
+            body: "# Big day\n\n**Bold idea** and _notes_",
+            mood: 4,
+            energy: 3,
+            source: null,
+            created_at: "2026-05-29T00:00:00Z",
+            updated_at: "2026-05-29T00:00:00Z",
+          },
+        ]),
+        { status: 200 },
+      );
+    }
+    return new Response(JSON.stringify({}), { status: 200 });
+  });
+
+  renderJournal(fetchMock);
+
+  await screen.findByRole("heading", { name: "Journal" });
+  expect(await screen.findByText("Big day Bold idea and notes")).toBeInTheDocument();
+  expect(screen.queryByText(/# Big day/)).not.toBeInTheDocument();
+});
+
+it("hides a deleted selected entry while the refetch catches up", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const entries = [
+    {
+      id: "j1",
+      date: "2026-05-30",
+      title: "Newest",
+      body: "Delete me.",
+      mood: 4,
+      energy: 3,
+      source: null,
+      created_at: "2026-05-30T00:00:00Z",
+      updated_at: "2026-05-30T00:00:00Z",
+    },
+    {
+      id: "j2",
+      date: "2026-05-29",
+      title: "Previous",
+      body: "Keep me.",
+      mood: 3,
+      energy: 3,
+      source: null,
+      created_at: "2026-05-29T00:00:00Z",
+      updated_at: "2026-05-29T00:00:00Z",
+    },
+  ];
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    calls.push([String(url), init]);
+    if (String(url).includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
+        status: 200,
+      });
+    }
+    if (String(url).includes("/journal-entries") && init?.method === "DELETE") {
+      return new Response(null, { status: 204 });
+    }
+    if (String(url).includes("/journal-entries")) {
+      return new Response(JSON.stringify(entries), { status: 200 });
+    }
+    return new Response(JSON.stringify({}), { status: 200 });
+  });
+
+  renderJournal(fetchMock);
+
+  await screen.findByRole("heading", { name: "Newest" });
+  await userEvent.click(screen.getByRole("button", { name: /edit/i }));
+  await userEvent.click(screen.getByRole("button", { name: /^delete$/i }));
+  await userEvent.click(screen.getByRole("button", { name: /confirm/i }));
+
+  await screen.findByRole("heading", { name: "Previous" });
+  expect(screen.queryByRole("heading", { name: "Newest" })).not.toBeInTheDocument();
+  expect(
+    calls.some(([url, init]) => String(url).includes("/journal-entries/j1") && init?.method === "DELETE"),
+  ).toBe(true);
 });
