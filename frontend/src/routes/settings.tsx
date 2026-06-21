@@ -193,14 +193,9 @@ function SoulCard() {
             <Button type="submit" disabled={save.isPending}>
               {save.isPending ? "Saving…" : "Save"}
             </Button>
-            <Button
-              type="button"
-              onClick={handleReset}
-              disabled={reset.isPending}
-              className="bg-gray-400 hover:bg-gray-500"
-            >
-              Reset to default
-            </Button>
+            <ConfirmButton onConfirm={handleReset} disabled={reset.isPending}>
+              {reset.isPending ? "Resetting..." : "Reset to default"}
+            </ConfirmButton>
             {saved && <span className="text-sm text-green-600">Saved</span>}
           </div>
         </form>
