@@ -64,22 +64,23 @@ function SoulCard() {
   const save = useSavePersona();
   const reset = useResetPersona();
 
-  const [form, setForm] = useState<SoulForm>(EMPTY_FORM);
+  const [{ form, syncedPersona }, setSoulState] = useState<{
+    form: SoulForm;
+    syncedPersona: Persona | null;
+  }>({ form: EMPTY_FORM, syncedPersona: null });
   const [saved, setSaved] = useState(false);
 
   // Hydrate the form from the loaded persona without an effect: when a new
   // persona object arrives (initial load, save, or reset), adjust state during
   // render — the React-recommended alternative to setState-in-effect.
-  const [syncedPersona, setSyncedPersona] = useState<Persona | null>(null);
   if (persona && persona !== syncedPersona) {
-    setSyncedPersona(persona);
-    setForm(personaToForm(persona));
+    setSoulState({ form: personaToForm(persona), syncedPersona: persona });
   }
 
   function change<K extends keyof SoulForm>(key: K) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const value = e.target.value;
-      setForm((prev) => ({ ...prev, [key]: value }));
+      setSoulState((prev) => ({ ...prev, form: { ...prev.form, [key]: value } }));
       setSaved(false);
     };
   }
@@ -116,7 +117,10 @@ function SoulCard() {
               type="checkbox"
               checked={form.enabled}
               onChange={(e) => {
-                setForm((prev) => ({ ...prev, enabled: e.target.checked }));
+                setSoulState((prev) => ({
+                  ...prev,
+                  form: { ...prev.form, enabled: e.target.checked },
+                }));
                 setSaved(false);
               }}
               aria-label="Enabled"

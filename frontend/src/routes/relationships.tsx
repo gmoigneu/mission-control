@@ -57,6 +57,11 @@ function buildPayload(form: FormState, isEdit: boolean) {
   };
 }
 
+function derivedPersonName(id: string) {
+  const compactId = id.length > 12 ? id.slice(0, 8) : id;
+  return `Unknown person ${compactId}`;
+}
+
 export function RelationshipsPage() {
   const [searchText, setSearchText] = useState("");
   const searchQuery = searchText.trim();
@@ -76,11 +81,6 @@ export function RelationshipsPage() {
   useHotkey("c", handleNew, !panelOpen);
 
   const personMap = Object.fromEntries(people.map((p) => [p.id, p]));
-
-  function derivedPersonName(id: string) {
-    const compactId = id.length > 12 ? id.slice(0, 8) : id;
-    return `Unknown person ${compactId}`;
-  }
 
   function personReference(row: Relationship, side: "from" | "to") {
     const personId = side === "from" ? row.from_person_id : row.to_person_id;

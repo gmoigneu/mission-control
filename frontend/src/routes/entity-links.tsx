@@ -29,6 +29,51 @@ const EMPTY_FORM: FormState = {
   kind: "related",
 };
 
+function entityHref(type: string, slug?: string | null) {
+  if (type === "person" && slug) return `/people/${slug}`;
+  const listRoutes: Record<string, string> = {
+    company: "/companies",
+    context: "/contexts",
+    habit: "/habits",
+    inbox_item: "/inbox",
+    journal_entry: "/journal",
+    knowledge: "/knowledge",
+    meeting: "/meetings",
+    project: "/projects",
+    review: "/reviews",
+    task: "/tasks",
+    telos: "/telos",
+    tone: "/tones",
+  };
+  return listRoutes[type];
+}
+
+function entityTypeLabel(type: string) {
+  return type.replaceAll("_", " ");
+}
+
+function entityReference(row: EntityLink, side: "from" | "to") {
+  const type = side === "from" ? row.from_type : row.to_type;
+  const id = side === "from" ? row.from_id : row.to_id;
+  const name = side === "from" ? row.from_name : row.to_name;
+  const slug = side === "from" ? row.from_slug : row.to_slug;
+  const label = name ?? `${entityTypeLabel(type)} ${id.slice(0, 8)}`;
+  const href = entityHref(type, slug);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      {href ? (
+        <a href={href} className="underline hover:text-gray-600">
+          {label}
+        </a>
+      ) : (
+        <span>{label}</span>
+      )}
+      <span className="meta">{entityTypeLabel(type)}</span>
+    </div>
+  );
+}
+
 export function EntityLinksPage() {
   const [searchText, setSearchText] = useState("");
   const searchQuery = searchText.trim();
@@ -71,51 +116,6 @@ export function EntityLinksPage() {
         kind: form.kind || "related",
       },
       { onSuccess: handleClose },
-    );
-  }
-
-  function entityHref(type: string, slug?: string | null) {
-    if (type === "person" && slug) return `/people/${slug}`;
-    const listRoutes: Record<string, string> = {
-      company: "/companies",
-      context: "/contexts",
-      habit: "/habits",
-      inbox_item: "/inbox",
-      journal_entry: "/journal",
-      knowledge: "/knowledge",
-      meeting: "/meetings",
-      project: "/projects",
-      review: "/reviews",
-      task: "/tasks",
-      telos: "/telos",
-      tone: "/tones",
-    };
-    return listRoutes[type];
-  }
-
-  function entityTypeLabel(type: string) {
-    return type.replaceAll("_", " ");
-  }
-
-  function entityReference(row: EntityLink, side: "from" | "to") {
-    const type = side === "from" ? row.from_type : row.to_type;
-    const id = side === "from" ? row.from_id : row.to_id;
-    const name = side === "from" ? row.from_name : row.to_name;
-    const slug = side === "from" ? row.from_slug : row.to_slug;
-    const label = name ?? `${entityTypeLabel(type)} ${id.slice(0, 8)}`;
-    const href = entityHref(type, slug);
-
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        {href ? (
-          <a href={href} className="underline hover:text-gray-600">
-            {label}
-          </a>
-        ) : (
-          <span>{label}</span>
-        )}
-        <span className="meta">{entityTypeLabel(type)}</span>
-      </div>
     );
   }
 

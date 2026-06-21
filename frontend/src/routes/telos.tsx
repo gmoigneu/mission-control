@@ -97,9 +97,12 @@ export function TelosPage() {
     }
   }
 
-  const parentOptions = items
-    .filter((row) => row.id !== editingId)
-    .map((row) => ({ value: row.id, label: `${row.kind}: ${row.title}` }));
+  const parentOptions = items.reduce<{ value: string; label: string }[]>((acc, row) => {
+    if (row.id !== editingId) {
+      acc.push({ value: row.id, label: `${row.kind}: ${row.title}` });
+    }
+    return acc;
+  }, []);
   const titleById = new Map(items.map((row) => [row.id, row.title]));
 
   const columns = [
