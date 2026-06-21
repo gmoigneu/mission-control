@@ -1,8 +1,9 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.pagination import Page, page_params, set_pagination_headers
 from app.db import get_db
 from app.deps import get_current_user
 from app.schemas.telos import TelosCreate, TelosOut, TelosUpdate
@@ -12,8 +13,14 @@ router = APIRouter(prefix="/telos", tags=["telos"], dependencies=[Depends(get_cu
 
 
 @router.get("", response_model=list[TelosOut])
-async def list_telos(db: AsyncSession = Depends(get_db)):  # noqa: B008
-    return await svc.list_telos(db)
+async def list_telos(
+    response: Response,
+    page: Page = Depends(page_params),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+):
+    total = await svc.count_telos(db)
+    set_pagination_headers(response, total=total, page=page)
+    return await svc.list_telos(db, limit=page.limit, offset=page.offset)
 
 
 @router.post("", response_model=TelosOut, status_code=status.HTTP_201_CREATED)

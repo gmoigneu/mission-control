@@ -7,13 +7,21 @@ from app.audit.serialize import model_to_dict
 from app.audit.service import record_create, record_delete, record_update
 from app.models.meeting import Meeting
 from app.schemas.meeting import MeetingCreate, MeetingUpdate
+from app.services.pagination import apply_window, count_rows
 
 ENTITY = "meeting"
 
 
-async def list_meetings(db: AsyncSession) -> list[Meeting]:
-    result = await db.execute(select(Meeting).order_by(Meeting.at))
+async def list_meetings(
+    db: AsyncSession, *, limit: int | None = None, offset: int = 0
+) -> list[Meeting]:
+    stmt = apply_window(select(Meeting).order_by(Meeting.at), limit=limit, offset=offset)
+    result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def count_meetings(db: AsyncSession) -> int:
+    return await count_rows(db, select(Meeting))
 
 
 async def get_meeting(db: AsyncSession, meeting_id: uuid.UUID) -> Meeting | None:

@@ -7,13 +7,21 @@ from app.audit.serialize import model_to_dict
 from app.audit.service import record_create, record_delete, record_update
 from app.models.review import Review
 from app.schemas.review import ReviewCreate, ReviewUpdate
+from app.services.pagination import apply_window, count_rows
 
 ENTITY = "review"
 
 
-async def list_reviews(db: AsyncSession) -> list[Review]:
-    result = await db.execute(select(Review).order_by(Review.date.desc()))
+async def list_reviews(
+    db: AsyncSession, *, limit: int | None = None, offset: int = 0
+) -> list[Review]:
+    stmt = apply_window(select(Review).order_by(Review.date.desc()), limit=limit, offset=offset)
+    result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def count_reviews(db: AsyncSession) -> int:
+    return await count_rows(db, select(Review))
 
 
 async def get_review(db: AsyncSession, review_id: uuid.UUID) -> Review | None:

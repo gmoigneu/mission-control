@@ -48,6 +48,35 @@ async def test_people_default_limit_applied(client, db):
     assert "X-Next-Offset" not in r.headers
 
 
+async def test_knowledge_list_uses_shared_pagination(client, db):
+    """Previously unbounded list endpoints now use the shared page contract."""
+    await login(client, db)
+
+    for i in range(3):
+        created = await client.post(
+            "/knowledge",
+            json={
+                "slug": f"paged-note-{i}",
+                "title": f"Paged note {i}",
+                "body": f"Body {i}",
+            },
+        )
+        assert created.status_code == 201
+
+    first = await client.get("/knowledge?limit=2&offset=0")
+    assert first.status_code == 200
+    assert len(first.json()) == 2
+    assert first.headers["X-Total-Count"] == "3"
+    assert first.headers["X-Limit"] == "2"
+    assert first.headers["X-Offset"] == "0"
+    assert first.headers["X-Next-Offset"] == "2"
+
+    last = await client.get("/knowledge?limit=2&offset=2")
+    assert last.status_code == 200
+    assert len(last.json()) == 1
+    assert "X-Next-Offset" not in last.headers
+
+
 async def test_audit_pagination_offset(client, db):
     """Audit list supports offset and reports total/next via headers."""
     await login(client, db)

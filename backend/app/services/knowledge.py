@@ -7,13 +7,23 @@ from app.audit.serialize import model_to_dict
 from app.audit.service import record_create, record_delete, record_update
 from app.models.knowledge import Knowledge
 from app.schemas.knowledge import KnowledgeCreate, KnowledgeUpdate
+from app.services.pagination import apply_window, count_rows
 
 ENTITY = "knowledge"
 
 
-async def list_knowledge(db: AsyncSession) -> list[Knowledge]:
-    result = await db.execute(select(Knowledge).order_by(Knowledge.created_at))
+async def list_knowledge(
+    db: AsyncSession, *, limit: int | None = None, offset: int = 0
+) -> list[Knowledge]:
+    stmt = apply_window(
+        select(Knowledge).order_by(Knowledge.created_at), limit=limit, offset=offset
+    )
+    result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def count_knowledge(db: AsyncSession) -> int:
+    return await count_rows(db, select(Knowledge))
 
 
 async def get_knowledge(db: AsyncSession, knowledge_id: uuid.UUID) -> Knowledge | None:

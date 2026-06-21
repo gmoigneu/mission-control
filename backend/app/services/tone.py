@@ -7,13 +7,21 @@ from app.audit.serialize import model_to_dict
 from app.audit.service import record_create, record_delete, record_update
 from app.models.tone import Tone
 from app.schemas.tone import ToneCreate, ToneUpdate
+from app.services.pagination import apply_window, count_rows
 
 ENTITY = "tone"
 
 
-async def list_tones(db: AsyncSession) -> list[Tone]:
-    result = await db.execute(select(Tone).order_by(Tone.created_at))
+async def list_tones(
+    db: AsyncSession, *, limit: int | None = None, offset: int = 0
+) -> list[Tone]:
+    stmt = apply_window(select(Tone).order_by(Tone.created_at), limit=limit, offset=offset)
+    result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def count_tones(db: AsyncSession) -> int:
+    return await count_rows(db, select(Tone))
 
 
 async def get_tone(db: AsyncSession, tone_id: uuid.UUID) -> Tone | None:
