@@ -10,7 +10,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import type { Task } from "../lib/types";
-import { TasksPage } from "./tasks";
+import { TasksPage } from "./tasks.page";
 
 afterEach(() => vi.restoreAllMocks());
 
