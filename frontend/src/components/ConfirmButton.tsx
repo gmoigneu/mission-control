@@ -1,15 +1,22 @@
 import { useState } from "react";
 
-export function ConfirmButton({
-  onConfirm,
-  children = "Delete",
-  disabled = false,
-}: {
+interface ConfirmButtonProps {
   onConfirm: () => void;
   children?: React.ReactNode;
   disabled?: boolean;
-}) {
+}
+
+export function ConfirmButton(props: ConfirmButtonProps) {
+  return <ConfirmButtonInner key={String(props.disabled ?? false)} {...props} />;
+}
+
+function ConfirmButtonInner({
+  onConfirm,
+  children = "Delete",
+  disabled = false,
+}: ConfirmButtonProps) {
   const [armed, setArmed] = useState(false);
+
   return (
     <button
       type="button"
