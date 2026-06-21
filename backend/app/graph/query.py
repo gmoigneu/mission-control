@@ -39,7 +39,7 @@ async def neighbors(run: Runner, person_id: str) -> list[dict]:
     return await run(
         "MATCH (p:Person {id: $id})-[r]-(n) "
         "RETURN n.id AS id, labels(n)[0] AS label, coalesce(r.type, type(r)) AS rel, "
-        "coalesce(n.name, n.title, n.slug) AS label_text",
+        "coalesce(n.name, n.title, n.slug) AS label_text, n.slug AS slug",
         {"id": person_id},
     )
 

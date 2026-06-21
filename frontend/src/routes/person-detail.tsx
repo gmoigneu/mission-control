@@ -41,7 +41,7 @@ function PersonDetailContent({
   // Mini relationship graph via POST /graph/query (neighbors intent).
   const { data: neighbors = [], isLoading: neighborsLoading } = useNeighbors(person.id);
 
-  const sortedObservations = [...observations].sort((a, b) => {
+  const sortedObservations = observations.toSorted((a, b) => {
     const da = a.date ?? a.created_at;
     const db = b.date ?? b.created_at;
     return db.localeCompare(da);
@@ -112,18 +112,43 @@ function PersonDetailContent({
             <p style={{ fontSize: 13, color: "var(--fg-dim)" }}>No graph connections yet.</p>
           ) : (
             <ul style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {neighbors.map((n) => (
-                <li key={`${n.rel}-${n.id}`} className="row gap-2" style={{ fontSize: 13 }}>
-                  <span
-                    className="badge"
-                    style={{ border: "1px solid var(--line)", color: "var(--fg-dim)" }}
-                  >
-                    {n.rel}
-                  </span>
-                  <span style={{ color: "var(--fg-faint)" }}>{n.label}</span>
-                  <span>{n.label_text ?? n.id}</span>
-                </li>
-              ))}
+              {neighbors.map((n) => {
+                const connectionName = n.label_text ?? n.id;
+                let connection: React.ReactNode = <span>{connectionName}</span>;
+                if (n.label === "Person" && n.slug) {
+                  connection = (
+                    <Link
+                      to="/people/$slug"
+                      params={{ slug: n.slug }}
+                      className="underline hover:text-gray-600"
+                    >
+                      {connectionName}
+                    </Link>
+                  );
+                } else if (n.label === "Company" && n.slug) {
+                  connection = (
+                    <Link
+                      to="/companies/$slug"
+                      params={{ slug: n.slug }}
+                      className="underline hover:text-gray-600"
+                    >
+                      {connectionName}
+                    </Link>
+                  );
+                }
+                return (
+                  <li key={`${n.rel}-${n.id}`} className="row gap-2" style={{ fontSize: 13 }}>
+                    <span
+                      className="badge"
+                      style={{ border: "1px solid var(--line)", color: "var(--fg-dim)" }}
+                    >
+                      {n.rel}
+                    </span>
+                    <span style={{ color: "var(--fg-faint)" }}>{n.label}</span>
+                    {connection}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Card>
