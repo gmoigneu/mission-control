@@ -46,6 +46,8 @@ async def test_entity_links_crud_flow(client, db):
         f"/entity-links?from_type=context&from_id={ctx_a.id}"
     )
     assert matched.status_code == 200
+    assert matched.headers["X-Total-Count"] == "1"
+    assert matched.headers["X-Limit"] == "50"
     assert any(e["id"] == elid for e in matched.json())
 
     # Filter with a different from_id: should not find it
@@ -54,6 +56,7 @@ async def test_entity_links_crud_flow(client, db):
         f"/entity-links?from_type=context&from_id={other_id}"
     )
     assert unmatched.status_code == 200
+    assert unmatched.headers["X-Total-Count"] == "0"
     assert all(e["id"] != elid for e in unmatched.json())
 
     # GET by id
@@ -65,6 +68,43 @@ async def test_entity_links_crud_flow(client, db):
     deleted = await client.delete(f"/entity-links/{elid}")
     assert deleted.status_code == 204
     assert (await client.get(f"/entity-links/{elid}")).status_code == 404
+
+
+async def test_entity_links_list_pagination_headers(client, db):
+    await login(client, db)
+
+    contexts = [
+        Context(slug=f"el-page-ctx-{i}-{uuid.uuid4().hex[:6]}", name=f"EL Page {i}")
+        for i in range(4)
+    ]
+    db.add_all(contexts)
+    await db.flush()
+
+    for i in range(3):
+        created = await client.post(
+            "/entity-links",
+            json={
+                "from_type": "context",
+                "from_id": str(contexts[i].id),
+                "to_type": "context",
+                "to_id": str(contexts[i + 1].id),
+                "kind": "related",
+            },
+        )
+        assert created.status_code == 201
+
+    first = await client.get("/entity-links?limit=2&offset=0")
+    assert first.status_code == 200
+    assert len(first.json()) == 2
+    assert first.headers["X-Total-Count"] == "3"
+    assert first.headers["X-Limit"] == "2"
+    assert first.headers["X-Offset"] == "0"
+    assert first.headers["X-Next-Offset"] == "2"
+
+    last = await client.get("/entity-links?limit=2&offset=2")
+    assert last.status_code == 200
+    assert len(last.json()) == 1
+    assert "X-Next-Offset" not in last.headers
 
 
 async def test_get_missing_entity_link_404(client, db):
@@ -107,6 +147,7 @@ async def test_entity_links_search_matches_either_endpoint_name(client, db):
     listing = await client.get("/entity-links?q=ada")
 
     assert listing.status_code == 200
+    assert listing.headers["X-Total-Count"] == "1"
     rows = listing.json()
     assert [row["id"] for row in rows] == [matching.json()["id"]]
     assert rows[0]["from_name"] == "Ada Artist"
