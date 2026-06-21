@@ -6,9 +6,11 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { SlugField } from "../components/SlugField";
 import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
-import { Button, Field, Input, Select } from "../components/ui";
+import { resolvedSlug } from "../lib/slug";
+import { Button, Field, Input, Select, Textarea } from "../components/ui";
 import { useContexts } from "../features/contexts/api";
 import { useCreateProject, useDeleteProject, useProjects, useUpdateProject } from "../features/projects/api";
 import type { Project } from "../lib/types";
@@ -53,7 +55,7 @@ export function ProjectsPage() {
   useHotkey("c", handleNew, !panelOpen);
 
   function handleChange(key: keyof FormState) {
-    return (e: React.ChangeEvent<HTMLInputElement>) =>
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
   }
 
@@ -91,7 +93,7 @@ export function ProjectsPage() {
     const payload = {
       context_id: form.context_id,
       title: form.title,
-      slug: form.slug,
+      slug: resolvedSlug(form.slug, form.title),
       status: form.status,
       purpose: form.purpose || null,
       body: form.body || null,
@@ -181,15 +183,6 @@ export function ProjectsPage() {
                 required
               />
             </Field>
-            <Field label="Slug">
-              <Input
-                value={form.slug}
-                onChange={handleChange("slug")}
-                placeholder="my-project"
-                aria-label="Slug"
-                required
-              />
-            </Field>
             <Field label="Status">
               <Select
                 value={form.status}
@@ -198,21 +191,28 @@ export function ProjectsPage() {
               />
             </Field>
             <Field label="Purpose">
-              <Input
+              <Textarea
                 value={form.purpose}
                 onChange={handleChange("purpose")}
                 placeholder="Optional purpose"
                 aria-label="Purpose"
+                rows={3}
               />
             </Field>
             <Field label="Body">
-              <Input
+              <Textarea
                 value={form.body}
                 onChange={handleChange("body")}
                 placeholder="Optional body"
                 aria-label="Body"
+                rows={7}
               />
             </Field>
+            <SlugField
+              value={form.slug}
+              source={form.title}
+              onChange={(value) => setForm((prev) => ({ ...prev, slug: value }))}
+            />
             <div className="flex gap-2">
               <Button type="submit" disabled={!form.context_id}>{editingId ? "Save" : "Add"}</Button>
               <Button type="button" onClick={handleClose} className="ghost">

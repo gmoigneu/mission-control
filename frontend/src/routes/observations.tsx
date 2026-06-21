@@ -9,7 +9,7 @@ import { SidePanel } from "../components/SidePanel";
 import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
 import { SubjectPicker } from "../components/SubjectPicker";
-import { Button, Field, Input, Select } from "../components/ui";
+import { Button, Field, Input, Select, Textarea } from "../components/ui";
 import {
   useCreateObservation,
   useDeleteObservation,
@@ -71,7 +71,7 @@ export function ObservationsPage() {
   useHotkey("c", handleNew, !panelOpen);
 
   function handleChange(key: keyof FormState) {
-    return (e: React.ChangeEvent<HTMLInputElement>) =>
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
   }
 
@@ -195,12 +195,13 @@ export function ObservationsPage() {
               />
             </Field>
             <Field label="Body">
-              <Input
+              <Textarea
                 value={form.body}
                 onChange={handleChange("body")}
                 placeholder="Observation body"
                 aria-label="Body"
                 required
+                rows={5}
               />
             </Field>
             <Field label="Date">

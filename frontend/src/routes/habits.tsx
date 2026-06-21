@@ -6,9 +6,11 @@ import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
+import { SlugField } from "../components/SlugField";
 import { SectionLabel } from "../components/console";
 import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
+import { resolvedSlug } from "../lib/slug";
 import { Button, Field, Input, Select } from "../components/ui";
 import { useDailyCheckIns } from "../features/journal/api";
 import {
@@ -204,7 +206,7 @@ export function HabitsPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const payload = { name: form.name, slug: form.slug, cadence: form.cadence };
+    const payload = { name: form.name, slug: resolvedSlug(form.slug, form.name), cadence: form.cadence };
     if (editingId) {
       updateHabit.mutate(
         { id: editingId, data: payload },
@@ -318,15 +320,6 @@ export function HabitsPage() {
                 required
               />
             </Field>
-            <Field label="Slug">
-              <Input
-                value={form.slug}
-                onChange={handleChange("slug")}
-                placeholder="morning-pages"
-                aria-label="Slug"
-                required
-              />
-            </Field>
             <Field label="Cadence">
               <Select
                 value={form.cadence}
@@ -334,6 +327,11 @@ export function HabitsPage() {
                 options={CADENCE_OPTIONS}
               />
             </Field>
+            <SlugField
+              value={form.slug}
+              source={form.name}
+              onChange={(value) => setForm((prev) => ({ ...prev, slug: value }))}
+            />
             <div className="flex gap-2">
               <Button type="submit">{editingId ? "Save" : "Add"}</Button>
               <Button type="button" onClick={handleClose} className="ghost">
