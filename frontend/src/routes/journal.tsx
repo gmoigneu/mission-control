@@ -15,7 +15,7 @@ import {
 import type { JournalEntry } from "../lib/types";
 import { rootRoute } from "./root";
 
-const MDEditor = lazy(() => import("@uiw/react-md-editor"));
+const MDEditor = lazy(() => import("@uiw/react-md-editor/nohighlight"));
 
 type SaveStatus = "idle" | "unsaved" | "saving" | "saved" | "error";
 
