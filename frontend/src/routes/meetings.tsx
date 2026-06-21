@@ -1,6 +1,6 @@
 import { createRoute, Link } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useReducer } from "react";
 import { AppShell } from "../components/AppShell";
 import { ConfirmButton } from "../components/ConfirmButton";
 import { DataTable } from "../components/DataTable";
@@ -41,6 +41,66 @@ const EMPTY_FORM: FormState = {
   body: "",
 };
 
+interface MeetingsState {
+  form: FormState;
+  editingId: string | null;
+  panelOpen: boolean;
+  attendeeFor: string | null;
+  attendeePerson: string;
+}
+
+type MeetingsAction =
+  | { type: "openNew" }
+  | { type: "editMeeting"; meeting: Meeting }
+  | { type: "closePanel" }
+  | { type: "updateForm"; key: keyof FormState; value: string }
+  | { type: "setAttendeePicker"; meetingId: string | null }
+  | { type: "setAttendeePerson"; personId: string }
+  | { type: "resetAttendeePicker" };
+
+function initialMeetingsState(): MeetingsState {
+  return {
+    form: EMPTY_FORM,
+    editingId: null,
+    panelOpen: false,
+    attendeeFor: null,
+    attendeePerson: "",
+  };
+}
+
+function meetingsReducer(state: MeetingsState, action: MeetingsAction): MeetingsState {
+  switch (action.type) {
+    case "openNew":
+      return { ...state, form: EMPTY_FORM, editingId: null, panelOpen: true };
+    case "editMeeting":
+      return {
+        ...state,
+        editingId: action.meeting.id,
+        form: {
+          title: action.meeting.title,
+          slug: action.meeting.slug,
+          // datetime-local wants "YYYY-MM-DDTHH:mm"; trim any timezone/seconds.
+          at: action.meeting.at ? action.meeting.at.slice(0, 16) : "",
+          context_id: action.meeting.context_id ?? "",
+          project_id: action.meeting.project_id ?? "",
+          location: action.meeting.location ?? "",
+          body: action.meeting.body ?? "",
+        },
+        panelOpen: true,
+      };
+    case "closePanel":
+      return { ...state, form: EMPTY_FORM, editingId: null, panelOpen: false };
+    case "updateForm":
+      return { ...state, form: { ...state.form, [action.key]: action.value } };
+    case "setAttendeePicker":
+      return { ...state, attendeeFor: action.meetingId, attendeePerson: "" };
+    case "setAttendeePerson":
+      return { ...state, attendeePerson: action.personId };
+    case "resetAttendeePicker":
+      return { ...state, attendeeFor: null, attendeePerson: "" };
+  }
+}
+
 export function MeetingsPage() {
   const { data: meetings = [] } = useMeetings();
   useEditFromSearch(meetings, handleEdit);
@@ -54,47 +114,29 @@ export function MeetingsPage() {
   const createLink = useCreateEntityLink();
   const deleteLink = useDeleteEntityLink();
 
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [state, dispatch] = useReducer(meetingsReducer, undefined, initialMeetingsState);
+  const { form, editingId, panelOpen, attendeeFor, attendeePerson } = state;
   useHotkey("c", handleNew, !panelOpen);
-  const [attendeeFor, setAttendeeFor] = useState<string | null>(null);
-  const [attendeePerson, setAttendeePerson] = useState<string>("");
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setForm((prev) => ({ ...prev, [key]: e.target.value }));
+      dispatch({ type: "updateForm", key, value: e.target.value });
   }
 
   function handleSelectChange(key: keyof FormState) {
-    return (value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+    return (value: string) => dispatch({ type: "updateForm", key, value });
   }
 
   function handleNew() {
-    setEditingId(null);
-    setForm(EMPTY_FORM);
-    setPanelOpen(true);
+    dispatch({ type: "openNew" });
   }
 
   function handleEdit(row: Meeting) {
-    setEditingId(row.id);
-    setForm({
-      title: row.title,
-      slug: row.slug,
-      // datetime-local wants "YYYY-MM-DDTHH:mm"; trim any timezone/seconds.
-      at: row.at ? row.at.slice(0, 16) : "",
-      context_id: row.context_id ?? "",
-      project_id: row.project_id ?? "",
-      location: row.location ?? "",
-      body: row.body ?? "",
-    });
-    setPanelOpen(true);
+    dispatch({ type: "editMeeting", meeting: row });
   }
 
   function handleClose() {
-    setPanelOpen(false);
-    setEditingId(null);
-    setForm(EMPTY_FORM);
+    dispatch({ type: "closePanel" });
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -139,10 +181,7 @@ export function MeetingsPage() {
         kind: ATTENDEE_KIND,
       },
       {
-        onSuccess: () => {
-          setAttendeeFor(null);
-          setAttendeePerson("");
-        },
+        onSuccess: () => dispatch({ type: "resetAttendeePicker" }),
       },
     );
   }
@@ -182,7 +221,7 @@ export function MeetingsPage() {
               <div className="flex items-center gap-2">
                 <Select
                   value={attendeePerson}
-                  onChange={setAttendeePerson}
+                  onChange={(personId) => dispatch({ type: "setAttendeePerson", personId })}
                   options={people.map((p) => ({ value: p.id, label: p.name }))}
                   placeholder="— select person —"
                 />
@@ -196,10 +235,7 @@ export function MeetingsPage() {
                 <button
                   type="button"
                   className="text-xs text-gray-500 hover:text-gray-900"
-                  onClick={() => {
-                    setAttendeeFor(null);
-                    setAttendeePerson("");
-                  }}
+                  onClick={() => dispatch({ type: "resetAttendeePicker" })}
                 >
                   Cancel
                 </button>
@@ -208,10 +244,7 @@ export function MeetingsPage() {
               <button
                 type="button"
                 className="text-xs text-blue-600 hover:text-blue-900"
-                onClick={() => {
-                  setAttendeeFor(row.id);
-                  setAttendeePerson("");
-                }}
+                onClick={() => dispatch({ type: "setAttendeePicker", meetingId: row.id })}
               >
                 + Attendee
               </button>
@@ -318,7 +351,7 @@ export function MeetingsPage() {
             <SlugField
               value={form.slug}
               source={form.title}
-              onChange={(value) => setForm((prev) => ({ ...prev, slug: value }))}
+              onChange={(value) => dispatch({ type: "updateForm", key: "slug", value })}
             />
             <div className="flex gap-2">
               <Button type="submit" disabled={!form.title || !form.at}>
