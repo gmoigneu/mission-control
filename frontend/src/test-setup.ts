@@ -16,3 +16,10 @@ if (typeof window !== "undefined" && !window.matchMedia) {
       dispatchEvent: () => false,
     }) as unknown as MediaQueryList;
 }
+
+// jsdom also leaves scrollTo unimplemented, while the router calls it during
+// navigation. Keep route tests focused on app behavior instead of environment
+// feature gaps.
+if (typeof window !== "undefined") {
+  window.scrollTo = () => {};
+}

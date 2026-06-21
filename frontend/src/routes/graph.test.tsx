@@ -77,7 +77,9 @@ it("renders the graph page with controls and fetches the snapshot", async () => 
   );
 
   await screen.findByRole("heading", { name: "Graph" });
-  expect(screen.getAllByRole("button", { name: /rebuild graph/i })[0]).toBeInTheDocument();
+  expect(
+    (await screen.findAllByRole("button", { name: /rebuild graph/i }))[0],
+  ).toBeInTheDocument();
   expect(calls.some((u) => u.includes("/graph/full"))).toBe(true);
 });
 
@@ -126,7 +128,7 @@ it("requires confirmation before rebuilding the graph from the toolbar", async (
   );
 
   await screen.findByRole("heading", { name: "Graph" });
-  const rebuild = screen.getAllByRole("button", { name: /rebuild graph/i })[0];
+  const rebuild = (await screen.findAllByRole("button", { name: /rebuild graph/i }))[0];
   await userEvent.click(rebuild);
   expect(calls.some((u) => u.includes("/admin/rebuild-graph"))).toBe(false);
   await userEvent.click(screen.getByRole("button", { name: /confirm rebuild/i }));
