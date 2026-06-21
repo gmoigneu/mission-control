@@ -38,9 +38,14 @@ import {
   Undo2,
   Users,
 } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from "react";
 import { useLogout, useMe } from "../lib/auth";
-import { useFocusTrap } from "../lib/useFocusTrap";
 import {
   invalidateForWrites,
   useCapture,
@@ -311,6 +316,30 @@ function SetRow({
   );
 }
 
+function useNativeDialog(onClose: () => void) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const close = useEffectEvent(onClose);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (!dialog.open) {
+      dialog.showModal();
+    }
+    function handleCancel(e: Event) {
+      e.preventDefault();
+      close();
+    }
+    dialog.addEventListener("cancel", handleCancel);
+    return () => {
+      dialog.removeEventListener("cancel", handleCancel);
+      if (dialog.open) dialog.close();
+    };
+  }, []);
+
+  return dialogRef;
+}
+
 function SettingsPopover({
   theme,
   setTheme,
@@ -324,39 +353,23 @@ function SettingsPopover({
   setNavOpen: (v: boolean) => void;
   close: () => void;
 }) {
-  const ref = useFocusTrap<HTMLDivElement>(true);
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") close();
-    }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [close]);
+  const dialogRef = useNativeDialog(close);
   return (
-    <>
+    <dialog
+      ref={dialogRef}
+      aria-label="Display settings"
+      aria-modal="true"
+      className="shell-dialog shell-dialog-top"
+    >
       <button
         type="button"
         aria-label="Close display settings"
         tabIndex={-1}
         onClick={close}
-        style={{ position: "fixed", inset: 0, zIndex: 41, border: 0, padding: 0, background: "transparent" }}
+        className="shell-dialog-hitbox"
       />
       <div
-        ref={ref}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Display settings"
-        className="card rise"
-        style={{
-          position: "absolute",
-          top: 50,
-          right: 12,
-          width: 268,
-          padding: 16,
-          zIndex: 42,
-          boxShadow: "var(--shadow-pop)",
-          background: "var(--surface-1)",
-        }}
+        className="card rise shell-popover-card shell-popover-card-settings"
       >
         <div className="label" style={{ marginBottom: 12 }}>
           Display
@@ -391,7 +404,7 @@ function SettingsPopover({
           Press ⌘K anywhere to capture. Drag task cards between board columns.
         </div>
       </div>
-    </>
+    </dialog>
   );
 }
 
@@ -434,39 +447,23 @@ function AvatarMenu({
   onClose: () => void;
   onLogout: () => void;
 }) {
-  const ref = useFocusTrap<HTMLDivElement>(true);
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose]);
+  const dialogRef = useNativeDialog(onClose);
   return (
-    <>
+    <dialog
+      ref={dialogRef}
+      aria-label="Account menu"
+      aria-modal="true"
+      className="shell-dialog shell-dialog-top"
+    >
       <button
         type="button"
         aria-label="Close account menu"
         tabIndex={-1}
         onClick={onClose}
-        style={{ position: "fixed", inset: 0, zIndex: 41, border: 0, padding: 0, background: "transparent" }}
+        className="shell-dialog-hitbox"
       />
       <div
-        ref={ref}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Account menu"
-        className="card rise"
-        style={{
-          position: "absolute",
-          top: 36,
-          right: 0,
-          width: 220,
-          padding: "8px 0",
-          zIndex: 42,
-          boxShadow: "var(--shadow-pop)",
-          background: "var(--surface-1)",
-        }}
+        className="card rise shell-popover-card shell-popover-card-account"
       >
         <div
           style={{
@@ -509,7 +506,7 @@ function AvatarMenu({
           Log out
         </button>
       </div>
-    </>
+    </dialog>
   );
 }
 
@@ -524,8 +521,8 @@ function CommandPalette({
 }) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+  const dialogRef = useNativeDialog(onClose);
   const inputRef = useRef<HTMLInputElement>(null);
-  const dialogRef = useFocusTrap<HTMLDivElement>(true);
   const navigate = useNavigate();
   const qc = useQueryClient();
   const capture = useCapture();
@@ -534,14 +531,6 @@ function CommandPalette({
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
-
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose]);
 
   const navEntries = NAV.filter(
     (n): n is Extract<NavEntry, { divider?: false }> => !n.divider,
@@ -629,45 +618,20 @@ function CommandPalette({
   const activeId = actions[selectedIndex]?.id;
 
   return (
-    <>
-      {/* Backdrop */}
+    <dialog
+      ref={dialogRef}
+      aria-label="Command palette"
+      aria-modal="true"
+      className="shell-dialog shell-dialog-command"
+    >
       <button
         type="button"
         aria-label="Close command palette"
         tabIndex={-1}
         onClick={onClose}
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 80,
-          background: "oklch(0.1 0.01 258 / 0.55)",
-          backdropFilter: "blur(4px)",
-          border: 0,
-          padding: 0,
-        }}
+        className="shell-dialog-hitbox"
       />
-      {/* Modal */}
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Command palette"
-        className="card rise"
-        style={{
-          position: "fixed",
-          top: "20%",
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "min(560px, 92vw)",
-          zIndex: 81,
-          padding: 16,
-          boxShadow: "var(--shadow-pop)",
-          background: "var(--surface-2)",
-          maxHeight: "60vh",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
+      <div className="card rise shell-command-card">
         <input
           ref={inputRef}
           className="input"
@@ -803,7 +767,7 @@ function CommandPalette({
           })}
         </div>
       </div>
-    </>
+    </dialog>
   );
 }
 
