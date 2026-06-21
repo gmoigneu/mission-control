@@ -1,6 +1,6 @@
 import { createRoute, useNavigate } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
-import { useLogin, usePasskeyLogin } from "../lib/auth";
+import { type FormEvent, useEffect, useState } from "react";
+import { useLogin, useMe, usePasskeyLogin } from "../lib/auth";
 import { isWebAuthnSupported } from "../lib/webauthn";
 import { rootRoute } from "./root";
 
@@ -48,19 +48,32 @@ function Logo() {
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const me = useMe();
   const login = useLogin();
   const passkeyLogin = usePasskeyLogin();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const passkeySupported = isWebAuthnSupported();
 
+  useEffect(() => {
+    if (me.data) void navigate({ to: "/" });
+  }, [me.data, navigate]);
+
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    login.mutate({ email, password }, { onSuccess: () => navigate({ to: "/" }) });
+    login.mutate({ email, password });
   }
 
   function onPasskey() {
-    passkeyLogin.mutate(undefined, { onSuccess: () => navigate({ to: "/" }) });
+    passkeyLogin.mutate();
+  }
+
+  if (me.isLoading || me.data) {
+    return (
+      <div className="meta" style={{ padding: "32px" }}>
+        Loading…
+      </div>
+    );
   }
 
   return (
