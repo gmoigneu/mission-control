@@ -1,7 +1,8 @@
-import { createRoute, useNavigate } from "@tanstack/react-router";
+import { Link, createRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Check, Flame } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "../components/AppShell";
+import { Markdown } from "../components/Markdown";
 import {
   AISpark,
   ContextChip,
@@ -20,6 +21,7 @@ import {
   useJournalEntries,
   useSetDailyCheckIn,
 } from "../features/journal/api";
+import { useProjects } from "../features/projects/api";
 import { useTasks, useUpdateTask } from "../features/tasks/api";
 import { useMe } from "../lib/auth";
 import type { Habit } from "../lib/types";
@@ -51,6 +53,17 @@ function relTime(iso: string): string {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
   return fmtDate(iso.slice(0, 10));
+}
+
+function payloadLabel(payload: Record<string, unknown> | null): string | null {
+  if (!payload) return null;
+  for (const key of ["label", "title", "name", "slug"]) {
+    const value = payload[key];
+    if (typeof value === "string" && value.trim()) return value;
+  }
+  const date = payload.date;
+  if (typeof date === "string" && date.trim()) return `Journal ${fmtDate(date)}`;
+  return null;
 }
 
 // ─── Gauge: 1–5 dot picker ─────────────────────────────────────────────────────
@@ -248,6 +261,7 @@ export function Dashboard() {
   const { data: audit = [] } = useAudit();
   const { data: journalEntries = [] } = useJournalEntries();
   const { data: habits = [] } = useHabits({ active: "true" });
+  const { data: projects = [] } = useProjects();
   const { data: dailyCheckIns = [] } = useDailyCheckIns({ days: 1, end: today });
   const updateTask = useUpdateTask();
   const logHabit = useLogHabit();
@@ -309,6 +323,26 @@ export function Dashboard() {
 
   const recentActivity = audit.slice(0, 5);
 
+  function activityEntryLabel(a: (typeof recentActivity)[number]): string {
+    if (a.entity_type === "task") {
+      return tasks.find((t) => t.id === a.entity_id)?.title ?? payloadLabel(a.after) ?? payloadLabel(a.before) ?? a.entity_id;
+    }
+    if (a.entity_type === "context") {
+      return contexts.find((c) => c.id === a.entity_id)?.name ?? payloadLabel(a.after) ?? payloadLabel(a.before) ?? a.entity_id;
+    }
+    if (a.entity_type === "project") {
+      return projects.find((p) => p.id === a.entity_id)?.title ?? payloadLabel(a.after) ?? payloadLabel(a.before) ?? a.entity_id;
+    }
+    if (a.entity_type === "journal_entry") {
+      const entry = journalEntries.find((j) => j.id === a.entity_id);
+      return entry?.title ?? (entry ? `Journal ${fmtDate(entry.date)}` : payloadLabel(a.after) ?? payloadLabel(a.before) ?? a.entity_id);
+    }
+    if (a.entity_type === "habit") {
+      return habits.find((h) => h.id === a.entity_id)?.name ?? payloadLabel(a.after) ?? payloadLabel(a.before) ?? a.entity_id;
+    }
+    return payloadLabel(a.after) ?? payloadLabel(a.before) ?? a.entity_id;
+  }
+
   function setCheckInScore(key: CheckInMetric, value: number) {
     const previous = localCheckIn;
     setLocalCheckIn((current) => ({ ...current, [key]: value }));
@@ -331,21 +365,10 @@ export function Dashboard() {
     logHabit.mutate({ id: habit.id, data: { date: today, done: !habit.logged_today } });
   }
 
-  // Most recent journal entry (today's if present, else latest). The list is
-  // already ordered date-desc by the API.
+  // Today's journal entry if present, else the latest entry as a useful fallback.
+  const todaysJournal = journalEntries.find((entry) => entry.date === today) ?? null;
   const latestJournal = journalEntries[0] ?? null;
-  const journalLines = latestJournal
-    ? latestJournal.body
-        .split("\n")
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0 && !line.startsWith("#"))
-        .slice(0, 4)
-        .reduce<Array<{ key: string; text: string }>>((lines, line) => {
-          const duplicateCount = lines.filter((item) => item.text === line).length;
-          lines.push({ key: `${latestJournal.id}:${line}:${duplicateCount}`, text: line });
-          return lines;
-        }, [])
-    : [];
+  const journalForCard = todaysJournal ?? latestJournal;
 
   return (
     <RequireAuth>
@@ -434,6 +457,102 @@ export function Dashboard() {
             {/* ══ LEFT ══════════════════════════════════════════════════ */}
             <div className="col gap-4" style={{ minWidth: 0 }}>
 
+              {/* Top of mind — context cards */}
+              <section>
+                <SectionLabel
+                  right={
+                    <button
+                      type="button"
+                      className="btn ghost sm"
+                      onClick={() => navigate({ to: "/contexts" })}
+                    >
+                      Contexts
+                      <ArrowRight size={13} />
+                    </button>
+                  }
+                >
+                  Top of mind
+                </SectionLabel>
+
+                {contexts.length === 0 ? (
+                  <div
+                    className="meta"
+                    style={{
+                      color: "var(--fg-faint)",
+                      padding: "20px 4px",
+                      textAlign: "center",
+                    }}
+                  >
+                    No contexts yet. Add one to get started.
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns:
+                        "repeat(auto-fill, minmax(230px, 1fr))",
+                      gap: 12,
+                    }}
+                  >
+                    {contexts.map((c) => {
+                      const tint = contextTint(c);
+                      const count = openTaskCount(c.id);
+                      return (
+                        <Link
+                          key={c.slug}
+                          to="/tasks"
+                          search={{ context: c.id }}
+                          className="card ticks ctx-card ctx-card-link"
+                        >
+                          <div
+                            className="row"
+                            style={{ justifyContent: "space-between" }}
+                          >
+                            <ContextChip tint={tint}>{c.name}</ContextChip>
+                          </div>
+                          <div
+                            className="num"
+                            style={{
+                              fontSize: 30,
+                              marginTop: 12,
+                              lineHeight: 1,
+                              color: tint,
+                            }}
+                          >
+                            {count}
+                            <span
+                              style={{
+                                fontSize: 12,
+                                color: "var(--fg-dim)",
+                                marginLeft: 6,
+                              }}
+                            >
+                              open
+                            </span>
+                          </div>
+                          {c.description && (
+                            <div
+                              className="muted"
+                              style={{
+                                fontSize: 12,
+                                marginTop: 6,
+                                lineHeight: 1.4,
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                              }}
+                            >
+                              {c.description}
+                            </div>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+
               {/* Tasks due today & overdue */}
               <section className="card" style={{ padding: 20 }}>
                 <SectionLabel
@@ -508,6 +627,11 @@ export function Dashboard() {
                 </div>
               </section>
 
+            </div>
+
+            {/* ══ RIGHT ═════════════════════════════════════════════════ */}
+            <div className="col gap-4" style={{ minWidth: 0 }}>
+
               {/* Today's journal */}
               <section className="card" style={{ padding: 20 }}>
                 <SectionLabel
@@ -522,38 +646,33 @@ export function Dashboard() {
                     </button>
                   }
                 >
-                  {latestJournal && latestJournal.date === today
-                    ? "Today's journal"
-                    : "Latest journal"}
+                  Today's journal
                 </SectionLabel>
 
-                {latestJournal ? (
+                {journalForCard ? (
                   <div className="col gap-2" style={{ marginBottom: 4 }}>
-                    {latestJournal.date !== today && (
+                    {journalForCard.date !== today && (
                       <span
                         className="meta tnum"
                         style={{ color: "var(--signal)", opacity: 0.6 }}
                       >
-                        {latestJournal.date}
+                        Latest: {journalForCard.date}
                       </span>
                     )}
-                    {latestJournal.title && (
+                    {journalForCard.title && (
                       <span style={{ fontSize: 13.5, fontWeight: 600 }}>
-                        {latestJournal.title}
+                        {journalForCard.title}
                       </span>
                     )}
-                    {journalLines.map((line) => (
-                      <span
-                        key={line.key}
-                        style={{
-                          fontSize: 13,
-                          color: "var(--fg-dim)",
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        {line.text}
-                      </span>
-                    ))}
+                    <div
+                      style={{
+                        maxHeight: 280,
+                        overflow: "auto",
+                        paddingRight: 4,
+                      }}
+                    >
+                      <Markdown>{journalForCard.body || "_Nothing written yet._"}</Markdown>
+                    </div>
                   </div>
                 ) : (
                   <button
@@ -579,114 +698,6 @@ export function Dashboard() {
                   </button>
                 )}
               </section>
-
-              {/* Top of mind — context cards */}
-              <section>
-                <SectionLabel
-                  right={
-                    <button
-                      type="button"
-                      className="btn ghost sm"
-                      onClick={() => navigate({ to: "/contexts" })}
-                    >
-                      Contexts
-                      <ArrowRight size={13} />
-                    </button>
-                  }
-                >
-                  Top of mind
-                </SectionLabel>
-
-                {contexts.length === 0 ? (
-                  <div
-                    className="meta"
-                    style={{
-                      color: "var(--fg-faint)",
-                      padding: "20px 4px",
-                      textAlign: "center",
-                    }}
-                  >
-                    No contexts yet. Add one to get started.
-                  </div>
-                ) : (
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns:
-                        "repeat(auto-fill, minmax(230px, 1fr))",
-                      gap: 12,
-                    }}
-                  >
-                    {contexts.map((c) => {
-                      const tint = contextTint(c);
-                      const count = openTaskCount(c.id);
-                      return (
-                        <button
-                          type="button"
-                          key={c.slug}
-                          className="card ticks ctx-card"
-                          onClick={() => navigate({ to: "/contexts" })}
-                          style={{
-                            padding: 16,
-                            textAlign: "left",
-                            cursor: "pointer",
-                            background: "var(--surface-2)",
-                            border: "1px solid var(--line-soft)",
-                            borderRadius: "var(--r-lg)",
-                          }}
-                        >
-                          <div
-                            className="row"
-                            style={{ justifyContent: "space-between" }}
-                          >
-                            <ContextChip tint={tint}>{c.name}</ContextChip>
-                          </div>
-                          <div
-                            className="num"
-                            style={{
-                              fontSize: 30,
-                              marginTop: 12,
-                              lineHeight: 1,
-                              color: tint,
-                            }}
-                          >
-                            {count}
-                            <span
-                              style={{
-                                fontSize: 12,
-                                color: "var(--fg-dim)",
-                                marginLeft: 6,
-                              }}
-                            >
-                              open
-                            </span>
-                          </div>
-                          {c.description && (
-                            <div
-                              className="muted"
-                              style={{
-                                fontSize: 12,
-                                marginTop: 6,
-                                lineHeight: 1.4,
-                                display: "-webkit-box",
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: "vertical",
-                                overflow: "hidden",
-                              }}
-                            >
-                              {c.description}
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
-            </div>
-
-            {/* ══ RIGHT ═════════════════════════════════════════════════ */}
-            <div className="col gap-4" style={{ minWidth: 0 }}>
 
               {/* Habits today */}
               <section className="card" style={{ padding: 20 }}>
@@ -817,7 +828,7 @@ export function Dashboard() {
                             textOverflow: "ellipsis",
                           }}
                         >
-                          {a.entity_id}
+                          {activityEntryLabel(a)}
                         </div>
                       </div>
                       <button

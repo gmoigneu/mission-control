@@ -1,4 +1,4 @@
-import { createRoute, Link } from "@tanstack/react-router";
+import { createRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { Plus, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AppShell } from "../components/AppShell";
@@ -15,7 +15,7 @@ import { DataTable } from "../components/DataTable";
 import { Markdown } from "../components/Markdown";
 import { RequireAuth } from "../components/RequireAuth";
 import { SidePanel } from "../components/SidePanel";
-import { editSearch, useEditFromSearch } from "../lib/useEditFromSearch";
+import { useEditFromSearch } from "../lib/useEditFromSearch";
 import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input, Select, Textarea } from "../components/ui";
 import { useContexts } from "../features/contexts/api";
@@ -23,6 +23,7 @@ import { useProjects } from "../features/projects/api";
 import { useCreateTask, useDeleteTask, useTasks, useUpdateTask } from "../features/tasks/api";
 import type { Context, Task } from "../lib/types";
 import { rootRoute } from "./root";
+import { tasksSearch, type TasksSearch } from "./tasks-search";
 
 interface FormState {
   title: string;
@@ -194,6 +195,9 @@ export function TasksPage() {
   useEditFromSearch(tasks, handleEdit);
   const { data: contexts = [] } = useContexts();
   const { data: projects = [] } = useProjects();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const routeSearch = tasksSearch(location.search as Record<string, unknown>);
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
@@ -205,9 +209,9 @@ export function TasksPage() {
   const [descTab, setDescTab] = useState<DescTab>("write");
   const [view, setView] = useState<ViewMode>("list");
   const [groupBy, setGroupBy] = useState<GroupBy>("status");
-  const [contextFilter, setContextFilter] = useState<string>("");
-  const [projectFilter, setProjectFilter] = useState<string>("");
-  const [showCompleted, setShowCompleted] = useState(false);
+  const contextFilter = routeSearch.context ?? "";
+  const projectFilter = routeSearch.project ?? "";
+  const showCompleted = routeSearch.completed ?? false;
   const isMobile = useIsMobile();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const activeFilterCount =
@@ -253,6 +257,21 @@ export function TasksPage() {
     setEditingId(null);
     setForm(EMPTY_FORM);
     setDescTab("write");
+  }
+
+  function updateTaskFilters(
+    patch: Partial<Pick<TasksSearch, "context" | "project" | "completed">>,
+  ) {
+    const next = { ...routeSearch, ...patch };
+    navigate({
+      to: "/tasks",
+      search: {
+        edit: next.edit,
+        context: next.context || undefined,
+        project: next.project || undefined,
+        completed: next.completed || undefined,
+      },
+    } as unknown as Parameters<typeof navigate>[0]);
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -364,7 +383,9 @@ export function TasksPage() {
           <div style={w}>
             <Select
               value={contextFilter}
-              onChange={setContextFilter}
+              onChange={(value) =>
+                updateTaskFilters({ context: value || undefined })
+              }
               options={contexts.map((c) => ({ value: c.id, label: c.name }))}
               placeholder="All contexts"
             />
@@ -374,7 +395,9 @@ export function TasksPage() {
           <div style={w}>
             <Select
               value={projectFilter}
-              onChange={setProjectFilter}
+              onChange={(value) =>
+                updateTaskFilters({ project: value || undefined })
+              }
               options={projects.map((p) => ({ value: p.id, label: p.title }))}
               placeholder="All projects"
             />
@@ -384,7 +407,9 @@ export function TasksPage() {
           type="button"
           aria-pressed={showCompleted}
           className={showCompleted ? "primary" : "ghost"}
-          onClick={() => setShowCompleted((v) => !v)}
+          onClick={() =>
+            updateTaskFilters({ completed: showCompleted ? undefined : true })
+          }
         >
           Show completed
         </Button>
@@ -871,7 +896,7 @@ function BoardCard({
 
 export const tasksRoute = createRoute({
   getParentRoute: () => rootRoute,
-  validateSearch: editSearch,
+  validateSearch: tasksSearch,
   path: "/tasks",
   component: TasksPage,
 });
