@@ -57,3 +57,9 @@ async def test_run_agent_disabled_persona_uses_default(db, monkeypatch):
 
     assert "Nova" not in captured["system"]
     assert DEFAULT_PERSONA.name in captured["system"]
+
+
+def test_chat_mechanics_include_daily_checkin_instruction():
+    assert "set_daily_checkin" in SURFACE_MECHANICS["chat"]
+    assert "mood" in SURFACE_MECHANICS["chat"]
+    assert "productivity" in SURFACE_MECHANICS["chat"]

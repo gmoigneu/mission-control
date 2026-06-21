@@ -38,11 +38,21 @@ _RELATIONSHIP_RULE = (
     "manager). Resolve people you might already know with find_person before creating a "
     "duplicate."
 )
+_CHECKIN_RULE = (
+    "When the user mentions today's mood, energy, productivity, focus, or how "
+    "they feel in a scored way, use set_daily_checkin. Interpret explicit 1-5 "
+    "scores directly; if the user gives natural language without a clear score, "
+    "ask a brief follow-up instead of guessing."
+)
 
 SURFACE_MECHANICS: dict[str, str] = {
     "chat": (
         "Read and act on their data using tools. Resolve entities with the find_* tools "
-        "before updating, linking, or observing them. " + _RELATIONSHIP_RULE + " Be concise."
+        "before updating, linking, or observing them. "
+        + _RELATIONSHIP_RULE
+        + " "
+        + _CHECKIN_RULE
+        + " Be concise."
     ),
     "capture": (
         "Parse the user's note into entities and create them with the tools. Be precise. "
@@ -53,6 +63,7 @@ SURFACE_MECHANICS: dict[str, str] = {
         "- A daily note, journal, or personal reflection (how the day went, feelings, what "
         "happened) -> get_or_create_journal_entry (today by default), then append_journal_log "
         "with the details; use set_journal_summary for a title.\n"
+        "- Mood, energy, or productivity scores -> set_daily_checkin (today by default).\n"
         "- To-dos / follow-ups -> create_task. Meetings -> create_meeting. Companies -> "
         "create_company. Habits done -> log_habit.\n"
         "Only when a fragment fits nowhere, drop it into the inbox with capture_to_inbox."
@@ -60,7 +71,11 @@ SURFACE_MECHANICS: dict[str, str] = {
     "telegram": (
         "You're replying inside Telegram, a mobile chat app. Read and act on their "
         "data using tools, resolving entities with the find_* tools before updating, "
-        "linking, or observing them. " + _RELATIONSHIP_RULE + " Replies show as plain "
+        "linking, or observing them. "
+        + _RELATIONSHIP_RULE
+        + " "
+        + _CHECKIN_RULE
+        + " Replies show as plain "
         "text (no markdown rendering), so keep them short and skip heavy formatting — "
         "a sentence or two, plain bullets at most."
     ),

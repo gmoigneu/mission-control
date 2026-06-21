@@ -82,6 +82,15 @@ def _mock_complete(  # noqa: ARG001
 
     lower = text.lower().strip()
 
+    # ---- daily check-in scores ----
+    checkin: dict[str, int] = {}
+    for key in ("mood", "energy", "productivity"):
+        score = re.search(rf"\b{key}\b\s*(?:is|=|:)?\s*([1-5])\b", lower)
+        if score:
+            checkin[key] = int(score.group(1))
+    if checkin:
+        return _tool("set_daily_checkin", checkin)
+
     # ---- who do I know at <Company> ----
     m = re.search(
         r"(?:who (?:do i know|are my contacts?) at|people at)\s+([A-Za-z0-9 &.'_-]+)", lower

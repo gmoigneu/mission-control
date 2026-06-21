@@ -18,6 +18,7 @@ async def test_journal_entries_crud_flow(client, db):
             "body": "Shipped the journal feature.",
             "mood": 4,
             "energy": 3,
+            "productivity": 5,
         },
     )
     assert created.status_code == 201
@@ -28,17 +29,20 @@ async def test_journal_entries_crud_flow(client, db):
     assert data["date"] == "2026-05-29"
     assert data["mood"] == 4
     assert data["energy"] == 3
+    assert data["productivity"] == 5
 
     listing = await client.get("/journal-entries")
     assert listing.status_code == 200
     assert any(j["id"] == jid for j in listing.json())
 
     patched = await client.patch(
-        f"/journal-entries/{jid}", json={"body": "Shipped it and wrote tests.", "mood": 5}
+        f"/journal-entries/{jid}",
+        json={"body": "Shipped it and wrote tests.", "mood": 5, "productivity": 4},
     )
     assert patched.status_code == 200
     assert patched.json()["body"] == "Shipped it and wrote tests."
     assert patched.json()["mood"] == 5
+    assert patched.json()["productivity"] == 4
 
     got = await client.get(f"/journal-entries/{jid}")
     assert got.json()["body"] == "Shipped it and wrote tests."
@@ -60,6 +64,7 @@ async def test_journal_entry_minimal_payload(client, db):
     assert data["title"] is None
     assert data["mood"] is None
     assert data["energy"] is None
+    assert data["productivity"] is None
 
 
 async def test_get_missing_journal_entry_404(client, db):

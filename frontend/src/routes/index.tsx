@@ -15,7 +15,11 @@ import { RequireAuth } from "../components/RequireAuth";
 import { useAudit, useRevert } from "../features/audit/api";
 import { useContexts } from "../features/contexts/api";
 import { useHabits, useLogHabit } from "../features/habits/api";
-import { useJournalEntries } from "../features/journal/api";
+import {
+  useDailyCheckIns,
+  useJournalEntries,
+  useSetDailyCheckIn,
+} from "../features/journal/api";
 import { useTasks, useUpdateTask } from "../features/tasks/api";
 import { useMe } from "../lib/auth";
 import type { Habit } from "../lib/types";
@@ -54,14 +58,17 @@ function relTime(iso: string): string {
 function Gauge({
   label,
   value,
-  setValue,
+  onSet,
   tint,
+  disabled = false,
 }: {
   label: string;
-  value: number;
-  setValue: (n: number) => void;
+  value: number | null;
+  onSet: (n: number) => void;
   tint: string;
+  disabled?: boolean;
 }) {
+  const score = value ?? 0;
   return (
     <div
       className="row"
@@ -72,14 +79,17 @@ function Gauge({
         {[1, 2, 3, 4, 5].map((n) => (
           <button
             key={n}
-            onClick={() => setValue(n)}
-            title={`${label} ${n}`}
+            onClick={() => onSet(n)}
+            title={`${label} ${n} of 5`}
+            aria-label={`${label} ${n} of 5`}
+            aria-pressed={n <= score}
+            disabled={disabled}
             style={{
               width: 16,
               height: 16,
               padding: 0,
               border: 0,
-              cursor: "pointer",
+              cursor: disabled ? "default" : "pointer",
               background: "transparent",
             }}
           >
@@ -89,9 +99,9 @@ function Gauge({
                 width: 12,
                 height: 12,
                 borderRadius: 3,
-                background: n <= value ? tint : "var(--surface-4)",
+                background: n <= score ? tint : "var(--surface-4)",
                 boxShadow:
-                  n <= value
+                  n <= score
                     ? `0 0 8px color-mix(in oklch, ${tint} 50%, transparent)`
                     : "none",
                 transition: "all 150ms",
@@ -189,23 +199,30 @@ function HabitRow({
 
 // ─── Dashboard ──────────────────────────────────────────────────────────────────
 
-function Dashboard() {
+type CheckInMetric = "mood" | "energy" | "productivity";
+
+export function Dashboard() {
   const navigate = useNavigate();
+  const today = todayISO();
   const me = useMe();
   const { data: tasks = [] } = useTasks();
   const { data: contexts = [] } = useContexts();
   const { data: audit = [] } = useAudit();
   const { data: journalEntries = [] } = useJournalEntries();
   const { data: habits = [] } = useHabits({ active: "true" });
+  const { data: dailyCheckIns = [] } = useDailyCheckIns({ days: 1, end: today });
   const updateTask = useUpdateTask();
   const logHabit = useLogHabit();
+  const setDailyCheckIn = useSetDailyCheckIn();
   const revert = useRevert();
 
-  const [mood, setMood] = useState(3);
-  const [energy, setEnergy] = useState(3);
+  const [localCheckIn, setLocalCheckIn] = useState<Partial<Record<CheckInMetric, number>>>({});
   const [done, setDone] = useState<Record<string, boolean>>({});
 
-  const today = todayISO();
+  const todayCheckIn = dailyCheckIns[0];
+  const mood = localCheckIn.mood ?? todayCheckIn?.mood ?? null;
+  const energy = localCheckIn.energy ?? todayCheckIn?.energy ?? null;
+  const productivity = localCheckIn.productivity ?? todayCheckIn?.productivity ?? null;
 
   // First name from useMe
   const firstName = (() => {
@@ -253,6 +270,20 @@ function Dashboard() {
   }
 
   const recentActivity = audit.slice(0, 5);
+
+  function setCheckInScore(key: CheckInMetric, value: number) {
+    const previous = localCheckIn;
+    setLocalCheckIn((current) => ({ ...current, [key]: value }));
+
+    setDailyCheckIn.mutate(
+      { date: today, data: { [key]: value } },
+      {
+        onError: () => {
+          setLocalCheckIn(previous);
+        },
+      },
+    );
+  }
 
   function toggleHabit(habit: Habit) {
     logHabit.mutate({ id: habit.id, data: { date: today, done: !habit.logged_today } });
@@ -320,15 +351,25 @@ function Dashboard() {
               <Gauge
                 label="Mood"
                 value={mood}
-                setValue={setMood}
+                onSet={(value) => setCheckInScore("mood", value)}
                 tint="var(--ctx-personal)"
+                disabled={setDailyCheckIn.isPending}
               />
               <div style={{ height: 14 }} />
               <Gauge
                 label="Energy"
                 value={energy}
-                setValue={setEnergy}
+                onSet={(value) => setCheckInScore("energy", value)}
                 tint="var(--signal)"
+                disabled={setDailyCheckIn.isPending}
+              />
+              <div style={{ height: 14 }} />
+              <Gauge
+                label="Productivity"
+                value={productivity}
+                onSet={(value) => setCheckInScore("productivity", value)}
+                tint="var(--st-done)"
+                disabled={setDailyCheckIn.isPending}
               />
             </div>
           </div>

@@ -48,6 +48,17 @@ def test_mock_create_context_preserves_name_casing():
     assert turn.tool_calls[0].input["name"] == "Helios Robotics"
 
 
+def test_mock_sets_daily_checkin_scores():
+    turn = _mock_complete(
+        [_user("mood 4, energy 2, productivity 5")],
+        [],
+        "",
+    )
+
+    assert turn.tool_calls[0].name == "set_daily_checkin"
+    assert turn.tool_calls[0].input == {"mood": 4, "energy": 2, "productivity": 5}
+
+
 # ---------------------------------------------------------------------------
 # who_do_i_know_at
 # ---------------------------------------------------------------------------

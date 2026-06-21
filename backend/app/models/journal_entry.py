@@ -17,6 +17,7 @@ class JournalEntry(Base):
     body: Mapped[str] = mapped_column(Text)
     mood: Mapped[int | None] = mapped_column(Integer, nullable=True)
     energy: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    productivity: Mapped[int | None] = mapped_column(Integer, nullable=True)
     source: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
