@@ -63,10 +63,37 @@ async def list_logs(db: AsyncSession, habit_id: uuid.UUID) -> list[HabitLog]:
     return list(result.scalars().all())
 
 
+async def list_logs_range(
+    db: AsyncSession,
+    *,
+    start: date,
+    end: date,
+    active: bool | None = True,
+) -> list[HabitLog]:
+    stmt = (
+        select(HabitLog)
+        .join(Habit, Habit.id == HabitLog.habit_id)
+        .where(HabitLog.date >= start, HabitLog.date <= end)
+        .order_by(HabitLog.date, HabitLog.created_at)
+    )
+    if active is not None:
+        stmt = stmt.where(Habit.active == active)
+    result = await db.execute(stmt)
+    return list(result.scalars().all())
+
+
 async def upsert_log(
     db: AsyncSession, habit: Habit, data: HabitLogCreate, *, surface: str = "api"
 ) -> HabitLog:
     """Record a daily check-in, audited. Re-logging the same day updates the row."""
+    score = data.score
+    done = data.done
+    if habit.tracking_type == "score":
+        if score is None:
+            raise ValueError("Score habits require a score")
+        done = score > 0
+    else:
+        score = None
     existing = (
         await db.execute(
             select(HabitLog).where(
@@ -76,21 +103,27 @@ async def upsert_log(
     ).scalar_one_or_none()
     if existing is not None:
         before = model_to_dict(existing)
-        existing.done = data.done
+        existing.done = done
+        existing.score = score
         await db.flush()
         await record_update(db, LOG_ENTITY, existing, before, surface=surface)
         return existing
-    obj = HabitLog(habit_id=habit.id, date=data.date, done=data.done)
+    obj = HabitLog(habit_id=habit.id, date=data.date, done=done, score=score)
     db.add(obj)
     await db.flush()
     await record_create(db, LOG_ENTITY, obj, surface=surface)
     return obj
 
 
-def compute_streak(logs: list[HabitLog], *, today: date | None = None) -> int:
+def compute_streak(
+    logs: list[HabitLog], *, today: date | None = None, tracking_type: str = "boolean"
+) -> int:
     """Count consecutive days (ending today or yesterday) with a `done` log."""
     today = today or date.today()
-    done_days = {log.date for log in logs if log.done}
+    if tracking_type == "score":
+        done_days = {log.date for log in logs if log.score is not None}
+    else:
+        done_days = {log.date for log in logs if log.done}
     if not done_days:
         return 0
     # Allow the streak to be "alive" if today isn't logged yet but yesterday is.
@@ -113,6 +146,11 @@ async def habit_stats(
     """Return (current streak, whether today is logged done) for a habit."""
     today = today or date.today()
     logs = await list_logs(db, habit_id)
-    streak = compute_streak(logs, today=today)
-    logged_today = any(log.date == today and log.done for log in logs)
+    habit = await get_habit(db, habit_id)
+    tracking_type = habit.tracking_type if habit is not None else "boolean"
+    streak = compute_streak(logs, today=today, tracking_type=tracking_type)
+    logged_today = any(
+        log.date == today and (log.score is not None if tracking_type == "score" else log.done)
+        for log in logs
+    )
     return streak, logged_today

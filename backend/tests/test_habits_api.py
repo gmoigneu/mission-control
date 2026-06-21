@@ -18,6 +18,7 @@ async def test_habits_crud_flow(client, db):
     body = created.json()
     hid = body["id"]
     assert body["cadence"] == "daily"
+    assert body["tracking_type"] == "boolean"
     assert body["active"] is True
     assert body["streak"] == 0
     assert body["logged_today"] is False
@@ -82,6 +83,56 @@ async def test_habit_logs_and_streak(client, db):
     got = await client.get(f"/habits/{hid}")
     assert got.json()["logged_today"] is False
     assert got.json()["streak"] == 2
+
+
+async def test_score_habit_logs_and_history(client, db):
+    await login(client, db)
+
+    created = await client.post(
+        "/habits",
+        json={"slug": "sleep-quality", "name": "Sleep quality", "tracking_type": "score"},
+    )
+    assert created.status_code == 201
+    hid = created.json()["id"]
+    assert created.json()["tracking_type"] == "score"
+
+    logged = await client.post(
+        f"/habits/{hid}/logs",
+        json={"date": "2026-06-20", "score": 4},
+    )
+    assert logged.status_code == 201
+    assert logged.json()["score"] == 4
+    assert logged.json()["done"] is True
+
+    patched = await client.post(
+        f"/habits/{hid}/logs",
+        json={"date": "2026-06-20", "score": 2},
+    )
+    assert patched.status_code == 201
+    assert patched.json()["score"] == 2
+
+    history = await client.get("/habits/logs", params={"days": 3, "end": "2026-06-21"})
+    assert history.status_code == 200
+    assert any(
+        row["habit_id"] == hid and row["date"] == "2026-06-20" and row["score"] == 2
+        for row in history.json()
+    )
+
+
+async def test_score_habit_rejects_out_of_range_score(client, db):
+    await login(client, db)
+
+    created = await client.post(
+        "/habits",
+        json={"slug": "focus-depth", "name": "Focus depth", "tracking_type": "score"},
+    )
+
+    resp = await client.post(
+        f"/habits/{created.json()['id']}/logs",
+        json={"date": "2026-06-20", "score": 6},
+    )
+
+    assert resp.status_code == 422
 
 
 async def test_habit_logs_missing_habit_404(client, db):
