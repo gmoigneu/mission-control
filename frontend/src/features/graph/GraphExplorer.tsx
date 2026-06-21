@@ -104,11 +104,11 @@ export function GraphExplorer() {
       />
 
       {snapshot.data?.truncated && (
-        <div role="status">
+        <output>
           Showing the first {snapshot.data.nodes.length} nodes — filter by context to narrow the view.
-        </div>
+        </output>
       )}
-      {snapshot.isLoading && <div role="status">Loading graph…</div>}
+      {snapshot.isLoading && <output>Loading graph…</output>}
       {snapshot.isError && (
         <div role="alert">
           Couldn't load the graph.{" "}
@@ -118,12 +118,12 @@ export function GraphExplorer() {
         </div>
       )}
       {isEmpty && (
-        <div role="status">
+        <output>
           The graph is empty.{" "}
           <ConfirmButton onConfirm={() => rebuild.mutate()} disabled={rebuild.isPending}>
             Rebuild graph
           </ConfirmButton>
-        </div>
+        </output>
       )}
 
       <div style={{ display: "flex", flex: 1, minHeight: 480, gap: 12 }}>

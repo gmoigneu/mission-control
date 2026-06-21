@@ -198,7 +198,7 @@ export function RelationshipsPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3" role="search">
+          <search className="flex items-center gap-3">
             <Input
               type="search"
               value={searchText}
@@ -206,7 +206,7 @@ export function RelationshipsPage() {
               placeholder="Search by person name"
               aria-label="Search relationships"
             />
-          </div>
+          </search>
 
           <DataTable rows={relationships} columns={columns} empty="No relationships yet." />
         </div>

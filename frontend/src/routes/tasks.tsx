@@ -453,7 +453,7 @@ export function TasksPage() {
           </div>
 
           <div className="flex flex-wrap items-end gap-4">
-            <div role="group" aria-label="View" className="flex gap-2">
+            <fieldset aria-label="View" className="control-group flex gap-2">
               {VIEW_OPTIONS.map((o) => (
                 <Button
                   key={o.value}
@@ -465,7 +465,7 @@ export function TasksPage() {
                   {o.label}
                 </Button>
               ))}
-            </div>
+            </fieldset>
             {isMobile ? (
               <Button
                 type="button"
@@ -585,7 +585,10 @@ export function TasksPage() {
             <div>
               <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
                 <span className="label">Description</span>
-                <div role="group" aria-label="Description editor mode" className="flex gap-2">
+                <fieldset
+                  aria-label="Description editor mode"
+                  className="control-group flex gap-2"
+                >
                   <Button
                     type="button"
                     aria-pressed={descTab === "write"}
@@ -602,7 +605,7 @@ export function TasksPage() {
                   >
                     Preview
                   </Button>
-                </div>
+                </fieldset>
               </div>
               {descTab === "write" ? (
                 <Textarea

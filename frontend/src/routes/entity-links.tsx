@@ -162,7 +162,7 @@ export function EntityLinksPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3" role="search">
+          <search className="flex items-center gap-3">
             <Input
               type="search"
               value={searchText}
@@ -170,7 +170,7 @@ export function EntityLinksPage() {
               placeholder="Search by entity name"
               aria-label="Search entity links"
             />
-          </div>
+          </search>
 
           <DataTable rows={entityLinks} columns={columns} empty="No entity links yet." />
         </div>

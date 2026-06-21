@@ -356,6 +356,7 @@ a:hover { color: var(--signal-bright); }
 .grow { flex: 1; } .wrap { flex-wrap: wrap; }
 .muted { color: var(--fg-muted); } .dim { color: var(--fg-dim); }
 .tnum { font-variant-numeric: tabular-nums; }
+.control-group { margin: 0; border: 0; padding: 0; min-inline-size: 0; }
 
 /* enter animation — transform-only so content is never invisible at rest */
 @keyframes rise { from { transform: translateY(10px); } to { transform: none; } }
