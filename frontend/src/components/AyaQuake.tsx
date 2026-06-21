@@ -121,6 +121,7 @@ function AyaQuakeInner() {
   const [msg, setMsg] = useState("");
   const [pending, setPending] = useState<string | null>(null);
   const [revertedIds, setRevertedIds] = useState<Set<string>>(new Set());
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -141,17 +142,25 @@ function AyaQuakeInner() {
     return () => window.removeEventListener("keydown", onKey);
   }, [toggle]);
 
-  // Esc closes while open.
   useEffect(() => {
-    if (!open) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        closeAya();
-      }
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (open) {
+      if (!dialog.open) dialog.showModal();
+    } else if (dialog.open) {
+      dialog.close();
     }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    function handleCancel(e: Event) {
+      e.preventDefault();
+      closeAya();
+    }
+    dialog.addEventListener("cancel", handleCancel);
+    return () => dialog.removeEventListener("cancel", handleCancel);
   }, [open, closeAya]);
 
   // Focus the composer when the window opens.
@@ -229,22 +238,23 @@ function AyaQuakeInner() {
   const isEmpty = serverMessages.length === 0 && !pending && !chat.isPending;
 
   return (
-    <>
+    <dialog
+      ref={dialogRef}
+      className={"aya-quake" + (open ? " open" : "")}
+      aria-hidden={!open}
+      inert={!open}
+      aria-label={ayaName}
+    >
       {open && (
         <button
           type="button"
           className="aya-quake-scrim"
           aria-label="Close Aya"
+          tabIndex={-1}
           onClick={closeAya}
         />
       )}
-      <aside
-        className={"aya-quake" + (open ? " open" : "")}
-        aria-hidden={!open}
-        inert={!open}
-        role="dialog"
-        aria-label={ayaName}
-      >
+      <section className="aya-quake-panel">
         {/* Header */}
         <div
           className="row gap-2"
@@ -394,8 +404,8 @@ function AyaQuakeInner() {
             <Send size={15} strokeWidth={1.6} />
           </button>
         </div>
-      </aside>
-    </>
+      </section>
+    </dialog>
   );
 }
 

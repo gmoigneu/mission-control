@@ -549,12 +549,25 @@ a:focus-visible {
 /* Aya "quake" console — slides up from the bottom edge, overlays the page.
    Stays mounted (just translated off-screen) when closed so it can animate. */
 .aya-quake-scrim {
-  position: fixed; inset: 0; z-index: 78; border: 0; padding: 0; cursor: default;
+  position: absolute; top: 0; right: 0; bottom: min(70vh, 820px); left: 0; z-index: 0;
+  border: 0; padding: 0; cursor: default;
   background: oklch(0.1 0.01 258 / 0.45);
   animation: backdrop-in 160ms var(--ease) both;
 }
 .aya-quake {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 79;
+  position: fixed; inset: 0; z-index: 79;
+  display: flex; align-items: flex-end;
+  width: 100vw; height: 100dvh; max-width: none; max-height: none;
+  margin: 0; border: 0; padding: 0; overflow: hidden; cursor: default;
+  color: inherit; background: transparent;
+  pointer-events: none;
+}
+dialog.aya-quake:not([open]) { display: flex; }
+.aya-quake::backdrop { background: transparent; }
+.aya-quake.open { pointer-events: auto; }
+.aya-quake-panel {
+  position: relative; z-index: 1;
+  width: 100%;
   height: 70vh; max-height: 820px;
   display: flex; flex-direction: column;
   background: var(--surface-1);
@@ -565,9 +578,10 @@ a:focus-visible {
   transition: transform 220ms var(--ease);
   pointer-events: none;
 }
-.aya-quake.open { transform: translateY(0); pointer-events: auto; }
+.aya-quake.open .aya-quake-panel { transform: translateY(0); pointer-events: auto; }
 @media (max-width: 720px) {
-  .aya-quake { height: 88vh; }
+  .aya-quake-scrim { bottom: min(88vh, 820px); }
+  .aya-quake-panel { height: 88vh; }
 }
 
 /* Aya orb + thinking dots */
