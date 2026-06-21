@@ -1,7 +1,5 @@
-import cytoscape from "cytoscape";
-import type { Core } from "cytoscape";
-import fcose from "cytoscape-fcose";
-import { useEffect, useMemo, useReducer, useRef } from "react";
+import type { Core, Ext } from "cytoscape";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { ConfirmButton } from "../../components/ConfirmButton";
 import { useContexts } from "../contexts/api";
 import { useGraphSnapshot, useNodeDetail, useRebuildGraph } from "./api";
@@ -11,11 +9,18 @@ import { LAYOUTS, NODE_TYPES, stylesheet, type LayoutName } from "./cytoscape-co
 import { snapshotToElements } from "./snapshot-to-elements";
 
 let fcoseRegistered = false;
-function ensureFcose() {
+async function loadGraphEngine() {
+  const [{ default: cytoscape }, { default: fcose }] = await Promise.all([
+    import("cytoscape"),
+    import("cytoscape-fcose"),
+  ]);
+
   if (!fcoseRegistered) {
-    cytoscape.use(fcose as cytoscape.Ext);
+    cytoscape.use(fcose as Ext);
     fcoseRegistered = true;
   }
+
+  return cytoscape;
 }
 
 const allTypesOn = (): Record<string, boolean> =>
@@ -69,7 +74,7 @@ function graphExplorerReducer(
 
 export function GraphExplorer() {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const cyRef = useRef<Core | null>(null);
+  const [cy, setCy] = useState<Core | null>(null);
 
   const [state, dispatch] = useReducer(
     graphExplorerReducer,
@@ -90,36 +95,42 @@ export function GraphExplorer() {
 
   // Create/recreate the Cytoscape instance whenever the element set or layout changes.
   useEffect(() => {
+    let canceled = false;
+    let createdCy: Core | null = null;
     const container = containerRef.current;
     if (!container) return;
-    ensureFcose();
-    const cy = cytoscape({ container, elements, style: stylesheet, layout: LAYOUTS[layout] });
-    cy.on("tap", "node", (evt) => dispatch({ type: "selectNode", id: evt.target.id() }));
-    cyRef.current = cy;
+
+    void loadGraphEngine().then((cytoscape) => {
+      if (canceled) return;
+      const cy = cytoscape({ container, elements, style: stylesheet, layout: LAYOUTS[layout] });
+      cy.on("tap", "node", (evt) => dispatch({ type: "selectNode", id: evt.target.id() }));
+      createdCy = cy;
+      setCy(cy);
+    });
+
     return () => {
-      cy.destroy();
-      cyRef.current = null;
+      canceled = true;
+      if (createdCy) createdCy.destroy();
+      setCy(null);
     };
   }, [elements, layout]);
 
   // Apply node-type visibility filters.
   useEffect(() => {
-    const cy = cyRef.current;
     if (!cy) return;
     cy.batch(() => {
       for (const t of NODE_TYPES) {
         cy.nodes(`[label = "${t}"]`).style("display", types[t] ? "element" : "none");
       }
     });
-  }, [types, elements]);
+  }, [types, elements, cy]);
 
   // Resize the canvas when the inspector panel opens/closes (the container width changes).
   useEffect(() => {
-    cyRef.current?.resize();
-  }, [selectedId]);
+    cy?.resize();
+  }, [selectedId, cy]);
 
   function runSearch() {
-    const cy = cyRef.current;
     const term = search.trim().toLowerCase();
     if (!cy || !term) return;
     const match = cy
