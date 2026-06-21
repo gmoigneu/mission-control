@@ -1,6 +1,6 @@
 import { createRoute, Link } from "@tanstack/react-router";
 import { Plus, SlidersHorizontal } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useReducer } from "react";
 import { AppShell } from "../components/AppShell";
 import { BottomSheet } from "../components/BottomSheet";
 import { useIsMobile } from "../lib/useIsMobile";
@@ -102,6 +102,106 @@ const GROUP_OPTIONS = [
   { value: "status", label: "Status" },
   { value: "due", label: "Due" },
 ];
+
+interface TasksState {
+  form: FormState;
+  editingId: string | null;
+  panelOpen: boolean;
+  descTab: DescTab;
+  view: ViewMode;
+  groupBy: GroupBy;
+  contextFilter: string;
+  projectFilter: string;
+  showCompleted: boolean;
+  filtersOpen: boolean;
+}
+
+type TasksAction =
+  | { type: "openNew" }
+  | { type: "editTask"; task: Task }
+  | { type: "closePanel" }
+  | { type: "updateForm"; key: keyof FormState; value: string }
+  | { type: "setDescTab"; tab: DescTab }
+  | { type: "setView"; view: ViewMode }
+  | { type: "setGroupBy"; groupBy: GroupBy }
+  | { type: "setContextFilter"; contextId: string }
+  | { type: "setProjectFilter"; projectId: string }
+  | { type: "toggleCompleted" }
+  | { type: "setFiltersOpen"; open: boolean };
+
+function initialTasksState(): TasksState {
+  return {
+    form: EMPTY_FORM,
+    editingId: null,
+    panelOpen: false,
+    descTab: "write",
+    view: "list",
+    groupBy: "status",
+    contextFilter: "",
+    projectFilter: "",
+    showCompleted: false,
+    filtersOpen: false,
+  };
+}
+
+function formFromTask(task: Task): FormState {
+  return {
+    title: task.title,
+    status: task.status,
+    priority: task.priority,
+    due: task.due ?? "",
+    scheduled: task.scheduled ?? "",
+    context_id: task.context_id ?? "",
+    project_id: task.project_id ?? "",
+    outcome: task.outcome ?? "",
+    body: task.body ?? "",
+  };
+}
+
+function tasksReducer(state: TasksState, action: TasksAction): TasksState {
+  switch (action.type) {
+    case "openNew":
+      return {
+        ...state,
+        form: EMPTY_FORM,
+        editingId: null,
+        descTab: "write",
+        panelOpen: true,
+      };
+    case "editTask":
+      return {
+        ...state,
+        editingId: action.task.id,
+        form: formFromTask(action.task),
+        descTab: "write",
+        panelOpen: true,
+      };
+    case "closePanel":
+      return {
+        ...state,
+        form: EMPTY_FORM,
+        editingId: null,
+        descTab: "write",
+        panelOpen: false,
+      };
+    case "updateForm":
+      return { ...state, form: { ...state.form, [action.key]: action.value } };
+    case "setDescTab":
+      return { ...state, descTab: action.tab };
+    case "setView":
+      return { ...state, view: action.view };
+    case "setGroupBy":
+      return { ...state, groupBy: action.groupBy };
+    case "setContextFilter":
+      return { ...state, contextFilter: action.contextId };
+    case "setProjectFilter":
+      return { ...state, projectFilter: action.projectId };
+    case "toggleCompleted":
+      return { ...state, showCompleted: !state.showCompleted };
+    case "setFiltersOpen":
+      return { ...state, filtersOpen: action.open };
+  }
+}
 
 /** Shared width so every toolbar filter select is the same size. */
 const FILTER_WIDTH: React.CSSProperties = { width: 180 };
@@ -268,18 +368,21 @@ export function TasksPage() {
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
 
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [state, dispatch] = useReducer(tasksReducer, undefined, initialTasksState);
+  const {
+    form,
+    editingId,
+    panelOpen,
+    descTab,
+    view,
+    groupBy,
+    contextFilter,
+    projectFilter,
+    showCompleted,
+    filtersOpen,
+  } = state;
   useHotkey("c", handleNew, !panelOpen);
-  const [descTab, setDescTab] = useState<DescTab>("write");
-  const [view, setView] = useState<ViewMode>("list");
-  const [groupBy, setGroupBy] = useState<GroupBy>("status");
-  const [contextFilter, setContextFilter] = useState<string>("");
-  const [projectFilter, setProjectFilter] = useState<string>("");
-  const [showCompleted, setShowCompleted] = useState(false);
   const isMobile = useIsMobile();
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const activeFilterCount =
     (contextFilter ? 1 : 0) + (projectFilter ? 1 : 0) + (showCompleted ? 1 : 0);
 
@@ -287,42 +390,23 @@ export function TasksPage() {
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setForm((prev) => ({ ...prev, [key]: e.target.value }));
+      dispatch({ type: "updateForm", key, value: e.target.value });
   }
 
   function handleSelectChange(key: keyof FormState) {
-    return (value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+    return (value: string) => dispatch({ type: "updateForm", key, value });
   }
 
   function handleNew() {
-    setEditingId(null);
-    setForm(EMPTY_FORM);
-    setDescTab("write");
-    setPanelOpen(true);
+    dispatch({ type: "openNew" });
   }
 
   function handleEdit(row: Task) {
-    setEditingId(row.id);
-    setForm({
-      title: row.title,
-      status: row.status,
-      priority: row.priority,
-      due: row.due ?? "",
-      scheduled: row.scheduled ?? "",
-      context_id: row.context_id ?? "",
-      project_id: row.project_id ?? "",
-      outcome: row.outcome ?? "",
-      body: row.body ?? "",
-    });
-    setDescTab("write");
-    setPanelOpen(true);
+    dispatch({ type: "editTask", task: row });
   }
 
   function handleClose() {
-    setPanelOpen(false);
-    setEditingId(null);
-    setForm(EMPTY_FORM);
-    setDescTab("write");
+    dispatch({ type: "closePanel" });
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -416,15 +500,18 @@ export function TasksPage() {
   const filterProps = {
     view,
     groupBy,
-    onGroupByChange: setGroupBy,
+    onGroupByChange: (nextGroupBy: GroupBy) =>
+      dispatch({ type: "setGroupBy", groupBy: nextGroupBy }),
     contextFilter,
-    onContextFilterChange: setContextFilter,
+    onContextFilterChange: (contextId: string) =>
+      dispatch({ type: "setContextFilter", contextId }),
     contexts,
     projectFilter,
-    onProjectFilterChange: setProjectFilter,
+    onProjectFilterChange: (projectId: string) =>
+      dispatch({ type: "setProjectFilter", projectId }),
     projects,
     showCompleted,
-    onToggleCompleted: () => setShowCompleted((v) => !v),
+    onToggleCompleted: () => dispatch({ type: "toggleCompleted" }),
   };
 
   return (
@@ -460,7 +547,7 @@ export function TasksPage() {
                   type="button"
                   aria-pressed={view === o.value}
                   className={view === o.value ? "primary" : "ghost"}
-                  onClick={() => setView(o.value)}
+                  onClick={() => dispatch({ type: "setView", view: o.value })}
                 >
                   {o.label}
                 </Button>
@@ -470,7 +557,7 @@ export function TasksPage() {
               <Button
                 type="button"
                 className="ghost row gap-2"
-                onClick={() => setFiltersOpen(true)}
+                onClick={() => dispatch({ type: "setFiltersOpen", open: true })}
               >
                 <SlidersHorizontal size={15} /> Filters
                 {activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
@@ -483,7 +570,7 @@ export function TasksPage() {
           {isMobile && (
             <BottomSheet
               open={filtersOpen}
-              onClose={() => setFiltersOpen(false)}
+              onClose={() => dispatch({ type: "setFiltersOpen", open: false })}
               title="Filters"
             >
               <TaskFilters {...filterProps} full />
@@ -593,7 +680,7 @@ export function TasksPage() {
                     type="button"
                     aria-pressed={descTab === "write"}
                     className={descTab === "write" ? "primary sm" : "ghost sm"}
-                    onClick={() => setDescTab("write")}
+                    onClick={() => dispatch({ type: "setDescTab", tab: "write" })}
                   >
                     Write
                   </Button>
@@ -601,7 +688,7 @@ export function TasksPage() {
                     type="button"
                     aria-pressed={descTab === "preview"}
                     className={descTab === "preview" ? "primary sm" : "ghost sm"}
-                    onClick={() => setDescTab("preview")}
+                    onClick={() => dispatch({ type: "setDescTab", tab: "preview" })}
                   >
                     Preview
                   </Button>
