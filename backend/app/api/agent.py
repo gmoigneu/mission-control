@@ -30,6 +30,15 @@ from app.models.agent_persona import AgentPersona
 from app.models.audit import AuditLog
 from app.models.user import AppUser
 from app.schemas.agent_persona import PersonaOut, PersonaUpdate
+from app.schemas.capture import (
+    CaptureAgentResponse,
+    CaptureApplyRequest,
+    CaptureApplyResponse,
+    CaptureInboxRequest,
+    CaptureOut,
+    CaptureRequest,
+)
+from app.services import capture as capture_svc
 
 router = APIRouter(
     prefix="/agent",
@@ -45,10 +54,6 @@ router = APIRouter(
 class ChatRequest(BaseModel):
     message: str
     conversation_id: uuid.UUID | None = None
-
-
-class CaptureRequest(BaseModel):
-    text: str
 
 
 class AgentResponse(BaseModel):
@@ -126,17 +131,86 @@ async def new_conversation_route(
     return ConversationOut(id=conv.id, messages=[])
 
 
-@router.post("/capture", response_model=AgentResponse)
+@router.post("/capture", response_model=CaptureAgentResponse)
 async def agent_capture(
     payload: CaptureRequest,
     db: AsyncSession = Depends(get_db),  # noqa: B008
-) -> AgentResponse:
-    result = await run_agent(db, "capture", payload.text)
+) -> CaptureAgentResponse:
+    capture, result, writes, run_id = await capture_svc.create_capture(db, payload)
     await db.commit()
-    return AgentResponse(
-        agent_run_id=result.agent_run_id,
-        reply=result.reply,
-        writes=result.writes,
+    await db.refresh(capture)
+    reply = (
+        "Capture preview ready."
+        if capture.status == "previewed"
+        else "Captured to inbox for review."
+        if capture.status == "inboxed"
+        else "Captured and applied."
+    )
+    return CaptureAgentResponse(
+        agent_run_id=run_id,
+        reply=reply,
+        writes=writes,
+        capture=CaptureOut.model_validate(capture),
+        result=result,
+    )
+
+
+@router.post("/captures/{capture_id}/apply", response_model=CaptureApplyResponse)
+async def apply_capture(
+    capture_id: uuid.UUID,
+    payload: CaptureApplyRequest,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> CaptureApplyResponse:
+    capture = await capture_svc.get_capture(db, capture_id)
+    if capture is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Capture not found")
+    capture, writes, run_id = await capture_svc.apply_capture(db, capture, payload)
+    await db.commit()
+    await db.refresh(capture)
+    return CaptureApplyResponse(
+        agent_run_id=run_id,
+        reply="Capture applied.",
+        writes=writes,
+        capture=CaptureOut.model_validate(capture),
+    )
+
+
+@router.post("/captures/{capture_id}/inbox", response_model=CaptureApplyResponse)
+async def inbox_capture(
+    capture_id: uuid.UUID,
+    payload: CaptureInboxRequest,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> CaptureApplyResponse:
+    capture = await capture_svc.get_capture(db, capture_id)
+    if capture is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Capture not found")
+    capture, writes, run_id = await capture_svc.send_capture_to_inbox(db, capture, payload)
+    await db.commit()
+    await db.refresh(capture)
+    return CaptureApplyResponse(
+        agent_run_id=run_id,
+        reply="Capture sent to inbox.",
+        writes=writes,
+        capture=CaptureOut.model_validate(capture),
+    )
+
+
+@router.post("/captures/{capture_id}/dismiss", response_model=CaptureApplyResponse)
+async def dismiss_capture(
+    capture_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+) -> CaptureApplyResponse:
+    capture = await capture_svc.get_capture(db, capture_id)
+    if capture is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Capture not found")
+    capture, writes, run_id = await capture_svc.dismiss_capture(db, capture)
+    await db.commit()
+    await db.refresh(capture)
+    return CaptureApplyResponse(
+        agent_run_id=run_id,
+        reply="Capture dismissed.",
+        writes=writes,
+        capture=CaptureOut.model_validate(capture),
     )
 
 

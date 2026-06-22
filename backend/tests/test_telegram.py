@@ -3,27 +3,20 @@
 The agent's LLM call is stubbed (see _fake_complete) so these stay offline and
 deterministic; the gateway logic, thread mapping, and webhook auth are real.
 """
+
 import pytest
 from sqlalchemy import select
 
-from app.agent import agent as agent_module
-from app.agent.llm import LLMTurn
 from app.config import settings
 from app.models.agent_run import AgentRun
 from app.models.audit import AuditLog
+from app.models.inbox_item import InboxItem
 from app.models.task import Task
 from app.models.telegram_chat import TelegramChat
 from app.models.user import AppUser
 from app.security import hash_password
 from app.telegram import client as tg_client
 from app.telegram import gateway
-
-
-def _fake_complete(reply: str = "hi from aya"):
-    async def fake_complete(messages, tools, system="", db=None):  # noqa: ARG001
-        return LLMTurn(text=reply, tool_calls=[])
-
-    return fake_complete
 
 
 def _message(chat_id: int, text: str | None = None, **extra: object) -> dict:
@@ -148,15 +141,15 @@ async def test_send_message_chunks_rendered_html(monkeypatch):
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_handle_update_runs_agent_and_creates_dedicated_thread(db, monkeypatch):
-    monkeypatch.setattr(agent_module, "complete", _fake_complete("done"))
     monkeypatch.setattr(settings, "telegram_allowed_chat_ids", "555")
     monkeypatch.setattr(settings, "initial_user_email", None)
     user = AppUser(email="tg@example.com", password_hash=hash_password("pw"))
     db.add(user)
     await db.flush()
 
-    reply = await gateway.handle_update(db, _message(555, "what's on my plate?"))
-    assert reply == "done"
+    reply = await gateway.handle_update(db, _message(555, "Create a task to ship"))
+    assert reply is not None
+    assert "Captured" in reply
 
     chat = await db.get(TelegramChat, 555)
     assert chat is not None
@@ -167,7 +160,25 @@ async def test_handle_update_runs_agent_and_creates_dedicated_thread(db, monkeyp
         (await db.execute(select(AgentRun).where(AgentRun.surface == "telegram"))).scalars().all()
     )
     assert len(runs) == 1
-    assert runs[0].conversation_id == chat.conversation_id
+    task = (await db.execute(select(Task))).scalar_one_or_none()
+    assert task is not None
+    assert task.title == "ship"
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_handle_update_ambiguous_message_falls_back_to_inbox(db, monkeypatch):
+    monkeypatch.setattr(settings, "telegram_allowed_chat_ids", "556")
+    monkeypatch.setattr(settings, "initial_user_email", None)
+    user = AppUser(email="tg-inbox@example.com", password_hash=hash_password("pw"))
+    db.add(user)
+    await db.flush()
+
+    reply = await gateway.handle_update(db, _message(556, "Sarah prefers async updates"))
+    assert reply is not None
+    assert "inbox" in reply.lower()
+    item = (await db.execute(select(InboxItem))).scalar_one_or_none()
+    assert item is not None
+    assert item.source == "telegram"
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -180,7 +191,6 @@ async def test_handle_update_ignores_non_allowlisted_chat(db, monkeypatch):
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_new_command_rotates_to_a_fresh_thread(db, monkeypatch):
-    monkeypatch.setattr(agent_module, "complete", _fake_complete("ok"))
     monkeypatch.setattr(settings, "telegram_allowed_chat_ids", "42")
     monkeypatch.setattr(settings, "initial_user_email", None)
     db.add(AppUser(email="rot@example.com", password_hash=hash_password("pw")))
@@ -213,7 +223,6 @@ async def test_non_text_message_is_acknowledged(db, monkeypatch):
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_explicit_single_task_command_mutates_with_audit_without_agent(db, monkeypatch):
-    monkeypatch.setattr(agent_module, "complete", _fake_complete("should not run"))
     monkeypatch.setattr(settings, "telegram_allowed_chat_ids", "616")
     monkeypatch.setattr(settings, "initial_user_email", None)
     db.add(AppUser(email="cmd@example.com", password_hash=hash_password("pw")))
@@ -246,7 +255,6 @@ async def test_explicit_single_task_command_mutates_with_audit_without_agent(db,
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_explicit_task_command_treats_like_wildcards_as_text(db, monkeypatch):
-    monkeypatch.setattr(agent_module, "complete", _fake_complete("should not run"))
     monkeypatch.setattr(settings, "telegram_allowed_chat_ids", "617")
     monkeypatch.setattr(settings, "initial_user_email", None)
     db.add(AppUser(email="wildcard@example.com", password_hash=hash_password("pw")))

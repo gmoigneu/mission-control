@@ -1,4 +1,5 @@
 from app.models.agent_persona import AgentPersona
+from app.models.capture import Capture
 from app.models.company import Company
 from app.models.context import Context
 from app.models.entity_link import EntityLink
@@ -25,6 +26,7 @@ ENTITY_MODELS: dict[str, type] = {
     "context": Context,
     "project": Project,
     "company": Company,
+    "capture": Capture,
     "knowledge": Knowledge,
     "person": Person,
     "meeting": Meeting,
