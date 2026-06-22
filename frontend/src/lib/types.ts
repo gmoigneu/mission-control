@@ -28,8 +28,37 @@ export interface AuditEntry {
   before: Record<string, unknown> | null;
   after: Record<string, unknown> | null;
   surface: string;
+  agent_run_id: string | null;
   reverted: boolean;
   created_at: string;
+}
+
+export interface RelatedEntityRef {
+  entity_type: string;
+  entity_id: string;
+  label: string | null;
+}
+
+export interface ProactiveRun {
+  id: string;
+  routine_type: string;
+  routine_name: string;
+  trigger_reason: string;
+  trigger_data_summary: string;
+  related_entities: RelatedEntityRef[];
+  policy_decision: string;
+  channels: string[];
+  message_title: string;
+  message_summary: string;
+  message_body: string;
+  delivery_status: Record<string, string>;
+  outcome: "sent" | "opened" | "dismissed" | "muted" | "acted" | "expired";
+  agent_run_id: string | null;
+  audit_log_ids: string[];
+  dismissed_at: string | null;
+  muted_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Project {

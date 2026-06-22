@@ -1,3 +1,6 @@
+import uuid
+
+from app.models.audit import AuditLog
 from tests.helpers import login
 
 
@@ -20,6 +23,47 @@ async def test_audit_limit_bound(client, db):
     # limit > 1000 should be rejected with 422
     r = await client.get("/audit?limit=9999")
     assert r.status_code == 422
+
+
+async def test_audit_agent_runs_only_filter(client, db):
+    await login(client, db)
+    human_task_id = uuid.uuid4()
+    aya_task_id = uuid.uuid4()
+    agent_run_id = uuid.uuid4()
+
+    db.add(
+        AuditLog(
+            actor="user",
+            action="update",
+            entity_type="task",
+            entity_id=human_task_id,
+            before=None,
+            after={"title": "Human edit"},
+            surface="ui",
+            agent_run_id=None,
+        )
+    )
+    db.add(
+        AuditLog(
+            actor="agent",
+            action="update",
+            entity_type="task",
+            entity_id=aya_task_id,
+            before=None,
+            after={"title": "Aya edit"},
+            surface="agent",
+            agent_run_id=agent_run_id,
+        )
+    )
+    await db.commit()
+
+    r = await client.get("/audit?agent_runs_only=true")
+    assert r.status_code == 200
+    rows = r.json()
+    assert len(rows) >= 1
+    assert all(row["agent_run_id"] is not None for row in rows)
+    assert any(row["entity_id"] == str(aya_task_id) for row in rows)
+    assert all(row["entity_id"] != str(human_task_id) for row in rows)
 
 
 async def test_create_then_revert_via_api(client, db):
