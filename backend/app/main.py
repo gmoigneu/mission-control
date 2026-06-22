@@ -24,6 +24,7 @@ from app.api import (
     observations,
     people,
     planning_messages,
+    proactive_preferences,
     proactive_runs,
     projects,
     relationships,
@@ -83,6 +84,7 @@ def create_app() -> FastAPI:
     app.include_router(people.router)
     app.include_router(planning_messages.router)
     app.include_router(proactive_runs.router)
+    app.include_router(proactive_preferences.router)
     app.include_router(meetings.router)
     app.include_router(tasks.router)
     app.include_router(relationships.router)

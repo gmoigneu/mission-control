@@ -135,6 +135,9 @@ it("renders the Soul form and PUTs edits on Save", async () => {
     if (String(url).includes("/auth/webauthn/passkeys")) {
       return new Response("[]", { status: 200 });
     }
+    if (String(url).includes("/proactive-preferences")) {
+      return new Response("[]", { status: 200 });
+    }
     if (String(url).includes("/agent/persona") && (!init?.method || init.method === "GET")) {
       return new Response(JSON.stringify(DEFAULT_PERSONA), { status: 200 });
     }
@@ -185,6 +188,9 @@ it("POSTs to reset when Reset to default is clicked", async () => {
     if (String(url).includes("/auth/webauthn/passkeys")) {
       return new Response("[]", { status: 200 });
     }
+    if (String(url).includes("/proactive-preferences")) {
+      return new Response("[]", { status: 200 });
+    }
     if (String(url).includes("/agent/persona/reset")) {
       return new Response(JSON.stringify(DEFAULT_PERSONA), { status: 200 });
     }
@@ -232,6 +238,9 @@ it("lists registered passkeys", async () => {
     if (String(url).includes("/agent/notification-policy")) {
       return new Response(JSON.stringify(DEFAULT_NOTIFICATION_POLICY), { status: 200 });
     }
+    if (String(url).includes("/proactive-preferences")) {
+      return new Response("[]", { status: 200 });
+    }
     return new Response("[]", { status: 200 });
   });
 
@@ -264,6 +273,9 @@ it("saves proactive Aya notification policy controls", async () => {
     }
     if (String(url).includes("/agent/notification-policy") && init?.method === "PUT") {
       return new Response(JSON.stringify(JSON.parse(init.body as string)), { status: 200 });
+    }
+    if (String(url).includes("/proactive-preferences")) {
+      return new Response("[]", { status: 200 });
     }
     return new Response(JSON.stringify({}), { status: 200 });
   });
@@ -314,6 +326,9 @@ it("shows notification policy save failures", async () => {
     if (String(url).includes("/agent/notification-policy") && init?.method === "PUT") {
       return new Response("nope", { status: 500 });
     }
+    if (String(url).includes("/proactive-preferences")) {
+      return new Response("[]", { status: 200 });
+    }
     return new Response(JSON.stringify({}), { status: 200 });
   });
 
@@ -323,6 +338,170 @@ it("shows notification policy save failures", async () => {
   await userEvent.click(
     await screen.findByRole("button", { name: /save notification policy/i }),
   );
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(/nope/i);
+});
+
+it("lists learned proactive preferences and disables one", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    calls.push([String(url), init]);
+    if (String(url).includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "1", email: "g@x.com" }), { status: 200 });
+    }
+    if (String(url).includes("/auth/webauthn/passkeys")) {
+      return new Response("[]", { status: 200 });
+    }
+    if (String(url).includes("/agent/persona")) {
+      return new Response(JSON.stringify(DEFAULT_PERSONA), { status: 200 });
+    }
+    if (String(url).includes("/agent/notification-policy")) {
+      return new Response(JSON.stringify(DEFAULT_NOTIFICATION_POLICY), { status: 200 });
+    }
+    if (String(url).includes("/proactive-preferences/pref-1") && init?.method === "PATCH") {
+      return new Response(
+        JSON.stringify({
+          id: "pref-1",
+          preference_type: "mute_routine",
+          scope: "routine",
+          routine_type: "daily_planning",
+          entity_type: null,
+          entity_ref: null,
+          trigger_ref: null,
+          value: {},
+          source_proactive_run_id: "11111111-1111-4111-8111-111111111111",
+          requires_confirmation: false,
+          active: false,
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+        }),
+        { status: 200 },
+      );
+    }
+    if (String(url).includes("/proactive-preferences")) {
+      return new Response(
+        JSON.stringify([
+          {
+            id: "pref-1",
+            preference_type: "mute_routine",
+            scope: "routine",
+            routine_type: "daily_planning",
+            entity_type: null,
+            entity_ref: null,
+            trigger_ref: null,
+            value: {},
+            source_proactive_run_id: "11111111-1111-4111-8111-111111111111",
+            requires_confirmation: false,
+            active: true,
+            created_at: "2026-01-01T00:00:00Z",
+            updated_at: "2026-01-01T00:00:00Z",
+          },
+        ]),
+        { status: 200 },
+      );
+    }
+    return new Response("[]", { status: 200 });
+  });
+
+  renderSettings(fetchMock);
+  await screen.findByText("mute routine");
+  await userEvent.click(screen.getByRole("button", { name: /^disable$/i }));
+  expect(
+    calls.some(
+      ([url, init]) => String(url).includes("/pref-1") && init?.method === "PATCH",
+    ),
+  ).toBe(false);
+  await userEvent.click(screen.getByRole("button", { name: /confirm/i }));
+
+  await waitFor(() => {
+    const patch = calls.find(
+      ([url, init]) =>
+        String(url).includes("/proactive-preferences/pref-1") && init?.method === "PATCH",
+    );
+    expect(patch).toBeDefined();
+    expect(JSON.parse(patch![1]!.body as string).active).toBe(false);
+  });
+});
+
+it("requires confirmation before changing proactive channel", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    calls.push([String(url), init]);
+    if (String(url).includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "1", email: "g@x.com" }), { status: 200 });
+    }
+    if (String(url).includes("/auth/webauthn/passkeys")) {
+      return new Response("[]", { status: 200 });
+    }
+    if (String(url).includes("/agent/persona")) {
+      return new Response(JSON.stringify(DEFAULT_PERSONA), { status: 200 });
+    }
+    if (String(url).includes("/agent/notification-policy")) {
+      return new Response(JSON.stringify(DEFAULT_NOTIFICATION_POLICY), { status: 200 });
+    }
+    if (String(url).includes("/proactive-preferences/feedback") && init?.method === "POST") {
+      return new Response(JSON.stringify({ id: "pref-2" }), { status: 201 });
+    }
+    if (String(url).includes("/proactive-preferences")) {
+      return new Response("[]", { status: 200 });
+    }
+    return new Response("[]", { status: 200 });
+  });
+
+  renderSettings(fetchMock);
+  await screen.findByRole("heading", { name: "Proactive preferences" });
+
+  await userEvent.selectOptions(screen.getByLabelText(/scope/i), "morning_triage");
+  await userEvent.click(screen.getByText(/change channel/i));
+  expect(
+    calls.some(
+      ([url, init]) =>
+        String(url).includes("/proactive-preferences/feedback") && init?.method === "POST",
+    ),
+  ).toBe(false);
+
+  await userEvent.click(screen.getByRole("button", { name: /confirm/i }));
+  await waitFor(() => {
+    const post = calls.find(
+      ([url, init]) =>
+        String(url).includes("/proactive-preferences/feedback") && init?.method === "POST",
+    );
+    expect(post).toBeDefined();
+    const body = JSON.parse(post![1]!.body as string);
+    expect(body.action).toBe("change_channel");
+    expect(body.routine_type).toBe("morning_triage");
+    expect(body.confirmed).toBe(true);
+  });
+});
+
+it("shows proactive preference mutation failures", async () => {
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    if (String(url).includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "1", email: "g@x.com" }), { status: 200 });
+    }
+    if (String(url).includes("/auth/webauthn/passkeys")) {
+      return new Response("[]", { status: 200 });
+    }
+    if (String(url).includes("/agent/persona")) {
+      return new Response(JSON.stringify(DEFAULT_PERSONA), { status: 200 });
+    }
+    if (String(url).includes("/agent/notification-policy")) {
+      return new Response(JSON.stringify(DEFAULT_NOTIFICATION_POLICY), { status: 200 });
+    }
+    if (String(url).includes("/proactive-preferences/feedback") && init?.method === "POST") {
+      return new Response("nope", { status: 500 });
+    }
+    if (String(url).includes("/proactive-preferences")) {
+      return new Response("[]", { status: 200 });
+    }
+    return new Response("[]", { status: 200 });
+  });
+
+  renderSettings(fetchMock);
+  await screen.findByRole("heading", { name: "Proactive preferences" });
+
+  await userEvent.click(screen.getByText(/change channel/i));
+  await userEvent.click(screen.getByRole("button", { name: /confirm/i }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent(/nope/i);
 });

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { AppShell } from "../components/AppShell";
 import { DataTable } from "../components/DataTable";
 import { Pagination } from "../components/Pagination";
+import { ProactiveFeedbackControls } from "../components/ProactiveFeedbackControls";
 import { RequireAuth } from "../components/RequireAuth";
 import { useAuditPage, useRevert } from "../features/audit/api";
 import {
@@ -336,6 +337,17 @@ export function ActivityPage() {
     {
       header: "Undo",
       cell: (row: AuditEntry) => <UndoButton row={row} />,
+    },
+    {
+      header: "Aya feedback",
+      cell: (row: AuditEntry) => (
+        <ProactiveFeedbackControls
+          entityType={row.entity_type}
+          entityRef={row.entity_id}
+          triggerRef={`audit:${row.id}`}
+          compact
+        />
+      ),
     },
   ];
 

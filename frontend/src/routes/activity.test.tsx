@@ -94,6 +94,9 @@ it("renders audit entries and POSTs to revert when Undo is clicked", async () =>
     if (String(url).includes("/revert") && init?.method === "POST") {
       return new Response(JSON.stringify({ ...AUDIT_ENTRY, reverted: true }), { status: 200 });
     }
+    if (String(url).includes("/proactive-preferences/feedback") && init?.method === "POST") {
+      return new Response(JSON.stringify({ id: "pref-1" }), { status: 201 });
+    }
     return new Response(JSON.stringify({}), { status: 200 });
   });
 
