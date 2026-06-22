@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { Plus, SlidersHorizontal } from "lucide-react";
 import { useMemo, useReducer } from "react";
 import { AppShell } from "../components/AppShell";
@@ -21,6 +21,7 @@ import { useContexts } from "../features/contexts/api";
 import { useProjects } from "../features/projects/api";
 import { useCreateTask, useDeleteTask, useTasks, useUpdateTask } from "../features/tasks/api";
 import type { Context, Project, Task } from "../lib/types";
+import { tasksSearch, type TasksSearch } from "./tasks-search";
 
 interface FormState {
   title: string;
@@ -363,6 +364,9 @@ export function TasksPage() {
   const editRequest = useEditFromSearch(tasks);
   const { data: contexts = [] } = useContexts();
   const { data: projects = [] } = useProjects();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const routeSearch = tasksSearch(location.search as Record<string, unknown>);
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
@@ -375,11 +379,11 @@ export function TasksPage() {
     descTab,
     view,
     groupBy,
-    contextFilter,
-    projectFilter,
-    showCompleted,
     filtersOpen,
   } = state;
+  const contextFilter = routeSearch.context ?? "";
+  const projectFilter = routeSearch.project ?? "";
+  const showCompleted = routeSearch.completed ?? false;
   useHotkey("c", handleNew, !panelOpen);
   const isMobile = useIsMobile();
   const activeFilterCount =
@@ -401,6 +405,21 @@ export function TasksPage() {
 
   function handleClose() {
     dispatch({ type: "closePanel" });
+  }
+
+  function updateTaskFilters(
+    patch: Partial<Pick<TasksSearch, "context" | "project" | "completed">>,
+  ) {
+    const next = { ...routeSearch, ...patch };
+    navigate({
+      to: "/tasks",
+      search: {
+        edit: next.edit,
+        context: next.context || undefined,
+        project: next.project || undefined,
+        completed: next.completed || undefined,
+      },
+    } as unknown as Parameters<typeof navigate>[0]);
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -499,14 +518,15 @@ export function TasksPage() {
       dispatch({ type: "setGroupBy", groupBy: nextGroupBy }),
     contextFilter,
     onContextFilterChange: (contextId: string) =>
-      dispatch({ type: "setContextFilter", contextId }),
+      updateTaskFilters({ context: contextId || undefined }),
     contexts,
     projectFilter,
     onProjectFilterChange: (projectId: string) =>
-      dispatch({ type: "setProjectFilter", projectId }),
+      updateTaskFilters({ project: projectId || undefined }),
     projects,
     showCompleted,
-    onToggleCompleted: () => dispatch({ type: "toggleCompleted" }),
+    onToggleCompleted: () =>
+      updateTaskFilters({ completed: showCompleted ? undefined : true }),
   };
 
   return (

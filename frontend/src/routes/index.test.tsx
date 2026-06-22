@@ -11,6 +11,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import { AyaProvider } from "../features/agent/AyaContext";
 import { Dashboard } from "./index.page";
+import { tasksSearch } from "./tasks-search";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -37,9 +38,15 @@ function renderDashboard(fetchMock: ReturnType<typeof vi.fn>) {
     path: "/login",
     component: () => <div>login-page</div>,
   });
+  const tasks = createRoute({
+    getParentRoute: () => root,
+    path: "/tasks",
+    validateSearch: tasksSearch,
+    component: () => <div>tasks-page</div>,
+  });
   const history = createMemoryHistory({ initialEntries: ["/"] });
   const router = createRouter({
-    routeTree: root.addChildren([home, login]),
+    routeTree: root.addChildren([home, login, tasks]),
     history,
   });
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -106,6 +113,9 @@ it("saves mood, energy, and productivity quick-add values", async () => {
     if (String(url).includes("/habits")) {
       return new Response(JSON.stringify([]), { status: 200 });
     }
+    if (String(url).includes("/projects")) {
+      return new Response(JSON.stringify([]), { status: 200 });
+    }
     return new Response(JSON.stringify({}), { status: 200 });
   });
 
@@ -125,4 +135,112 @@ it("saves mood, energy, and productivity quick-add values", async () => {
   });
 
   expect(screen.getByRole("button", { name: "Productivity 5 of 5" })).toBeInTheDocument();
+});
+
+it("renders dashboard journal markdown, task context links, and activity labels", async () => {
+  const today = todayISO();
+  const fetchMock = vi.fn(async (url: string) => {
+    if (String(url).includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
+        status: 200,
+      });
+    }
+    if (String(url).includes("/daily-checkins")) {
+      return new Response(JSON.stringify([]), { status: 200 });
+    }
+    if (String(url).includes("/tasks")) {
+      return new Response(
+        JSON.stringify([
+          {
+            id: "t1",
+            title: "Draft spec",
+            status: "open",
+            priority: "normal",
+            due: today,
+            scheduled: null,
+            context_id: "c1",
+            project_id: null,
+            outcome: null,
+            body: null,
+            source: null,
+            completed_at: null,
+            created_at: "",
+            updated_at: "",
+          },
+        ]),
+        { status: 200 },
+      );
+    }
+    if (String(url).includes("/contexts")) {
+      return new Response(
+        JSON.stringify([
+          {
+            id: "c1",
+            slug: "work",
+            name: "Work",
+            category: "work",
+            description: "Work context",
+            status: "active",
+            color: null,
+            created_at: "",
+            updated_at: "",
+          },
+        ]),
+        { status: 200 },
+      );
+    }
+    if (String(url).includes("/audit")) {
+      return new Response(
+        JSON.stringify([
+          {
+            id: "a1",
+            actor: "agent",
+            action: "update",
+            entity_type: "task",
+            entity_id: "t1",
+            before: null,
+            after: null,
+            surface: "ui",
+            reverted: false,
+            created_at: new Date().toISOString(),
+          },
+        ]),
+        { status: 200 },
+      );
+    }
+    if (String(url).includes("/journal-entries")) {
+      return new Response(
+        JSON.stringify([
+          {
+            id: "j1",
+            date: today,
+            title: "Morning notes",
+            body: "# Plan\n\n- [ ] Write **notes**",
+            mood: null,
+            energy: null,
+            productivity: null,
+            source: null,
+            created_at: "",
+            updated_at: "",
+          },
+        ]),
+        { status: 200 },
+      );
+    }
+    if (String(url).includes("/habits")) {
+      return new Response(JSON.stringify([]), { status: 200 });
+    }
+    if (String(url).includes("/projects")) {
+      return new Response(JSON.stringify([]), { status: 200 });
+    }
+    return new Response(JSON.stringify({}), { status: 200 });
+  });
+
+  renderDashboard(fetchMock);
+
+  expect(await screen.findByRole("heading", { name: "Plan" })).toBeDefined();
+  const contextLink = await screen.findByRole("link", { name: /Work/ });
+  expect(contextLink).toHaveAttribute("href", expect.stringContaining("context=c1"));
+  expect(await screen.findAllByText("Draft spec")).toHaveLength(2);
+  expect(screen.queryByText("t1")).toBeNull();
 });

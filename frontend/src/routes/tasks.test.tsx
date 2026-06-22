@@ -11,6 +11,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import type { Task } from "../lib/types";
 import { TasksPage } from "./tasks.page";
+import { tasksSearch } from "./tasks-search";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -97,13 +98,14 @@ function fetchMockFor(
   });
 }
 
-function renderTasks(fetchMock: ReturnType<typeof vi.fn>) {
+function renderTasks(fetchMock: ReturnType<typeof vi.fn>, initialEntry = "/tasks") {
   vi.stubGlobal("fetch", fetchMock);
 
   const root = createRootRoute();
   const tasks = createRoute({
     getParentRoute: () => root,
     path: "/tasks",
+    validateSearch: tasksSearch,
     component: TasksPage,
   });
   const login = createRoute({
@@ -116,7 +118,7 @@ function renderTasks(fetchMock: ReturnType<typeof vi.fn>) {
     path: "/activity",
     component: () => <div>activity-page</div>,
   });
-  const history = createMemoryHistory({ initialEntries: ["/tasks"] });
+  const history = createMemoryHistory({ initialEntries: [initialEntry] });
   const router = createRouter({
     routeTree: root.addChildren([tasks, login, activity]),
     history,
@@ -425,4 +427,21 @@ it("filters tasks by context", async () => {
     expect(screen.queryByText("No ctx")).toBeNull();
   });
   expect(screen.getByText("In work ctx")).toBeDefined();
+});
+
+it("applies the context filter from the URL", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const tasks = [
+    makeTask({ id: "t1", title: "In work ctx", status: "open", context_id: "c1" }),
+    makeTask({ id: "t2", title: "No ctx", status: "open" }),
+  ];
+  renderTasks(
+    fetchMockFor(tasks, calls, [{ id: "c1", name: "Work" }]),
+    "/tasks?context=c1",
+  );
+
+  await screen.findByRole("heading", { name: "Tasks" });
+  expect(await screen.findByText("In work ctx")).toBeDefined();
+  expect(screen.queryByText("No ctx")).toBeNull();
+  expect(screen.getByRole("combobox", { name: /context filter/i })).toHaveValue("c1");
 });

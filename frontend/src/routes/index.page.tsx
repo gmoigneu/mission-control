@@ -1,8 +1,9 @@
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Check, Flame } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useState } from "react";
 import { AppShell } from "../components/AppShell";
+import { Markdown } from "../components/Markdown";
 import {
   AISpark,
   ContextChip,
@@ -19,6 +20,7 @@ import {
   useJournalEntries,
   useSetDailyCheckIn,
 } from "../features/journal/api";
+import { useProjects } from "../features/projects/api";
 import { useTasks, useUpdateTask } from "../features/tasks/api";
 import { useMe } from "../lib/auth";
 import type { AuditEntry, Context, Habit, JournalEntry, Task } from "../lib/types";
@@ -53,6 +55,17 @@ function relTime(iso: string): string {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
   return fmtDate(iso.slice(0, 10));
+}
+
+function payloadLabel(payload: Record<string, unknown> | null): string | null {
+  if (!payload) return null;
+  for (const key of ["label", "title", "name", "slug"]) {
+    const value = payload[key];
+    if (typeof value === "string" && value.trim()) return value;
+  }
+  const date = payload.date;
+  if (typeof date === "string" && date.trim()) return `Journal ${fmtDate(date)}`;
+  return null;
 }
 
 // ─── Gauge: 1–5 dot picker ─────────────────────────────────────────────────────
@@ -197,6 +210,7 @@ export function Dashboard() {
   const { data: audit = [] } = useAudit();
   const { data: journalEntries = [] } = useJournalEntries();
   const { data: habits = [] } = useHabits({ active: "true" });
+  const { data: projects = [] } = useProjects();
   const { data: dailyCheckIns = [] } = useDailyCheckIns({ days: 1, end: today });
   const updateTask = useUpdateTask();
   const logHabit = useLogHabit();
@@ -252,6 +266,51 @@ export function Dashboard() {
 
   const recentActivity = audit.slice(0, 5);
 
+  function activityEntryLabel(entry: AuditEntry): string {
+    if (entry.entity_type === "task") {
+      return (
+        tasks.find((task) => task.id === entry.entity_id)?.title ??
+        payloadLabel(entry.after) ??
+        payloadLabel(entry.before) ??
+        entry.entity_id
+      );
+    }
+    if (entry.entity_type === "context") {
+      return (
+        contexts.find((context) => context.id === entry.entity_id)?.name ??
+        payloadLabel(entry.after) ??
+        payloadLabel(entry.before) ??
+        entry.entity_id
+      );
+    }
+    if (entry.entity_type === "project") {
+      return (
+        projects.find((project) => project.id === entry.entity_id)?.title ??
+        payloadLabel(entry.after) ??
+        payloadLabel(entry.before) ??
+        entry.entity_id
+      );
+    }
+    if (entry.entity_type === "journal_entry") {
+      const entryForActivity = journalEntries.find((journal) => journal.id === entry.entity_id);
+      return (
+        entryForActivity?.title ??
+        (entryForActivity
+          ? `Journal ${fmtDate(entryForActivity.date)}`
+          : payloadLabel(entry.after) ?? payloadLabel(entry.before) ?? entry.entity_id)
+      );
+    }
+    if (entry.entity_type === "habit") {
+      return (
+        habits.find((habit) => habit.id === entry.entity_id)?.name ??
+        payloadLabel(entry.after) ??
+        payloadLabel(entry.before) ??
+        entry.entity_id
+      );
+    }
+    return payloadLabel(entry.after) ?? payloadLabel(entry.before) ?? entry.entity_id;
+  }
+
   function setCheckInScore(key: CheckInMetric, value: number) {
     const previous = localCheckIn;
     setLocalCheckIn((current) => ({ ...current, [key]: value }));
@@ -274,21 +333,10 @@ export function Dashboard() {
     logHabit.mutate({ id: habit.id, data: { date: today, done: !habit.logged_today } });
   }
 
-  // Most recent journal entry (today's if present, else latest). The list is
-  // already ordered date-desc by the API.
+  // Today's journal entry if present, else the latest entry as a useful fallback.
+  const todaysJournal = journalEntries.find((entry) => entry.date === today) ?? null;
   const latestJournal = journalEntries[0] ?? null;
-  const journalLines = latestJournal
-    ? latestJournal.body
-        .split("\n")
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0 && !line.startsWith("#"))
-        .slice(0, 4)
-        .reduce<Array<{ key: string; text: string }>>((lines, line) => {
-          const duplicateCount = lines.filter((item) => item.text === line).length;
-          lines.push({ key: `${latestJournal.id}:${line}:${duplicateCount}`, text: line });
-          return lines;
-        }, [])
-    : [];
+  const journalForCard = todaysJournal ?? latestJournal;
 
   return (
     <RequireAuth>
@@ -320,6 +368,11 @@ export function Dashboard() {
             className="dash-grid"
           >
             <div className="col gap-4" style={{ minWidth: 0 }}>
+              <ContextsSection
+                contexts={contexts}
+                openTaskCount={openTaskCount}
+                onOpenContexts={() => navigate({ to: "/contexts" })}
+              />
               <DueTasksSection
                 tasks={todayTasks}
                 today={today}
@@ -328,20 +381,14 @@ export function Dashboard() {
                 onToggleTask={toggleTask}
                 onOpenTasks={() => navigate({ to: "/tasks" })}
               />
-              <JournalSection
-                latestJournal={latestJournal}
-                journalLines={journalLines}
-                today={today}
-                onOpenJournal={() => navigate({ to: "/journal" })}
-              />
-              <ContextsSection
-                contexts={contexts}
-                openTaskCount={openTaskCount}
-                onOpenContexts={() => navigate({ to: "/contexts" })}
-              />
             </div>
 
             <div className="col gap-4" style={{ minWidth: 0 }}>
+              <JournalSection
+                journal={journalForCard}
+                today={today}
+                onOpenJournal={() => navigate({ to: "/journal" })}
+              />
               <HabitsSection
                 habits={habits}
                 onLogHabit={logHabitToday}
@@ -351,6 +398,7 @@ export function Dashboard() {
               />
               <RecentActivitySection
                 activity={recentActivity}
+                labelForEntry={activityEntryLabel}
                 onOpenActivity={() => navigate({ to: "/activity" })}
                 onRevert={(id) => revert.mutate(id)}
               />
@@ -361,8 +409,6 @@ export function Dashboard() {
     </RequireAuth>
   );
 }
-
-type JournalLine = { key: string; text: string };
 
 function DashboardHero({
   firstName,
@@ -518,13 +564,11 @@ function DueTasksSection({
 }
 
 function JournalSection({
-  latestJournal,
-  journalLines,
+  journal,
   today,
   onOpenJournal,
 }: {
-  latestJournal: JournalEntry | null;
-  journalLines: JournalLine[];
+  journal: JournalEntry | null;
   today: string;
   onOpenJournal: () => void;
 }) {
@@ -538,27 +582,22 @@ function JournalSection({
           </button>
         }
       >
-        {latestJournal && latestJournal.date === today ? "Today's journal" : "Latest journal"}
+        Today's journal
       </SectionLabel>
 
-      {latestJournal ? (
+      {journal ? (
         <div className="col gap-2" style={{ marginBottom: 4 }}>
-          {latestJournal.date !== today && (
+          {journal.date !== today && (
             <span className="meta tnum" style={{ color: "var(--signal)", opacity: 0.6 }}>
-              {latestJournal.date}
+              Latest: {journal.date}
             </span>
           )}
-          {latestJournal.title && (
-            <span style={{ fontSize: 13.5, fontWeight: 600 }}>{latestJournal.title}</span>
+          {journal.title && (
+            <span style={{ fontSize: 13.5, fontWeight: 600 }}>{journal.title}</span>
           )}
-          {journalLines.map((line) => (
-            <span
-              key={line.key}
-              style={{ fontSize: 13, color: "var(--fg-dim)", lineHeight: 1.5 }}
-            >
-              {line.text}
-            </span>
-          ))}
+          <div style={{ maxHeight: 280, overflow: "auto", paddingRight: 4 }}>
+            <Markdown>{journal.body || "_Nothing written yet._"}</Markdown>
+          </div>
         </div>
       ) : (
         <button
@@ -628,19 +667,11 @@ function ContextsSection({
             const tint = contextTint(context);
             const count = openTaskCount(context.id);
             return (
-              <button
-                type="button"
+              <Link
                 key={context.slug}
-                className="card ticks ctx-card"
-                onClick={onOpenContexts}
-                style={{
-                  padding: 16,
-                  textAlign: "left",
-                  cursor: "pointer",
-                  background: "var(--surface-2)",
-                  border: "1px solid var(--line-soft)",
-                  borderRadius: "var(--r-lg)",
-                }}
+                to="/tasks"
+                search={{ context: context.id }}
+                className="card ticks ctx-card ctx-card-link"
               >
                 <div className="row" style={{ justifyContent: "space-between" }}>
                   <ContextChip tint={tint}>{context.name}</ContextChip>
@@ -670,7 +701,7 @@ function ContextsSection({
                     {context.description}
                   </div>
                 )}
-              </button>
+              </Link>
             );
           })}
         </div>
@@ -734,10 +765,12 @@ function HabitsSection({
 
 function RecentActivitySection({
   activity,
+  labelForEntry,
   onOpenActivity,
   onRevert,
 }: {
   activity: AuditEntry[];
+  labelForEntry: (entry: AuditEntry) => string;
   onOpenActivity: () => void;
   onRevert: (id: string) => void;
 }) {
@@ -801,7 +834,7 @@ function RecentActivitySection({
                   textOverflow: "ellipsis",
                 }}
               >
-                {entry.entity_id}
+                {labelForEntry(entry)}
               </div>
             </div>
             <button

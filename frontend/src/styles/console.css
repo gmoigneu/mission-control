@@ -1208,6 +1208,15 @@ dialog.aya-quake:not([open]) { display: flex; }
 /* row hovers */
 .task-row { transition: background var(--dur) var(--ease); border-radius: var(--r-sm); }
 .task-row:hover { background: var(--surface-2); }
+.ctx-card-link {
+  display: block;
+  padding: 16px;
+  text-align: left;
+  cursor: pointer;
+  background: var(--surface-2);
+  text-decoration: none;
+  color: inherit;
+}
 .ctx-card, .know-card, .task-card, .person-rail-row { transition: transform var(--dur) var(--ease), background var(--dur) var(--ease), border-color var(--dur) var(--ease); }
 .ctx-card:hover, .know-card:hover { transform: translateY(-2px); border-color: var(--line-bright); }
 .person-rail-row:hover { background: var(--surface-2) !important; }

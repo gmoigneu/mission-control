@@ -1,10 +1,10 @@
 import { createRoute, lazyRouteComponent } from "@tanstack/react-router";
-import { editSearch } from "../lib/useEditFromSearch";
 import { rootRoute } from "./root";
+import { tasksSearch } from "./tasks-search";
 
 export const tasksRoute = createRoute({
   getParentRoute: () => rootRoute,
-  validateSearch: editSearch,
+  validateSearch: tasksSearch,
   path: "/tasks",
   component: lazyRouteComponent(() => import("./tasks.page"), "TasksPage"),
 });
