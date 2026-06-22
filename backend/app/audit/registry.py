@@ -1,6 +1,6 @@
 from app.models.agent_persona import AgentPersona
-from app.models.company import Company
 from app.models.capture import Capture
+from app.models.company import Company
 from app.models.context import Context
 from app.models.entity_link import EntityLink
 from app.models.entity_tag import EntityTag

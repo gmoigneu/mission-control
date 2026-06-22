@@ -35,6 +35,7 @@ from app.schemas.capture import (
     CaptureApplyRequest,
     CaptureApplyResponse,
     CaptureInboxRequest,
+    CaptureOut,
     CaptureRequest,
 )
 from app.services import capture as capture_svc
@@ -149,7 +150,7 @@ async def agent_capture(
         agent_run_id=run_id,
         reply=reply,
         writes=writes,
-        capture=capture,
+        capture=CaptureOut.model_validate(capture),
         result=result,
     )
 
@@ -170,7 +171,7 @@ async def apply_capture(
         agent_run_id=run_id,
         reply="Capture applied.",
         writes=writes,
-        capture=capture,
+        capture=CaptureOut.model_validate(capture),
     )
 
 
@@ -190,7 +191,7 @@ async def inbox_capture(
         agent_run_id=run_id,
         reply="Capture sent to inbox.",
         writes=writes,
-        capture=capture,
+        capture=CaptureOut.model_validate(capture),
     )
 
 
@@ -209,7 +210,7 @@ async def dismiss_capture(
         agent_run_id=run_id,
         reply="Capture dismissed.",
         writes=writes,
-        capture=capture,
+        capture=CaptureOut.model_validate(capture),
     )
 
 
