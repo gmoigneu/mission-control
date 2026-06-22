@@ -1,7 +1,5 @@
-import cytoscape from "cytoscape";
-import type { Core } from "cytoscape";
-import fcose from "cytoscape-fcose";
-import { useEffect, useMemo, useRef, useState } from "react";
+import type { Core, Ext } from "cytoscape";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { ConfirmButton } from "../../components/ConfirmButton";
 import { useContexts } from "../contexts/api";
 import { useGraphSnapshot, useNodeDetail, useRebuildGraph } from "./api";
@@ -11,25 +9,79 @@ import { LAYOUTS, NODE_TYPES, stylesheet, type LayoutName } from "./cytoscape-co
 import { snapshotToElements } from "./snapshot-to-elements";
 
 let fcoseRegistered = false;
-function ensureFcose() {
+async function loadGraphEngine() {
+  const [{ default: cytoscape }, { default: fcose }] = await Promise.all([
+    import("cytoscape"),
+    import("cytoscape-fcose"),
+  ]);
+
   if (!fcoseRegistered) {
-    cytoscape.use(fcose as cytoscape.Ext);
+    cytoscape.use(fcose as Ext);
     fcoseRegistered = true;
   }
+
+  return cytoscape;
 }
 
 const allTypesOn = (): Record<string, boolean> =>
   Object.fromEntries(NODE_TYPES.map((t) => [t, true]));
 
+interface GraphExplorerState {
+  context: string;
+  types: Record<string, boolean>;
+  layout: LayoutName;
+  search: string;
+  selectedId?: string;
+}
+
+type GraphExplorerAction =
+  | { type: "setContext"; context: string }
+  | { type: "toggleType"; nodeType: string }
+  | { type: "setLayout"; layout: LayoutName }
+  | { type: "setSearch"; search: string }
+  | { type: "selectNode"; id?: string };
+
+function initialGraphExplorerState(): GraphExplorerState {
+  return {
+    context: "",
+    types: allTypesOn(),
+    layout: "fcose",
+    search: "",
+    selectedId: undefined,
+  };
+}
+
+function graphExplorerReducer(
+  state: GraphExplorerState,
+  action: GraphExplorerAction,
+): GraphExplorerState {
+  switch (action.type) {
+    case "setContext":
+      return { ...state, context: action.context };
+    case "toggleType":
+      return {
+        ...state,
+        types: { ...state.types, [action.nodeType]: !state.types[action.nodeType] },
+      };
+    case "setLayout":
+      return { ...state, layout: action.layout };
+    case "setSearch":
+      return { ...state, search: action.search };
+    case "selectNode":
+      return { ...state, selectedId: action.id };
+  }
+}
+
 export function GraphExplorer() {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const cyRef = useRef<Core | null>(null);
+  const [cy, setCy] = useState<Core | null>(null);
 
-  const [context, setContext] = useState("");
-  const [types, setTypes] = useState<Record<string, boolean>>(allTypesOn);
-  const [layout, setLayout] = useState<LayoutName>("fcose");
-  const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
+  const [state, dispatch] = useReducer(
+    graphExplorerReducer,
+    undefined,
+    initialGraphExplorerState,
+  );
+  const { context, types, layout, search, selectedId } = state;
 
   const snapshot = useGraphSnapshot(context || undefined);
   const contextsQuery = useContexts();
@@ -41,45 +93,44 @@ export function GraphExplorer() {
     [snapshot.data],
   );
 
-  // Create/recreate the Cytoscape instance whenever the element set changes.
+  // Create/recreate the Cytoscape instance whenever the element set or layout changes.
   useEffect(() => {
+    let canceled = false;
+    let createdCy: Core | null = null;
     const container = containerRef.current;
     if (!container) return;
-    ensureFcose();
-    const cy = cytoscape({ container, elements, style: stylesheet, layout: LAYOUTS[layout] });
-    cy.on("tap", "node", (evt) => setSelectedId(evt.target.id()));
-    cyRef.current = cy;
-    return () => {
-      cy.destroy();
-      cyRef.current = null;
-    };
-    // Layout changes are handled by a separate effect; recreate only on data change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [elements]);
 
-  // Re-run layout when the layout selection changes.
-  useEffect(() => {
-    cyRef.current?.layout(LAYOUTS[layout]).run();
-  }, [layout]);
+    void loadGraphEngine().then((cytoscape) => {
+      if (canceled) return;
+      const cy = cytoscape({ container, elements, style: stylesheet, layout: LAYOUTS[layout] });
+      cy.on("tap", "node", (evt) => dispatch({ type: "selectNode", id: evt.target.id() }));
+      createdCy = cy;
+      setCy(cy);
+    });
+
+    return () => {
+      canceled = true;
+      if (createdCy) createdCy.destroy();
+      setCy(null);
+    };
+  }, [elements, layout]);
 
   // Apply node-type visibility filters.
   useEffect(() => {
-    const cy = cyRef.current;
     if (!cy) return;
     cy.batch(() => {
       for (const t of NODE_TYPES) {
         cy.nodes(`[label = "${t}"]`).style("display", types[t] ? "element" : "none");
       }
     });
-  }, [types, elements]);
+  }, [types, elements, cy]);
 
   // Resize the canvas when the inspector panel opens/closes (the container width changes).
   useEffect(() => {
-    cyRef.current?.resize();
-  }, [selectedId]);
+    cy?.resize();
+  }, [selectedId, cy]);
 
   function runSearch() {
-    const cy = cyRef.current;
     const term = search.trim().toLowerCase();
     if (!cy || !term) return;
     const match = cy
@@ -87,7 +138,7 @@ export function GraphExplorer() {
       .filter((n) => String(n.data("name") ?? "").toLowerCase().includes(term));
     if (match.length > 0) {
       cy.animate({ center: { eles: match[0] }, zoom: 1.5 }, { duration: 300 });
-      setSelectedId(match[0].id());
+      dispatch({ type: "selectNode", id: match[0].id() });
     }
   }
 
@@ -97,37 +148,42 @@ export function GraphExplorer() {
     <div style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%" }}>
       <GraphControls
         types={types}
-        onToggleType={(t) => setTypes((prev) => ({ ...prev, [t]: !prev[t] }))}
+        onToggleType={(t) => dispatch({ type: "toggleType", nodeType: t })}
         contexts={(contextsQuery.data ?? []).map((c) => ({ slug: c.slug, name: c.name }))}
         context={context}
-        onContextChange={setContext}
+        onContextChange={(nextContext) =>
+          dispatch({ type: "setContext", context: nextContext })
+        }
         search={search}
-        onSearchChange={setSearch}
+        onSearchChange={(nextSearch) => dispatch({ type: "setSearch", search: nextSearch })}
         onSearchSubmit={runSearch}
         layout={layout}
-        onLayoutChange={setLayout}
+        onLayoutChange={(nextLayout) => dispatch({ type: "setLayout", layout: nextLayout })}
         onRebuild={() => rebuild.mutate()}
         rebuilding={rebuild.isPending}
       />
 
       {snapshot.data?.truncated && (
-        <div role="status">
+        <output>
           Showing the first {snapshot.data.nodes.length} nodes — filter by context to narrow the view.
-        </div>
+        </output>
       )}
-      {snapshot.isLoading && <div role="status">Loading graph…</div>}
+      {snapshot.isLoading && <output>Loading graph…</output>}
       {snapshot.isError && (
         <div role="alert">
-          Couldn't load the graph. <button onClick={() => snapshot.refetch()}>Retry</button>
+          Couldn't load the graph.{" "}
+          <button type="button" onClick={() => snapshot.refetch()}>
+            Retry
+          </button>
         </div>
       )}
       {isEmpty && (
-        <div role="status">
+        <output>
           The graph is empty.{" "}
           <ConfirmButton onConfirm={() => rebuild.mutate()} disabled={rebuild.isPending}>
             Rebuild graph
           </ConfirmButton>
-        </div>
+        </output>
       )}
 
       <div style={{ display: "flex", flex: 1, minHeight: 480, gap: 12 }}>
@@ -147,8 +203,8 @@ export function GraphExplorer() {
           <NodeInspector
             detail={detail.data}
             loading={detail.isLoading}
-            onSelectNode={setSelectedId}
-            onClose={() => setSelectedId(undefined)}
+            onSelectNode={(id) => dispatch({ type: "selectNode", id })}
+            onClose={() => dispatch({ type: "selectNode", id: undefined })}
           />
         )}
       </div>

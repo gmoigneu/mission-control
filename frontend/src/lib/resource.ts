@@ -20,10 +20,31 @@ export function resource<TOut, TCreate, TUpdate>(
   basePath: string,
 ): Resource<TOut, TCreate, TUpdate> {
   return {
-    list: (query) => {
-      const qs =
-        query && Object.keys(query).length ? `?${new URLSearchParams(query).toString()}` : "";
-      return apiFetch<TOut[]>(`${basePath}${qs}`);
+    list: async (query) => {
+      const params = new URLSearchParams(query);
+      const path = params.size ? `${basePath}?${params.toString()}` : basePath;
+      const { data, headers } = await apiFetchWithHeaders<TOut[]>(path);
+      const page = parsePageInfo(headers, {
+        limit: data.length || DEFAULT_PAGE_SIZE,
+        offset: 0,
+        count: data.length,
+      });
+      if (page.nextOffset === null) return data;
+
+      const limit = page.limit;
+      const offsets: number[] = [];
+      for (let offset = page.nextOffset; offset < page.total; offset += limit) {
+        offsets.push(offset);
+      }
+      const pages = await Promise.all(
+        offsets.map((offset) => {
+          const nextParams = new URLSearchParams(params);
+          nextParams.set("limit", String(limit));
+          nextParams.set("offset", String(offset));
+          return apiFetchWithHeaders<TOut[]>(`${basePath}?${nextParams.toString()}`);
+        }),
+      );
+      return [...data, ...pages.flatMap((next) => next.data)];
     },
     listPage: async (query) => {
       const limit = query?.limit ?? DEFAULT_PAGE_SIZE;

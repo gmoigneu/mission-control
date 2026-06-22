@@ -52,7 +52,7 @@ function buildPayload(form: FormState) {
 
 export function ReviewsPage() {
   const { data: reviews = [] } = useReviews();
-  useEditFromSearch(reviews, handleEdit);
+  const editRequest = useEditFromSearch(reviews);
   const createReview = useCreateReview();
   const updateReview = useUpdateReview();
   const deleteReview = useDeleteReview();
@@ -61,6 +61,7 @@ export function ReviewsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   useHotkey("c", handleNew, !panelOpen);
+  if (editRequest) handleEdit(editRequest);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>

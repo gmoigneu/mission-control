@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useAuthenticatedQueryEnabled } from "./auth";
 import type { PageQuery, Resource } from "./resource";
 
 export function makeResourceHooks<TOut extends { id: string }, TCreate, TUpdate>(
@@ -7,12 +8,15 @@ export function makeResourceHooks<TOut extends { id: string }, TCreate, TUpdate>
   res: Resource<TOut, TCreate, TUpdate>,
 ) {
   function useList(query?: Record<string, string>) {
-    return useQuery({ queryKey: [key, query ?? {}], queryFn: () => res.list(query) });
+    const enabled = useAuthenticatedQueryEnabled();
+    return useQuery({ queryKey: [key, query ?? {}], queryFn: () => res.list(query), enabled });
   }
   function usePagedList(query?: PageQuery) {
+    const enabled = useAuthenticatedQueryEnabled();
     return useQuery({
       queryKey: [key, "page", query ?? {}],
       queryFn: () => res.listPage(query),
+      enabled,
       placeholderData: (prev) => prev,
     });
   }

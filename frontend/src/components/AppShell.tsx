@@ -38,9 +38,16 @@ import {
   Undo2,
   Users,
 } from "lucide-react";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useReducer,
+  useState,
+} from "react";
 import { useLogout, useMe } from "../lib/auth";
-import { useFocusTrap } from "../lib/useFocusTrap";
 import {
   invalidateForWrites,
   useCapture,
@@ -97,42 +104,88 @@ interface Toast {
   onUndo?: () => void | Promise<void>;
 }
 
+interface ShellState {
+  theme: string;
+  navOpen: boolean;
+  mobileNav: boolean;
+  settingsOpen: boolean;
+  avatarMenuOpen: boolean;
+  captureOpen: boolean;
+  toasts: Toast[];
+}
+
+type ShellAction =
+  | { type: "setTheme"; theme: string }
+  | { type: "setNavOpen"; open: boolean }
+  | { type: "toggleMobileNav" }
+  | { type: "closeMobileNav" }
+  | { type: "toggleSettings" }
+  | { type: "closeSettings" }
+  | { type: "toggleAvatarMenu" }
+  | { type: "closeAvatarMenu" }
+  | { type: "openCapture" }
+  | { type: "closeCapture" }
+  | { type: "addToast"; toast: Toast }
+  | { type: "dismissToast"; id: number };
+
+function initialShellState(): ShellState {
+  let theme = "dark";
+  let navOpen = true;
+  if (typeof window !== "undefined") {
+    theme = localStorage.getItem("mc-theme") ?? "dark";
+    const savedNavOpen = localStorage.getItem("mc-nav-open");
+    navOpen = savedNavOpen !== null ? savedNavOpen === "true" : true;
+  }
+  return {
+    theme,
+    navOpen,
+    mobileNav: false,
+    settingsOpen: false,
+    avatarMenuOpen: false,
+    captureOpen: false,
+    toasts: [],
+  };
+}
+
+function shellReducer(state: ShellState, action: ShellAction): ShellState {
+  switch (action.type) {
+    case "setTheme":
+      return { ...state, theme: action.theme };
+    case "setNavOpen":
+      return { ...state, navOpen: action.open };
+    case "toggleMobileNav":
+      return { ...state, mobileNav: !state.mobileNav };
+    case "closeMobileNav":
+      return { ...state, mobileNav: false };
+    case "toggleSettings":
+      return { ...state, settingsOpen: !state.settingsOpen };
+    case "closeSettings":
+      return { ...state, settingsOpen: false };
+    case "toggleAvatarMenu":
+      return { ...state, avatarMenuOpen: !state.avatarMenuOpen };
+    case "closeAvatarMenu":
+      return { ...state, avatarMenuOpen: false };
+    case "openCapture":
+      return { ...state, captureOpen: true };
+    case "closeCapture":
+      return { ...state, captureOpen: false };
+    case "addToast":
+      return { ...state, toasts: [...state.toasts, action.toast] };
+    case "dismissToast":
+      return {
+        ...state,
+        toasts: state.toasts.filter((toast) => toast.id !== action.id),
+      };
+  }
+}
+
 // ─── Local components ─────────────────────────────────────────────────────────
 
 function Logo() {
   return (
-    <span
-      style={{
-        width: 30,
-        height: 30,
-        borderRadius: 8,
-        background: "var(--surface-3)",
-        border: "1px solid var(--line-bright)",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-        flexShrink: 0,
-      }}
-    >
-      <span
-        style={{
-          width: 9,
-          height: 9,
-          borderRadius: 9,
-          background: "var(--signal)",
-          boxShadow: "0 0 10px var(--signal-halo)",
-        }}
-      />
-      <span
-        style={{
-          position: "absolute",
-          inset: 5,
-          border: "1px solid var(--line-bright)",
-          borderRadius: 5,
-          opacity: 0.6,
-        }}
-      />
+    <span className="app-logo">
+      <span className="app-logo-core" />
+      <span className="app-logo-frame" />
     </span>
   );
 }
@@ -151,39 +204,19 @@ function NavItemComp({
   const { Icon: IconComp } = entry;
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={"nav-item row gap-3" + (active ? " active" : "")}
+      className={
+        "nav-item row gap-3" +
+        (active ? " active" : "") +
+        (open ? " nav-item-open" : " nav-item-closed")
+      }
       title={!open ? entry.label : ""}
-      style={{
-        width: "100%",
-        padding: open ? "8px 12px" : "9px",
-        borderRadius: "var(--r-sm)",
-        border: 0,
-        cursor: "pointer",
-        justifyContent: open ? "flex-start" : "center",
-        background: active ? "var(--surface-3)" : "transparent",
-        color: active ? "var(--fg)" : "var(--fg-dim)",
-        marginBottom: 1,
-        textAlign: "left",
-        position: "relative",
-      }}
     >
-      {active && (
-        <span
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 8,
-            bottom: 8,
-            width: 2.5,
-            borderRadius: 9,
-            background: "var(--signal)",
-          }}
-        />
-      )}
+      {active && <span className="nav-item-indicator" />}
       <IconComp size={17} strokeWidth={1.6} />
       {open && (
-        <span style={{ fontSize: 13, fontWeight: active ? 600 : 500 }}>
+        <span className="nav-item-label">
           {entry.label}
         </span>
       )}
@@ -204,28 +237,12 @@ function BottomItemComp({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="col"
-      style={{
-        alignItems: "center",
-        gap: 3,
-        border: 0,
-        background: "transparent",
-        cursor: "pointer",
-        color: active ? "var(--signal)" : "var(--fg-dim)",
-        padding: "4px 10px",
-      }}
+      className={"bottom-item col" + (active ? " active" : "")}
     >
       <IconComp size={20} strokeWidth={1.6} />
-      <span
-        style={{
-          fontSize: 9.5,
-          fontFamily: "var(--mono)",
-          letterSpacing: "0.04em",
-        }}
-      >
-        {label}
-      </span>
+      <span>{label}</span>
     </button>
   );
 }
@@ -248,34 +265,19 @@ function Toggle2({
   text?: boolean;
 }) {
   return (
-    <div
-      className="row"
-      style={{
-        background: "var(--bg-deep)",
-        borderRadius: "var(--r-sm)",
-        padding: 2,
-        border: "1px solid var(--line)",
-      }}
-    >
+    <div className="row toggle2">
       {[a, b].map((opt, i) => {
         const IconComp = i === 0 ? iconA : iconB;
         return (
           <button
+            type="button"
             key={opt}
             onClick={() => onChange(opt)}
-            className="row gap-1"
-            style={{
-              padding: text ? "4px 9px" : "4px 8px",
-              borderRadius: 5,
-              border: 0,
-              cursor: "pointer",
-              fontFamily: text ? "var(--mono)" : "var(--sans)",
-              fontSize: text ? 10.5 : 12,
-              letterSpacing: text ? "0.04em" : 0,
-              textTransform: text ? "uppercase" : "none",
-              background: value === opt ? "var(--surface-4)" : "transparent",
-              color: value === opt ? "var(--fg)" : "var(--fg-dim)",
-            }}
+            className={
+              "row gap-1 toggle2-option" +
+              (text ? " text" : "") +
+              (value === opt ? " active" : "")
+            }
           >
             {!text && IconComp && <IconComp size={13} strokeWidth={1.6} />}
             {opt}
@@ -294,18 +296,35 @@ function SetRow({
   children: ReactNode;
 }) {
   return (
-    <div
-      className="row"
-      style={{
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 11,
-      }}
-    >
-      <span style={{ fontSize: 13 }}>{label}</span>
+    <div className="row settings-row">
+      <span className="settings-row-label">{label}</span>
       {children}
     </div>
   );
+}
+
+function useNativeDialog(onClose: () => void) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const close = useEffectEvent(onClose);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (!dialog.open) {
+      dialog.showModal();
+    }
+    function handleCancel(e: Event) {
+      e.preventDefault();
+      close();
+    }
+    dialog.addEventListener("cancel", handleCancel);
+    return () => {
+      dialog.removeEventListener("cancel", handleCancel);
+      if (dialog.open) dialog.close();
+    };
+  }, []);
+
+  return dialogRef;
 }
 
 function SettingsPopover({
@@ -321,38 +340,25 @@ function SettingsPopover({
   setNavOpen: (v: boolean) => void;
   close: () => void;
 }) {
-  const ref = useFocusTrap<HTMLDivElement>(true);
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") close();
-    }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [close]);
+  const dialogRef = useNativeDialog(close);
   return (
-    <>
-      <div
+    <dialog
+      ref={dialogRef}
+      aria-label="Display settings"
+      aria-modal="true"
+      className="shell-dialog shell-dialog-top"
+    >
+      <button
+        type="button"
+        aria-label="Close display settings"
+        tabIndex={-1}
         onClick={close}
-        style={{ position: "fixed", inset: 0, zIndex: 41 }}
+        className="shell-dialog-hitbox"
       />
       <div
-        ref={ref}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Display settings"
-        className="card rise"
-        style={{
-          position: "absolute",
-          top: 50,
-          right: 12,
-          width: 268,
-          padding: 16,
-          zIndex: 42,
-          boxShadow: "var(--shadow-pop)",
-          background: "var(--surface-1)",
-        }}
+        className="card rise shell-popover-card shell-popover-card-settings"
       >
-        <div className="label" style={{ marginBottom: 12 }}>
+        <div className="label settings-title">
           Display
         </div>
         <SetRow label="Theme">
@@ -374,18 +380,11 @@ function SettingsPopover({
             text
           />
         </SetRow>
-        <div
-          className="meta"
-          style={{
-            marginTop: 12,
-            lineHeight: 1.4,
-            color: "var(--fg-faint)",
-          }}
-        >
+        <div className="meta settings-hint">
           Press ⌘K anywhere to capture. Drag task cards between board columns.
         </div>
       </div>
-    </>
+    </dialog>
   );
 }
 
@@ -396,24 +395,13 @@ function Avatar({
   initials: string;
   size?: number;
 }) {
+  const avatarStyle = {
+    "--avatar-size": `${size}px`,
+    "--avatar-font-size": `${size * 0.4}px`,
+  } as CSSProperties;
+
   return (
-    <span
-      style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        background: "var(--ctx-work)",
-        color: "var(--signal-ink)",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: size * 0.4,
-        fontWeight: 700,
-        fontFamily: "var(--mono)",
-        letterSpacing: 0,
-        flexShrink: 0,
-      }}
-    >
+    <span className="avatar" style={avatarStyle}>
       {initials}
     </span>
   );
@@ -428,78 +416,36 @@ function AvatarMenu({
   onClose: () => void;
   onLogout: () => void;
 }) {
-  const ref = useFocusTrap<HTMLDivElement>(true);
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose]);
+  const dialogRef = useNativeDialog(onClose);
   return (
-    <>
-      <div
+    <dialog
+      ref={dialogRef}
+      aria-label="Account menu"
+      aria-modal="true"
+      className="shell-dialog shell-dialog-top"
+    >
+      <button
+        type="button"
+        aria-label="Close account menu"
+        tabIndex={-1}
         onClick={onClose}
-        style={{ position: "fixed", inset: 0, zIndex: 41 }}
+        className="shell-dialog-hitbox"
       />
       <div
-        ref={ref}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Account menu"
-        className="card rise"
-        style={{
-          position: "absolute",
-          top: 36,
-          right: 0,
-          width: 220,
-          padding: "8px 0",
-          zIndex: 42,
-          boxShadow: "var(--shadow-pop)",
-          background: "var(--surface-1)",
-        }}
+        className="card rise shell-popover-card shell-popover-card-account"
       >
-        <div
-          style={{
-            padding: "8px 14px 10px",
-            borderBottom: "1px solid var(--line-soft)",
-            marginBottom: 4,
-            fontSize: 12,
-            color: "var(--fg-dim)",
-            fontFamily: "var(--mono)",
-          }}
-        >
+        <div className="account-menu-email">
           {email}
         </div>
         <button
+          type="button"
           onClick={onLogout}
-          style={{
-            display: "block",
-            width: "100%",
-            textAlign: "left",
-            background: "transparent",
-            border: 0,
-            padding: "7px 14px",
-            fontSize: 13,
-            cursor: "pointer",
-            color: "var(--fg-muted)",
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background =
-              "var(--surface-3)";
-            (e.currentTarget as HTMLButtonElement).style.color = "var(--fg)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background =
-              "transparent";
-            (e.currentTarget as HTMLButtonElement).style.color =
-              "var(--fg-muted)";
-          }}
+          className="account-menu-action"
         >
           Log out
         </button>
       </div>
-    </>
+    </dialog>
   );
 }
 
@@ -514,8 +460,8 @@ function CommandPalette({
 }) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+  const dialogRef = useNativeDialog(onClose);
   const inputRef = useRef<HTMLInputElement>(null);
-  const dialogRef = useFocusTrap<HTMLDivElement>(true);
   const navigate = useNavigate();
   const qc = useQueryClient();
   const capture = useCapture();
@@ -524,14 +470,6 @@ function CommandPalette({
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
-
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose]);
 
   const navEntries = NAV.filter(
     (n): n is Extract<NavEntry, { divider?: false }> => !n.divider,
@@ -582,18 +520,14 @@ function CommandPalette({
   // Ordered list of selectable actions so ArrowUp/Down + Enter can drive the
   // palette from the keyboard. The input keeps DOM focus; selection is visual
   // and exposed via aria-activedescendant for assistive tech.
-  const actions = useMemo(() => {
-    const list: { id: string; run: () => void }[] = [];
-    if (query.trim()) {
-      list.push({ id: "cmdk-action-capture", run: () => void handleCapture() });
-      list.push({ id: "cmdk-action-search", run: handleSearch });
-    }
-    for (const entry of filtered) {
-      list.push({ id: `cmdk-nav-${entry.key}`, run: () => handleAction(entry.to) });
-    }
-    return list;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, filtered]);
+  const actions: { id: string; run: () => void }[] = [];
+  if (query.trim()) {
+    actions.push({ id: "cmdk-action-capture", run: () => void handleCapture() });
+    actions.push({ id: "cmdk-action-search", run: handleSearch });
+  }
+  for (const entry of filtered) {
+    actions.push({ id: `cmdk-nav-${entry.key}`, run: () => handleAction(entry.to) });
+  }
 
   // Clamp the highlighted index to the current result set at render time — the
   // set shrinks/grows as the query changes, and we never want a stale index
@@ -623,102 +557,58 @@ function CommandPalette({
   const activeId = actions[selectedIndex]?.id;
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
+    <dialog
+      ref={dialogRef}
+      aria-label="Command palette"
+      aria-modal="true"
+      className="shell-dialog shell-dialog-command"
+    >
+      <button
+        type="button"
+        aria-label="Close command palette"
+        tabIndex={-1}
         onClick={onClose}
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 80,
-          background: "oklch(0.1 0.01 258 / 0.55)",
-          backdropFilter: "blur(4px)",
-        }}
+        className="shell-dialog-hitbox"
       />
-      {/* Modal */}
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Command palette"
-        className="card rise"
-        style={{
-          position: "fixed",
-          top: "20%",
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "min(560px, 92vw)",
-          zIndex: 81,
-          padding: 16,
-          boxShadow: "var(--shadow-pop)",
-          background: "var(--surface-2)",
-          maxHeight: "60vh",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
+      <div className="card rise shell-command-card">
         <input
           ref={inputRef}
-          className="input"
+          className="input shell-command-input"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          aria-label="Command palette search"
           placeholder="Capture anything… or navigate"
-          style={{ marginBottom: 12 }}
           disabled={isPending}
-          role="combobox"
-          aria-expanded={actions.length > 0}
-          aria-controls="cmdk-listbox"
-          aria-activedescendant={activeId}
-          aria-autocomplete="list"
+          aria-controls="cmdk-results"
           onKeyDown={handleInputKeyDown}
         />
         <div
-          id="cmdk-listbox"
-          role="listbox"
-          aria-label="Results"
-          style={{
-            overflowY: "auto",
-            overflowX: "hidden",
-            minWidth: 0,
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-          }}
+          id="cmdk-results"
+          className="cmdk-results"
         >
           {/* Primary: capture with Aya */}
           {query.trim() && (
             <button
+              type="button"
               id="cmdk-action-capture"
-              role="option"
-              aria-selected={activeId === "cmdk-action-capture"}
+              aria-current={
+                activeId === "cmdk-action-capture" ? "true" : undefined
+              }
               onClick={() => void handleCapture()}
               onMouseMove={() => setActiveIndex(0)}
               disabled={isPending}
-              style={{
-                textAlign: "left",
-                background: isPending
-                  ? "var(--surface-2)"
-                  : activeId === "cmdk-action-capture"
-                    ? "var(--surface-4)"
-                    : "var(--surface-3)",
-                border: "1px solid var(--signal-ghost)",
-                borderRadius: "var(--r-sm)",
-                padding: "8px 12px",
-                cursor: isPending ? "default" : "pointer",
-                fontSize: 13,
-                color: "var(--signal)",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 4,
-                opacity: isPending ? 0.7 : 1,
-                minWidth: 0,
-                overflowWrap: "anywhere",
-              }}
+              className={
+                "cmdk-action cmdk-action-capture" +
+                (activeId === "cmdk-action-capture" ? " selected" : "") +
+                (isPending ? " pending" : "")
+              }
             >
               {isPending ? (
-                <Loader2 size={14} strokeWidth={1.6} style={{ animation: "spin 1s linear infinite" }} />
+                <Loader2
+                  size={14}
+                  strokeWidth={1.6}
+                  className="spin-icon"
+                />
               ) : (
                 <Sparkles size={14} strokeWidth={1.6} />
               )}
@@ -728,28 +618,17 @@ function CommandPalette({
           {/* Secondary: search */}
           {query.trim() && (
             <button
+              type="button"
               id="cmdk-action-search"
-              role="option"
-              aria-selected={activeId === "cmdk-action-search"}
+              aria-current={
+                activeId === "cmdk-action-search" ? "true" : undefined
+              }
               onClick={handleSearch}
               onMouseMove={() => setActiveIndex(1)}
-              style={{
-                textAlign: "left",
-                background:
-                  activeId === "cmdk-action-search"
-                    ? "var(--surface-3)"
-                    : "transparent",
-                border: "1px solid var(--line)",
-                borderRadius: "var(--r-sm)",
-                padding: "8px 12px",
-                cursor: "pointer",
-                fontSize: 13,
-                color: "var(--fg-muted)",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 4,
-              }}
+              className={
+                "cmdk-action cmdk-action-search" +
+                (activeId === "cmdk-action-search" ? " selected" : "")
+              }
             >
               <Search size={14} strokeWidth={1.6} />
               Search for &ldquo;{query}&rdquo;
@@ -761,27 +640,13 @@ function CommandPalette({
             const selected = activeId === optionId;
             return (
               <button
+                type="button"
                 key={entry.key}
                 id={optionId}
-                role="option"
-                aria-selected={selected}
+                aria-current={selected ? "true" : undefined}
                 onClick={() => handleAction(entry.to)}
                 onMouseMove={() => setActiveIndex(navOffset + i)}
-                style={{
-                  textAlign: "left",
-                  background: selected ? "var(--surface-3)" : "transparent",
-                  border: 0,
-                  borderRadius: "var(--r-sm)",
-                  padding: "7px 10px",
-                  cursor: "pointer",
-                  fontSize: 13,
-                  color: selected ? "var(--fg)" : "var(--fg-muted)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  transition:
-                    "background var(--dur) var(--ease), color var(--dur) var(--ease)",
-                }}
+                className={"cmdk-nav-option" + (selected ? " selected" : "")}
               >
                 <entry.Icon size={15} strokeWidth={1.6} />
                 {entry.label}
@@ -790,7 +655,275 @@ function CommandPalette({
           })}
         </div>
       </div>
-    </>
+    </dialog>
+  );
+}
+
+function TopBar({
+  navOpen,
+  email,
+  userInitial,
+  ayaOpen,
+  avatarMenuOpen,
+  settingsOpen,
+  theme,
+  onSetTheme,
+  onSetNavOpen,
+  onToggleMobileNav,
+  onVoiceCapture,
+  onToggleSettings,
+  onToggleAya,
+  onToggleAvatarMenu,
+  onCloseAvatarMenu,
+  onLogout,
+  onCloseSettings,
+}: {
+  navOpen: boolean;
+  email: string;
+  userInitial: string;
+  ayaOpen: boolean;
+  avatarMenuOpen: boolean;
+  settingsOpen: boolean;
+  theme: string;
+  onSetTheme: (theme: string) => void;
+  onSetNavOpen: (open: boolean) => void;
+  onToggleMobileNav: () => void;
+  onVoiceCapture: () => void;
+  onToggleSettings: () => void;
+  onToggleAya: () => void;
+  onToggleAvatarMenu: () => void;
+  onCloseAvatarMenu: () => void;
+  onLogout: () => void;
+  onCloseSettings: () => void;
+}) {
+  const brandStyle = {
+    "--topbar-brand-width": navOpen ? "216px" : "auto",
+  } as CSSProperties;
+
+  return (
+    <header className="topbar">
+      <div className="row gap-3 topbar-brand" style={brandStyle}>
+        <button
+          type="button"
+          className="iconbtn mobile-only"
+          onClick={onToggleMobileNav}
+          aria-label="Open navigation"
+        >
+          <Menu size={18} strokeWidth={1.6} />
+        </button>
+        <div className="row gap-2">
+          <Logo />
+          <span className="serif desktop-only topbar-title">
+            Mission Control
+          </span>
+        </div>
+      </div>
+
+      <div className="row gap-1 topbar-actions">
+        <button
+          type="button"
+          className="iconbtn"
+          title="Voice capture"
+          aria-label="Voice capture"
+          onClick={onVoiceCapture}
+        >
+          <Mic size={18} strokeWidth={1.6} />
+        </button>
+        <button
+          type="button"
+          className="iconbtn"
+          title="Settings"
+          aria-label="Settings"
+          onClick={onToggleSettings}
+        >
+          <Settings size={18} strokeWidth={1.6} />
+        </button>
+        <button
+          type="button"
+          className="iconbtn signal"
+          title="Toggle Aya (Ctrl+`)"
+          aria-label="Toggle Aya"
+          aria-pressed={ayaOpen}
+          onClick={onToggleAya}
+        >
+          <Sparkles size={18} strokeWidth={1.6} />
+        </button>
+        <div className="avatar-anchor">
+          <button
+            type="button"
+            className="avatar-btn"
+            title={email || "Account"}
+            aria-label="Account menu"
+            onClick={onToggleAvatarMenu}
+          >
+            <Avatar initials={userInitial} size={30} />
+          </button>
+          {avatarMenuOpen && (
+            <AvatarMenu
+              email={email}
+              onClose={onCloseAvatarMenu}
+              onLogout={onLogout}
+            />
+          )}
+        </div>
+      </div>
+
+      {settingsOpen && (
+        <SettingsPopover
+          theme={theme}
+          setTheme={onSetTheme}
+          navOpen={navOpen}
+          setNavOpen={onSetNavOpen}
+          close={onCloseSettings}
+        />
+      )}
+    </header>
+  );
+}
+
+function SideNav({
+  pathname,
+  navOpen,
+  mobileNav,
+  onNavigate,
+  onToggleNavOpen,
+}: {
+  pathname: string;
+  navOpen: boolean;
+  mobileNav: boolean;
+  onNavigate: (to: string) => void;
+  onToggleNavOpen: () => void;
+}) {
+  return (
+    <nav className={"leftnav " + (mobileNav ? "mobile-open" : "")}>
+      {NAV.map((n, i) =>
+        "divider" in n && n.divider ? (
+          <div key={i} className="hr leftnav-divider" />
+        ) : (
+          <NavItemComp
+            key={(n as Extract<NavEntry, { divider?: false }>).key}
+            entry={n as Extract<NavEntry, { divider?: false }>}
+            active={
+              (n as Extract<NavEntry, { divider?: false }>).to === "/"
+                ? pathname === "/"
+                : pathname.startsWith(
+                    (n as Extract<NavEntry, { divider?: false }>).to,
+                  )
+            }
+            open={navOpen}
+            onClick={() =>
+              onNavigate((n as Extract<NavEntry, { divider?: false }>).to)
+            }
+          />
+        ),
+      )}
+      <button
+        type="button"
+        className="navrail-toggle navrail-toggle-offset desktop-only"
+        onClick={onToggleNavOpen}
+        title="Collapse"
+      >
+        {navOpen ? (
+          <PanelLeft size={16} strokeWidth={1.6} />
+        ) : (
+          <PanelRight size={16} strokeWidth={1.6} />
+        )}
+        {navOpen && <span>Collapse</span>}
+      </button>
+    </nav>
+  );
+}
+
+function MobileBottomNav({
+  pathname,
+  ayaOpen,
+  onNavigate,
+  onCapture,
+  onOpenAya,
+}: {
+  pathname: string;
+  ayaOpen: boolean;
+  onNavigate: (to: string) => void;
+  onCapture: () => void;
+  onOpenAya: () => void;
+}) {
+  return (
+    <nav className="bottomnav mobile-only">
+      <BottomItemComp
+        Icon={LayoutDashboard}
+        label="Today"
+        active={pathname === "/"}
+        onClick={() => onNavigate("/")}
+      />
+      <BottomItemComp
+        Icon={SquareCheckBig}
+        label="Tasks"
+        active={pathname.startsWith("/tasks")}
+        onClick={() => onNavigate("/tasks")}
+      />
+      <button
+        type="button"
+        className="bottom-fab"
+        onClick={onCapture}
+        aria-label="Capture"
+      >
+        <Sparkles size={22} strokeWidth={1.6} />
+      </button>
+      <BottomItemComp
+        Icon={NotebookPen}
+        label="Journal"
+        active={pathname.startsWith("/journal")}
+        onClick={() => onNavigate("/journal")}
+      />
+      <BottomItemComp
+        Icon={Sparkles}
+        label="Aya"
+        active={ayaOpen}
+        onClick={onOpenAya}
+      />
+    </nav>
+  );
+}
+
+function ToastStack({
+  toasts,
+  onDismiss,
+}: {
+  toasts: Toast[];
+  onDismiss: (id: number) => void;
+}) {
+  return (
+    <div className="toast-stack">
+      {toasts.map((t) => (
+        <div key={t.id} className="toast rise row gap-3">
+          {t.undo && (
+            <span className="spark">
+              <Sparkles size={14} strokeWidth={1.6} />
+            </span>
+          )}
+          <span className="toast-message">{t.text}</span>
+          {t.undo ? (
+            <button
+              type="button"
+              className="btn ghost sm"
+              onClick={async () => {
+                onDismiss(t.id);
+                if (t.onUndo) await t.onUndo();
+              }}
+            >
+              <Undo2 size={12} strokeWidth={1.6} />
+              Undo
+            </button>
+          ) : (
+            <Check
+              size={15}
+              strokeWidth={1.6}
+              className="toast-success-icon"
+            />
+          )}
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -802,29 +935,24 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  // Persistent state
-  const [theme, setTheme] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("mc-theme") ?? "dark";
-    }
-    return "dark";
-  });
-  const [navOpen, setNavOpen] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("mc-nav-open");
-      return saved !== null ? saved === "true" : true;
-    }
-    return true;
-  });
+  const [shell, dispatchShell] = useReducer(
+    shellReducer,
+    undefined,
+    initialShellState,
+  );
+  const {
+    theme,
+    navOpen,
+    mobileNav,
+    settingsOpen,
+    avatarMenuOpen,
+    captureOpen,
+    toasts,
+  } = shell;
   // Aya is a bottom "quake" window mounted once at the route root; AppShell only
   // holds the buttons that toggle it, via shared context.
   const aya = useAya();
-  const [mobileNav, setMobileNav] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsJustClosed = useRef(false);
-  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
-  const [captureOpen, setCaptureOpen] = useState(false);
-  const [toasts, setToasts] = useState<Toast[]>([]);
 
   // Sync theme to DOM + localStorage
   useEffect(() => {
@@ -842,7 +970,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     function handleKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setCaptureOpen(true);
+        dispatchShell({ type: "openCapture" });
       }
     }
     window.addEventListener("keydown", handleKey);
@@ -851,266 +979,99 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   function addToast(t: Omit<Toast, "id">) {
     const id = Date.now() + Math.random();
-    setToasts((ts) => [...ts, { ...t, id }]);
-    setTimeout(() => setToasts((ts) => ts.filter((x) => x.id !== id)), 7000);
+    dispatchShell({ type: "addToast", toast: { ...t, id } });
+    setTimeout(() => dispatchShell({ type: "dismissToast", id }), 7000);
   }
 
   function dismissToast(id: number) {
-    setToasts((ts) => ts.filter((x) => x.id !== id));
+    dispatchShell({ type: "dismissToast", id });
   }
 
   function goTo(to: string) {
     navigate({ to } as Parameters<typeof navigate>[0]);
-    setMobileNav(false);
+    dispatchShell({ type: "closeMobileNav" });
   }
 
   const userInitial = me.data?.email?.[0]?.toUpperCase() ?? me.data?.name?.[0]?.toUpperCase() ?? "?";
 
-  const gridCols = (navOpen ? "232px" : "60px") + " 1fr";
+  const shellStyle = {
+    "--shell-nav-width": navOpen ? "232px" : "60px",
+  } as CSSProperties;
 
   return (
-    <div
-      className="shell"
-      style={{
-        display: "grid",
-        gridTemplateColumns: gridCols,
-        gridTemplateRows: "56px 1fr",
-        height: "100vh",
-        overflow: "hidden",
-      }}
-    >
-      {/* ===== Top bar ===== */}
-      <header
-        className="topbar"
-        style={{
-          gridColumn: "1 / -1",
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
-          padding: "0 16px",
-          borderBottom: "1px solid var(--line-soft)",
-          background:
-            "color-mix(in oklch, var(--surface-1) 88%, transparent)",
-          backdropFilter: "blur(12px)",
-          position: "relative",
-          zIndex: 40,
+    <div className="shell" style={shellStyle}>
+      <TopBar
+        navOpen={navOpen}
+        email={me.data?.email ?? ""}
+        userInitial={userInitial}
+        ayaOpen={aya.open}
+        avatarMenuOpen={avatarMenuOpen}
+        settingsOpen={settingsOpen}
+        theme={theme}
+        onSetTheme={(nextTheme) =>
+          dispatchShell({ type: "setTheme", theme: nextTheme })
+        }
+        onSetNavOpen={(open) => dispatchShell({ type: "setNavOpen", open })}
+        onToggleMobileNav={() => dispatchShell({ type: "toggleMobileNav" })}
+        onVoiceCapture={() => addToast({ text: "Listening…", undo: false })}
+        onToggleSettings={() => {
+          if (settingsJustClosed.current) {
+            settingsJustClosed.current = false;
+            return;
+          }
+          dispatchShell({ type: "toggleSettings" });
         }}
-      >
-        {/* Logo + title */}
-        <div
-          className="row gap-3"
-          style={{
-            width: navOpen ? 216 : "auto",
-            flexShrink: 0,
-          }}
-        >
-          <button
-            className="iconbtn mobile-only"
-            onClick={() => setMobileNav((v) => !v)}
-            aria-label="Open navigation"
-          >
-            <Menu size={18} strokeWidth={1.6} />
-          </button>
-          <div className="row gap-2">
-            <Logo />
-            <span
-              className="serif desktop-only"
-              style={{
-                fontSize: 16,
-                fontWeight: 460,
-                letterSpacing: "-0.01em",
-              }}
-            >
-              Mission Control
-            </span>
-          </div>
-        </div>
-
-        {/* Action buttons */}
-        <div className="row gap-1" style={{ flexShrink: 0, marginLeft: "auto" }}>
-          <button
-            className="iconbtn"
-            title="Voice capture"
-            aria-label="Voice capture"
-            onClick={() => addToast({ text: "Listening…", undo: false })}
-          >
-            <Mic size={18} strokeWidth={1.6} />
-          </button>
-          <button
-            className="iconbtn"
-            title="Settings"
-            aria-label="Settings"
-            onClick={() => {
-              if (settingsJustClosed.current) {
-                settingsJustClosed.current = false;
-                return;
-              }
-              setSettingsOpen((v) => !v);
-            }}
-          >
-            <Settings size={18} strokeWidth={1.6} />
-          </button>
-          <button
-            className="iconbtn"
-            title="Toggle Aya (Ctrl+`)"
-            aria-label="Toggle Aya"
-            aria-pressed={aya.open}
-            onClick={aya.toggle}
-            style={{ color: "var(--signal)" }}
-          >
-            <Sparkles size={18} strokeWidth={1.6} />
-          </button>
-          {/* Avatar / user menu */}
-          <div style={{ position: "relative" }}>
-            <button
-              className="avatar-btn"
-              title={me.data?.email ?? "Account"}
-              aria-label="Account menu"
-              onClick={() => setAvatarMenuOpen((v) => !v)}
-            >
-              <Avatar initials={userInitial} size={30} />
-            </button>
-            {avatarMenuOpen && (
-              <AvatarMenu
-                email={me.data?.email ?? ""}
-                onClose={() => setAvatarMenuOpen(false)}
-                onLogout={() => {
-                  setAvatarMenuOpen(false);
-                  logout.mutate();
-                }}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Settings popover */}
-        {settingsOpen && (
-          <SettingsPopover
-            theme={theme}
-            setTheme={setTheme}
-            navOpen={navOpen}
-            setNavOpen={setNavOpen}
-            close={() => {
-              settingsJustClosed.current = true;
-              setSettingsOpen(false);
-            }}
-          />
-        )}
-      </header>
-
-      {/* ===== Left nav ===== */}
-      <nav
-        className={"leftnav " + (mobileNav ? "mobile-open" : "")}
-        style={{
-          gridColumn: 1,
-          gridRow: 2,
-          borderRight: "1px solid var(--line-soft)",
-          background: "var(--surface-1)",
-          overflowY: "auto",
-          overflowX: "hidden",
-          padding: "12px 10px",
+        onToggleAya={aya.toggle}
+        onToggleAvatarMenu={() => dispatchShell({ type: "toggleAvatarMenu" })}
+        onCloseAvatarMenu={() => dispatchShell({ type: "closeAvatarMenu" })}
+        onLogout={() => {
+          dispatchShell({ type: "closeAvatarMenu" });
+          logout.mutate();
         }}
-      >
-        {NAV.map((n, i) =>
-          "divider" in n && n.divider ? (
-            <div key={i} className="hr" style={{ margin: "10px 8px" }} />
-          ) : (
-            <NavItemComp
-              key={(n as Extract<NavEntry, { divider?: false }>).key}
-              entry={n as Extract<NavEntry, { divider?: false }>}
-              active={
-                (n as Extract<NavEntry, { divider?: false }>).to === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(
-                      (n as Extract<NavEntry, { divider?: false }>).to,
-                    )
-              }
-              open={navOpen}
-              onClick={() =>
-                goTo((n as Extract<NavEntry, { divider?: false }>).to)
-              }
-            />
-          ),
-        )}
-        <button
-          className="navrail-toggle desktop-only"
-          onClick={() => setNavOpen((v) => !v)}
-          title="Collapse"
-          style={{ marginTop: 8 }}
-        >
-          {navOpen ? (
-            <PanelLeft size={16} strokeWidth={1.6} />
-          ) : (
-            <PanelRight size={16} strokeWidth={1.6} />
-          )}
-          {navOpen && <span style={{ fontSize: 12 }}>Collapse</span>}
-        </button>
-      </nav>
+        onCloseSettings={() => {
+          settingsJustClosed.current = true;
+          dispatchShell({ type: "closeSettings" });
+        }}
+      />
+
+      <SideNav
+        pathname={pathname}
+        navOpen={navOpen}
+        mobileNav={mobileNav}
+        onNavigate={goTo}
+        onToggleNavOpen={() =>
+          dispatchShell({ type: "setNavOpen", open: !navOpen })
+        }
+      />
 
       {/* Nav scrim (mobile) */}
       {mobileNav && (
-        <div
+        <button
+          type="button"
           className="nav-scrim"
-          onClick={() => setMobileNav(false)}
+          aria-label="Close navigation"
+          tabIndex={-1}
+          onClick={() => dispatchShell({ type: "closeMobileNav" })}
         />
       )}
 
-      {/* ===== Content ===== */}
-      <main
-        style={{
-          gridColumn: 2,
-          gridRow: 2,
-          overflow: "auto",
-          minWidth: 0,
-          position: "relative",
-          background: "var(--bg)",
-        }}
-      >
-        {children}
-      </main>
+      <main className="shell-main">{children}</main>
 
       {/* Aya itself is the bottom quake window, mounted once at the route root
           (see routes/root.tsx) so it survives navigation. */}
 
-      {/* ===== Mobile bottom nav ===== */}
-      <nav className="bottomnav mobile-only">
-        <BottomItemComp
-          Icon={LayoutDashboard}
-          label="Today"
-          active={pathname === "/"}
-          onClick={() => goTo("/")}
-        />
-        <BottomItemComp
-          Icon={SquareCheckBig}
-          label="Tasks"
-          active={pathname.startsWith("/tasks")}
-          onClick={() => goTo("/tasks")}
-        />
-        <button
-          className="bottom-fab"
-          onClick={() => setCaptureOpen(true)}
-          aria-label="Capture"
-        >
-          <Sparkles size={22} strokeWidth={1.6} />
-        </button>
-        <BottomItemComp
-          Icon={NotebookPen}
-          label="Journal"
-          active={pathname.startsWith("/journal")}
-          onClick={() => goTo("/journal")}
-        />
-        <BottomItemComp
-          Icon={Sparkles}
-          label="Aya"
-          active={aya.open}
-          onClick={aya.openAya}
-        />
-      </nav>
+      <MobileBottomNav
+        pathname={pathname}
+        ayaOpen={aya.open}
+        onNavigate={goTo}
+        onCapture={() => dispatchShell({ type: "openCapture" })}
+        onOpenAya={aya.openAya}
+      />
 
       {/* ===== Command palette ===== */}
       {captureOpen && (
         <CommandPalette
-          onClose={() => setCaptureOpen(false)}
+          onClose={() => dispatchShell({ type: "closeCapture" })}
           onNavigate={() => {}}
           onToast={(text, onUndo) =>
             addToast({ text, undo: !!onUndo, onUndo })
@@ -1118,62 +1079,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         />
       )}
 
-      {/* ===== Toasts ===== */}
-      <div
-        className="toast-stack"
-        style={{
-          position: "fixed",
-          bottom: 22,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 90,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-          alignItems: "center",
-        }}
-      >
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            className="toast rise row gap-3"
-            style={{
-              background: "var(--surface-3)",
-              border: "1px solid var(--line-bright)",
-              borderRadius: "var(--r-md)",
-              padding: "10px 12px 10px 14px",
-              boxShadow: "var(--shadow-pop)",
-              alignItems: "center",
-              minWidth: 240,
-            }}
-          >
-            {t.undo && (
-              <span className="spark">
-                <Sparkles size={14} strokeWidth={1.6} />
-              </span>
-            )}
-            <span style={{ flex: 1, fontSize: 13 }}>{t.text}</span>
-            {t.undo ? (
-              <button
-                className="btn ghost sm"
-                onClick={async () => {
-                  dismissToast(t.id);
-                  if (t.onUndo) await t.onUndo();
-                }}
-              >
-                <Undo2 size={12} strokeWidth={1.6} />
-                Undo
-              </button>
-            ) : (
-              <Check
-                size={15}
-                strokeWidth={1.6}
-                style={{ color: "var(--st-done)" }}
-              />
-            )}
-          </div>
-        ))}
-      </div>
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }

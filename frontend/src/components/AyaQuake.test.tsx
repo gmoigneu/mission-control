@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 
@@ -73,9 +73,9 @@ it("shows the greeting and is closed until toggled with Ctrl+`", async () => {
   fireEvent.keyDown(window, { ctrlKey: true, code: "Backquote", key: "`" });
   expect(panel).toHaveAttribute("aria-hidden", "false");
 
-  // Esc closes it.
-  fireEvent.keyDown(window, { key: "Escape" });
-  expect(panel).toHaveAttribute("aria-hidden", "true");
+  // Native dialog Escape handling surfaces as a cancel event.
+  fireEvent(panel, new Event("cancel", { cancelable: true }));
+  await waitFor(() => expect(panel).toHaveAttribute("aria-hidden", "true"));
 });
 
 it("sends a message and renders Aya's reply", async () => {

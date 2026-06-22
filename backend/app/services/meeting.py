@@ -7,14 +7,21 @@ from app.audit.serialize import model_to_dict
 from app.audit.service import record_create, record_delete, record_update
 from app.models.meeting import Meeting
 from app.schemas.meeting import MeetingCreate, MeetingUpdate
-from app.search.index import deindex_subject, index_subject
+from app.services.pagination import apply_window, count_rows
 
 ENTITY = "meeting"
 
 
-async def list_meetings(db: AsyncSession) -> list[Meeting]:
-    result = await db.execute(select(Meeting).order_by(Meeting.at))
+async def list_meetings(
+    db: AsyncSession, *, limit: int | None = None, offset: int = 0
+) -> list[Meeting]:
+    stmt = apply_window(select(Meeting).order_by(Meeting.at), limit=limit, offset=offset)
+    result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def count_meetings(db: AsyncSession) -> int:
+    return await count_rows(db, select(Meeting))
 
 
 async def get_meeting(db: AsyncSession, meeting_id: uuid.UUID) -> Meeting | None:
@@ -26,7 +33,6 @@ async def create_meeting(db: AsyncSession, data: MeetingCreate, *, surface: str 
     db.add(obj)
     await db.flush()
     await record_create(db, ENTITY, obj, surface=surface)
-    await index_subject(db, ENTITY, obj)
     return obj
 
 
@@ -38,7 +44,6 @@ async def update_meeting(
         setattr(obj, key, value)
     await db.flush()
     await record_update(db, ENTITY, obj, before, surface=surface)
-    await index_subject(db, ENTITY, obj)
     return obj
 
 
@@ -48,4 +53,3 @@ async def delete_meeting(db: AsyncSession, obj: Meeting, *, surface: str = "api"
     await db.delete(obj)
     await db.flush()
     await record_delete(db, ENTITY, before, entity_id, surface=surface)
-    await deindex_subject(db, ENTITY, entity_id)

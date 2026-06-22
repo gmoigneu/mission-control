@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "../../lib/api";
+import { useAuthenticatedQueryEnabled } from "../../lib/auth";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -78,19 +79,26 @@ export function invalidateForWrites(qc: QueryClient, writes: AgentWrite[]) {
  * mount of the Aya window (and resumes the same thread on other devices).
  */
 export function useCurrentConversation() {
+  const enabled = useAuthenticatedQueryEnabled();
   return useQuery({
     queryKey: CONVERSATION_KEY,
     queryFn: () => apiFetch<Conversation>("/agent/conversation/current"),
+    enabled,
   });
 }
 
 export function useChat() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: { message: string; conversation_id?: string | null }) =>
       apiFetch<AgentResponse>("/agent/chat", {
         method: "POST",
         body: JSON.stringify(payload),
       }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: CONVERSATION_KEY, refetchType: "none" });
+      invalidateForWrites(qc, data.writes);
+    },
   });
 }
 
@@ -107,20 +115,30 @@ export function useNewConversation() {
 }
 
 export function useCapture() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: { text: string }) =>
       apiFetch<AgentResponse>("/agent/capture", {
         method: "POST",
         body: JSON.stringify(payload),
       }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: CONVERSATION_KEY, refetchType: "none" });
+      invalidateForWrites(qc, data.writes);
+    },
   });
 }
 
 export function useRevertRun() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (runId: string) =>
       apiFetch<{ reverted: boolean }>(`/agent/runs/${runId}/revert`, {
         method: "POST",
       }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: CONVERSATION_KEY, refetchType: "none" });
+      qc.invalidateQueries({ queryKey: ["audit"] });
+    },
   });
 }

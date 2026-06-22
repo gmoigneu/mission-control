@@ -35,12 +35,15 @@ async def test_task_links_crud_flow(client, db):
     # Filter by from_task_id: should find it
     matched = await client.get(f"/task-links?from_task_id={task_a.id}")
     assert matched.status_code == 200
+    assert matched.headers["X-Total-Count"] == "1"
+    assert matched.headers["X-Limit"] == "50"
     assert any(e["id"] == tlid for e in matched.json())
 
     # Filter with a different from_task_id: should not find it
     other_id = uuid.uuid4()
     unmatched = await client.get(f"/task-links?from_task_id={other_id}")
     assert unmatched.status_code == 200
+    assert unmatched.headers["X-Total-Count"] == "0"
     assert all(e["id"] != tlid for e in unmatched.json())
 
     # GET by id

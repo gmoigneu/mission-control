@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "../../lib/api";
+import { useAuthenticatedQueryEnabled } from "../../lib/auth";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,9 +36,11 @@ const PERSONA_KEY = ["persona"];
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
 export function usePersona() {
+  const enabled = useAuthenticatedQueryEnabled();
   return useQuery({
     queryKey: PERSONA_KEY,
     queryFn: () => apiFetch<Persona>("/agent/persona"),
+    enabled,
   });
 }
 

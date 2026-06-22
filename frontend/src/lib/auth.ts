@@ -24,6 +24,11 @@ export function useMe() {
   });
 }
 
+export function useAuthenticatedQueryEnabled(enabled = true) {
+  const me = useMe();
+  return enabled && Boolean(me.data);
+}
+
 export function useLogin() {
   const qc = useQueryClient();
   return useMutation({
@@ -50,9 +55,11 @@ export function usePasskeyLogin() {
 }
 
 export function usePasskeys() {
+  const enabled = useAuthenticatedQueryEnabled();
   return useQuery({
     queryKey: ["passkeys"],
     queryFn: () => apiFetch<Passkey[]>("/auth/webauthn/passkeys"),
+    enabled,
     retry: false,
   });
 }

@@ -1,13 +1,11 @@
 import { X } from "lucide-react";
-import { type ReactNode, useEffect } from "react";
-import { useFocusTrap } from "../lib/useFocusTrap";
+import { type ReactNode, useEffect, useEffectEvent, useRef } from "react";
 
 /**
  * A slide-up sheet anchored to the bottom of the screen, used for secondary
  * controls (filters, pickers) on mobile. Renders nothing while closed; while
- * open it overlays the page, traps focus, and closes on Escape or backdrop tap —
- * matching the dialog conventions in SidePanel. Styling lives under `.sheet*`
- * in console.css.
+ * open it uses the browser's native modal dialog semantics, backdrop, focus
+ * handling, and Escape behavior. Styling lives under `.sheet*` in console.css.
  */
 export function BottomSheet({
   open,
@@ -20,34 +18,43 @@ export function BottomSheet({
   title?: string;
   children: ReactNode;
 }) {
-  const ref = useFocusTrap<HTMLDivElement>(open);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const close = useEffectEvent(onClose);
 
   useEffect(() => {
-    if (!open) return;
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+    const dialog = dialogRef.current;
+    if (!dialog || !open) return;
+    if (!dialog.open) {
+      dialog.showModal();
     }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [open, onClose]);
+    function handleCancel(e: Event) {
+      e.preventDefault();
+      close();
+    }
+    dialog.addEventListener("cancel", handleCancel);
+    return () => {
+      dialog.removeEventListener("cancel", handleCancel);
+      if (dialog.open) dialog.close();
+    };
+  }, [open]);
 
   if (!open) return null;
 
   return (
-    <>
+    <dialog
+      ref={dialogRef}
+      className="sheet-dialog"
+      aria-label={title ?? "Sheet"}
+    >
       <button
         type="button"
-        className="sheet-scrim"
+        className="sheet-backdrop-hitbox"
         aria-label="Dismiss"
         tabIndex={-1}
         onClick={onClose}
       />
       <div
-        ref={ref}
         className="sheet"
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
       >
         <div className="sheet-grip" aria-hidden="true" />
         {title && (
@@ -65,6 +72,6 @@ export function BottomSheet({
         )}
         <div className="sheet-body">{children}</div>
       </div>
-    </>
+    </dialog>
   );
 }

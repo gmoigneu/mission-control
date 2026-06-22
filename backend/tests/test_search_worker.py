@@ -7,8 +7,10 @@ from app.models.chunk import Chunk
 from app.models.context import Context
 from app.models.outbox import CHANNEL_GRAPH, CHANNEL_SEARCH, OutboxEvent
 from app.schemas.context import ContextCreate
+from app.schemas.knowledge import KnowledgeCreate
 from app.search.worker import process_search_outbox
 from app.services.context import create_context, delete_context
+from app.services.knowledge import create_knowledge
 
 
 async def test_search_worker_indexes_created_entity(db):
@@ -32,6 +34,36 @@ async def test_search_worker_indexes_created_entity(db):
         select(func.count()).where(Chunk.subject_type == "context", Chunk.subject_id == ctx.id)
     )).scalar_one()
     assert post == 1
+
+
+async def test_search_worker_indexes_newer_entity_types_without_inline_chunks(db):
+    note = await create_knowledge(
+        db,
+        KnowledgeCreate(
+            slug=f"knowledge-{uuid.uuid4().hex[:6]}",
+            title="Worker Indexed Knowledge",
+            body="Semantic worker coverage for newer entities",
+        ),
+    )
+    await db.flush()
+
+    pre = (
+        await db.execute(select(func.count()).where(Chunk.subject_id == note.id))
+    ).scalar_one()
+    assert pre == 0
+
+    processed = await process_search_outbox(db)
+    assert processed >= 1
+
+    chunk = (
+        await db.execute(
+            select(Chunk).where(
+                Chunk.subject_type == "knowledge",
+                Chunk.subject_id == note.id,
+            )
+        )
+    ).scalar_one()
+    assert "Worker Indexed Knowledge" in chunk.content
 
 
 async def test_search_worker_deindexes_on_delete(db):

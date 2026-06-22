@@ -37,7 +37,7 @@ const EMPTY_FORM: FormState = { kind: "goal", title: "", body: "", parent_id: ""
 
 export function TelosPage() {
   const { data: items = [] } = useTelos();
-  useEditFromSearch(items, handleEdit);
+  const editRequest = useEditFromSearch(items);
   const createTelos = useCreateTelos();
   const updateTelos = useUpdateTelos();
   const deleteTelos = useDeleteTelos();
@@ -46,6 +46,7 @@ export function TelosPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   useHotkey("c", handleNew, !panelOpen);
+  if (editRequest) handleEdit(editRequest);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -97,9 +98,12 @@ export function TelosPage() {
     }
   }
 
-  const parentOptions = items
-    .filter((row) => row.id !== editingId)
-    .map((row) => ({ value: row.id, label: `${row.kind}: ${row.title}` }));
+  const parentOptions = items.reduce<{ value: string; label: string }[]>((acc, row) => {
+    if (row.id !== editingId) {
+      acc.push({ value: row.id, label: `${row.kind}: ${row.title}` });
+    }
+    return acc;
+  }, []);
   const titleById = new Map(items.map((row) => [row.id, row.title]));
 
   const columns = [

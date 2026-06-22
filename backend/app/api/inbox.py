@@ -1,8 +1,9 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.pagination import Page, page_params, set_pagination_headers
 from app.db import get_db
 from app.deps import get_current_user
 from app.schemas.inbox_item import InboxItemCreate, InboxItemOut, InboxItemUpdate
@@ -15,10 +16,16 @@ router = APIRouter(
 
 @router.get("", response_model=list[InboxItemOut])
 async def list_inbox_items(  # noqa: B008
+    response: Response,
     status: str | None = None,
+    page: Page = Depends(page_params),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    return await svc.list_inbox_items(db, status=status)
+    total = await svc.count_inbox_items(db, status=status)
+    set_pagination_headers(response, total=total, page=page)
+    return await svc.list_inbox_items(
+        db, status=status, limit=page.limit, offset=page.offset
+    )
 
 
 @router.post("", response_model=InboxItemOut, status_code=status.HTTP_201_CREATED)

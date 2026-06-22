@@ -1,8 +1,12 @@
 import { createRoute } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 import { AppShell } from "../components/AppShell";
 import { RequireAuth } from "../components/RequireAuth";
-import { GraphExplorer } from "../features/graph/GraphExplorer";
 import { rootRoute } from "./root";
+
+const GraphExplorer = lazy(() =>
+  import("../features/graph/GraphExplorer").then((mod) => ({ default: mod.GraphExplorer })),
+);
 
 export function GraphPage() {
   return (
@@ -18,7 +22,9 @@ export function GraphPage() {
           }}
         >
           <h1 className="title">Graph</h1>
-          <GraphExplorer />
+          <Suspense fallback={<output aria-live="polite">Loading graph tools...</output>}>
+            <GraphExplorer />
+          </Suspense>
         </div>
       </AppShell>
     </RequireAuth>

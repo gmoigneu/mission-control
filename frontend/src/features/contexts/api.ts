@@ -2,7 +2,7 @@ import { makeResourceHooks } from "../../lib/hooks";
 import { resource } from "../../lib/resource";
 import type { Context, ContextCreate, ContextUpdate } from "../../lib/types";
 
-export const contextsResource = resource<Context, ContextCreate, ContextUpdate>("/contexts");
+const contextsResource = resource<Context, ContextCreate, ContextUpdate>("/contexts");
 
 export const {
   useList: useContexts,

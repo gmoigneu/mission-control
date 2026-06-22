@@ -27,15 +27,21 @@ const PERSONA = {
 };
 
 it("usePersona GETs /api/agent/persona", async () => {
-  const fetchMock = vi.fn(async () => new Response(JSON.stringify(PERSONA), { status: 200 }));
+  const fetchMock = vi.fn(async (url: string) => {
+    if (url.includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "u1", email: "user@example.com", name: null }), {
+        status: 200,
+      });
+    }
+    return new Response(JSON.stringify(PERSONA), { status: 200 });
+  });
   vi.stubGlobal("fetch", fetchMock);
 
   const { result } = renderHook(() => usePersona(), { wrapper });
 
   await waitFor(() => expect(result.current.isSuccess).toBe(true));
   expect(result.current.data?.name).toBe("Nova");
-  const [url] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
-  expect(url).toBe("/api/agent/persona");
+  expect(fetchMock.mock.calls.map(([url]) => String(url))).toContain("/api/agent/persona");
 });
 
 it("useSavePersona PUTs the payload", async () => {

@@ -77,7 +77,9 @@ it("renders the graph page with controls and fetches the snapshot", async () => 
   );
 
   await screen.findByRole("heading", { name: "Graph" });
-  expect(screen.getAllByRole("button", { name: /rebuild graph/i })[0]).toBeInTheDocument();
+  expect(
+    (await screen.findAllByRole("button", { name: /rebuild graph/i }, { timeout: 5000 }))[0],
+  ).toBeInTheDocument();
   expect(calls.some((u) => u.includes("/graph/full"))).toBe(true);
 });
 
@@ -102,7 +104,16 @@ it("requires confirmation before rebuilding the graph from the toolbar", async (
         return new Response(JSON.stringify([]), { status: 200 });
       }
       if (u.includes("/admin/rebuild-graph")) {
-        return new Response(JSON.stringify({ ok: true }), { status: 200 });
+        return new Response(
+          JSON.stringify({ id: "job-1", kind: "rebuild_graph", status: "queued" }),
+          { status: 202 },
+        );
+      }
+      if (u.includes("/admin/jobs/job-1")) {
+        return new Response(
+          JSON.stringify({ id: "job-1", kind: "rebuild_graph", status: "succeeded" }),
+          { status: 200 },
+        );
       }
       return new Response(JSON.stringify({}), { status: 200 });
     }),
@@ -126,7 +137,9 @@ it("requires confirmation before rebuilding the graph from the toolbar", async (
   );
 
   await screen.findByRole("heading", { name: "Graph" });
-  const rebuild = screen.getAllByRole("button", { name: /rebuild graph/i })[0];
+  const rebuild = (
+    await screen.findAllByRole("button", { name: /rebuild graph/i }, { timeout: 5000 })
+  )[0];
   await userEvent.click(rebuild);
   expect(calls.some((u) => u.includes("/admin/rebuild-graph"))).toBe(false);
   await userEvent.click(screen.getByRole("button", { name: /confirm rebuild/i }));
@@ -154,7 +167,16 @@ it("requires confirmation before rebuilding from the empty graph state", async (
         return new Response(JSON.stringify([]), { status: 200 });
       }
       if (u.includes("/admin/rebuild-graph")) {
-        return new Response(JSON.stringify({ ok: true }), { status: 200 });
+        return new Response(
+          JSON.stringify({ id: "job-1", kind: "rebuild_graph", status: "queued" }),
+          { status: 202 },
+        );
+      }
+      if (u.includes("/admin/jobs/job-1")) {
+        return new Response(
+          JSON.stringify({ id: "job-1", kind: "rebuild_graph", status: "succeeded" }),
+          { status: 200 },
+        );
       }
       return new Response(JSON.stringify({}), { status: 200 });
     }),

@@ -2,7 +2,7 @@ import uuid
 from collections import defaultdict
 from typing import Any, NamedTuple
 
-from sqlalchemy import select
+from sqlalchemy import String, and_, cast, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
@@ -23,6 +23,7 @@ from app.models.task import Task
 from app.models.telos import Telos
 from app.models.tone import Tone
 from app.schemas.entity_link import EntityLinkCreate
+from app.services.pagination import apply_window, count_rows
 
 ENTITY = "entity_link"
 
@@ -82,6 +83,60 @@ async def _entity_meta(
     return meta
 
 
+async def _matching_refs_for_term(
+    db: AsyncSession, term: str
+) -> dict[str, set[uuid.UUID]]:
+    """Find entity ids whose display metadata matches a search term."""
+    pattern = f"%{term}%"
+    refs_by_type: dict[str, set[uuid.UUID]] = defaultdict(set)
+    for entity_type, config in ENTITY_META.items():
+        conditions = [config.name_attr.ilike(pattern)]
+        if config.slug_attr is not None:
+            conditions.append(config.slug_attr.ilike(pattern))
+        result = await db.execute(select(config.model.id).where(or_(*conditions)))
+        refs_by_type[entity_type].update(result.scalars().all())
+    return refs_by_type
+
+
+async def _entity_link_query(
+    db: AsyncSession,
+    *,
+    from_type: str | None = None,
+    from_id: uuid.UUID | None = None,
+    to_type: str | None = None,
+    to_id: uuid.UUID | None = None,
+    q: str | None = None,
+):
+    stmt = select(EntityLink)
+    if from_type is not None:
+        stmt = stmt.where(EntityLink.from_type == from_type)
+    if from_id is not None:
+        stmt = stmt.where(EntityLink.from_id == from_id)
+    if to_type is not None:
+        stmt = stmt.where(EntityLink.to_type == to_type)
+    if to_id is not None:
+        stmt = stmt.where(EntityLink.to_id == to_id)
+
+    for term in q.strip().lower().split() if q else []:
+        pattern = f"%{term}%"
+        conditions: list[Any] = [
+            EntityLink.from_type.ilike(pattern),
+            EntityLink.to_type.ilike(pattern),
+            EntityLink.kind.ilike(pattern),
+            cast(EntityLink.from_id, String).ilike(pattern),
+            cast(EntityLink.to_id, String).ilike(pattern),
+        ]
+        for entity_type, ids in (await _matching_refs_for_term(db, term)).items():
+            if not ids:
+                continue
+            conditions.append(
+                and_(EntityLink.from_type == entity_type, EntityLink.from_id.in_(ids))
+            )
+            conditions.append(and_(EntityLink.to_type == entity_type, EntityLink.to_id.in_(ids)))
+        stmt = stmt.where(or_(*conditions))
+    return stmt
+
+
 def _entity_link_out(
     obj: EntityLink,
     meta: dict[tuple[str, uuid.UUID], tuple[str | None, str | None]],
@@ -97,27 +152,6 @@ def _entity_link_out(
     }
 
 
-def _matches_query(row: dict[str, Any], q: str | None) -> bool:
-    terms = q.strip().lower().split() if q else []
-    if not terms:
-        return True
-
-    haystack = " ".join(
-        str(value).lower()
-        for value in [
-            row["from_type"],
-            row["from_name"],
-            row["from_slug"],
-            row["to_type"],
-            row["to_name"],
-            row["to_slug"],
-            row["kind"],
-        ]
-        if value
-    )
-    return all(term in haystack for term in terms)
-
-
 async def list_entity_links(
     db: AsyncSession,
     from_type: str | None = None,
@@ -125,24 +159,35 @@ async def list_entity_links(
     to_type: str | None = None,
     to_id: uuid.UUID | None = None,
     q: str | None = None,
+    *,
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[dict[str, Any]]:
-    stmt = select(EntityLink)
-    if from_type is not None:
-        stmt = stmt.where(EntityLink.from_type == from_type)
-    if from_id is not None:
-        stmt = stmt.where(EntityLink.from_id == from_id)
-    if to_type is not None:
-        stmt = stmt.where(EntityLink.to_type == to_type)
-    if to_id is not None:
-        stmt = stmt.where(EntityLink.to_id == to_id)
-    result = await db.execute(stmt.order_by(EntityLink.created_at))
+    stmt = await _entity_link_query(
+        db, from_type=from_type, from_id=from_id, to_type=to_type, to_id=to_id, q=q
+    )
+    stmt = apply_window(stmt.order_by(EntityLink.created_at), limit=limit, offset=offset)
+    result = await db.execute(stmt)
     links = list(result.scalars().all())
     refs = {(link.from_type, link.from_id) for link in links} | {
         (link.to_type, link.to_id) for link in links
     }
     meta = await _entity_meta(db, refs)
-    rows = [_entity_link_out(link, meta) for link in links]
-    return [row for row in rows if _matches_query(row, q)]
+    return [_entity_link_out(link, meta) for link in links]
+
+
+async def count_entity_links(
+    db: AsyncSession,
+    from_type: str | None = None,
+    from_id: uuid.UUID | None = None,
+    to_type: str | None = None,
+    to_id: uuid.UUID | None = None,
+    q: str | None = None,
+) -> int:
+    stmt = await _entity_link_query(
+        db, from_type=from_type, from_id=from_id, to_type=to_type, to_id=to_id, q=q
+    )
+    return await count_rows(db, stmt)
 
 
 async def get_entity_link(db: AsyncSession, entity_link_id: uuid.UUID) -> EntityLink | None:

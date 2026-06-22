@@ -11,12 +11,6 @@ from app.search.embedder import embed_texts
 
 _logger = logging.getLogger(__name__)
 
-# Entity types that get indexed for semantic search. Edge-only aggregates
-# (relationship, task_link, entity_link) live in the graph, not the index.
-INDEXABLE_TYPES = frozenset(
-    {"context", "project", "company", "person", "task", "observation"}
-)
-
 # Fields that make up the searchable text, in render order.
 _RENDER_FIELDS = (
     "name", "title", "slug", "role", "summary", "purpose", "body", "outcome",

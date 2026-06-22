@@ -1,5 +1,17 @@
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { lazy, Suspense } from "react";
+
+const MarkdownRenderer = lazy(async () => {
+  const [{ default: ReactMarkdown }, { default: remarkGfm }] = await Promise.all([
+    import("react-markdown"),
+    import("remark-gfm"),
+  ]);
+
+  return {
+    default: function MarkdownRenderer({ children }: { children: string }) {
+      return <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>;
+    },
+  };
+});
 
 /**
  * Render a markdown string as formatted content.
@@ -12,7 +24,9 @@ import remarkGfm from "remark-gfm";
 export function Markdown({ children }: { children: string }) {
   return (
     <div className="md">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
+      <Suspense fallback={<span>{children}</span>}>
+        <MarkdownRenderer>{children}</MarkdownRenderer>
+      </Suspense>
     </div>
   );
 }

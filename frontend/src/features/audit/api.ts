@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch, apiFetchWithHeaders } from "../../lib/api";
+import { useAuthenticatedQueryEnabled } from "../../lib/auth";
 import { DEFAULT_PAGE_SIZE, type Page, parsePageInfo } from "../../lib/pagination";
 import type { AuditEntry } from "../../lib/types";
 
 /** Maps backend entity_type singular → frontend query key (plural). */
-export const ENTITY_TYPE_TO_KEY: Record<string, string> = {
+const ENTITY_TYPE_TO_KEY: Record<string, string> = {
   context: "contexts",
   project: "projects",
   company: "companies",
@@ -20,7 +21,12 @@ export const ENTITY_TYPE_TO_KEY: Record<string, string> = {
 };
 
 export function useAudit() {
-  return useQuery({ queryKey: ["audit"], queryFn: () => apiFetch<AuditEntry[]>("/audit") });
+  const enabled = useAuthenticatedQueryEnabled();
+  return useQuery({
+    queryKey: ["audit"],
+    queryFn: () => apiFetch<AuditEntry[]>("/audit"),
+    enabled,
+  });
 }
 
 async function fetchAuditPage(
@@ -35,9 +41,11 @@ async function fetchAuditPage(
 }
 
 export function useAuditPage(offset = 0, limit = DEFAULT_PAGE_SIZE) {
+  const enabled = useAuthenticatedQueryEnabled();
   return useQuery({
     queryKey: ["audit", "page", { limit, offset }],
     queryFn: () => fetchAuditPage(limit, offset),
+    enabled,
     placeholderData: (prev) => prev,
   });
 }

@@ -1,8 +1,9 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.pagination import Page, page_params, set_pagination_headers
 from app.db import get_db
 from app.deps import get_current_user
 from app.schemas.entity_tag import EntityTagCreate, EntityTagOut
@@ -15,13 +16,24 @@ router = APIRouter(
 
 @router.get("", response_model=list[EntityTagOut])
 async def list_entity_tags(  # noqa: B008
+    response: Response,
     tag_id: uuid.UUID | None = None,
     subject_type: str | None = None,
     subject_id: uuid.UUID | None = None,
+    page: Page = Depends(page_params),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    return await svc.list_entity_tags(
+    total = await svc.count_entity_tags(
         db, tag_id=tag_id, subject_type=subject_type, subject_id=subject_id
+    )
+    set_pagination_headers(response, total=total, page=page)
+    return await svc.list_entity_tags(
+        db,
+        tag_id=tag_id,
+        subject_type=subject_type,
+        subject_id=subject_id,
+        limit=page.limit,
+        offset=page.offset,
     )
 
 

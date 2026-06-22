@@ -1,9 +1,10 @@
 import uuid
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.pagination import Page, page_params, set_pagination_headers
 from app.db import get_db
 from app.deps import get_current_user
 from app.models.habit import Habit
@@ -19,8 +20,10 @@ from app.services import habit as svc
 router = APIRouter(prefix="/habits", tags=["habits"], dependencies=[Depends(get_current_user)])
 
 
-async def _to_out(db: AsyncSession, habit: Habit) -> HabitOut:
-    streak, logged_today, today_score = await svc.habit_stats(db, habit.id)
+async def _to_out(
+    db: AsyncSession, habit: Habit, stats: tuple[int, bool, int | None] | None = None
+) -> HabitOut:
+    streak, logged_today, today_score = stats or await svc.habit_stats(db, habit.id)
     out = HabitOut.model_validate(habit)
     out.streak = streak
     out.logged_today = logged_today
@@ -30,11 +33,18 @@ async def _to_out(db: AsyncSession, habit: Habit) -> HabitOut:
 
 @router.get("", response_model=list[HabitOut])
 async def list_habits(  # noqa: B008
+    response: Response,
     active: bool | None = None,
+    page: Page = Depends(page_params),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ):
-    habits = await svc.list_habits(db, active=active)
-    return [await _to_out(db, h) for h in habits]
+    total = await svc.count_habits(db, active=active)
+    set_pagination_headers(response, total=total, page=page)
+    habits = await svc.list_habits(
+        db, active=active, limit=page.limit, offset=page.offset
+    )
+    stats_by_id = await svc.habit_stats_by_id(db, habits)
+    return [await _to_out(db, h, stats_by_id[h.id]) for h in habits]
 
 
 @router.post("", response_model=HabitOut, status_code=status.HTTP_201_CREATED)

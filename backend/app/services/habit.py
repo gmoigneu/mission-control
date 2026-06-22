@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Sequence
 from datetime import date, timedelta
 
 from sqlalchemy import select
@@ -8,18 +9,32 @@ from app.audit.serialize import model_to_dict
 from app.audit.service import record_create, record_delete, record_update
 from app.models.habit import Habit, HabitLog
 from app.schemas.habit import HabitCreate, HabitLogCreate, HabitUpdate
-from app.search.index import deindex_subject, index_subject
+from app.services.pagination import apply_window, count_rows
 
 ENTITY = "habit"
 LOG_ENTITY = "habit_log"
 
 
-async def list_habits(db: AsyncSession, *, active: bool | None = None) -> list[Habit]:
+async def list_habits(
+    db: AsyncSession,
+    *,
+    active: bool | None = None,
+    limit: int | None = None,
+    offset: int = 0,
+) -> list[Habit]:
     stmt = select(Habit)
     if active is not None:
         stmt = stmt.where(Habit.active == active)
-    result = await db.execute(stmt.order_by(Habit.created_at))
+    stmt = apply_window(stmt.order_by(Habit.created_at), limit=limit, offset=offset)
+    result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def count_habits(db: AsyncSession, *, active: bool | None = None) -> int:
+    stmt = select(Habit)
+    if active is not None:
+        stmt = stmt.where(Habit.active == active)
+    return await count_rows(db, stmt)
 
 
 async def get_habit(db: AsyncSession, habit_id: uuid.UUID) -> Habit | None:
@@ -31,7 +46,6 @@ async def create_habit(db: AsyncSession, data: HabitCreate, *, surface: str = "a
     db.add(obj)
     await db.flush()
     await record_create(db, ENTITY, obj, surface=surface)
-    await index_subject(db, ENTITY, obj)
     return obj
 
 
@@ -43,7 +57,6 @@ async def update_habit(
         setattr(obj, key, value)
     await db.flush()
     await record_update(db, ENTITY, obj, before, surface=surface)
-    await index_subject(db, ENTITY, obj)
     return obj
 
 
@@ -53,7 +66,6 @@ async def delete_habit(db: AsyncSession, obj: Habit, *, surface: str = "api") ->
     await db.delete(obj)
     await db.flush()
     await record_delete(db, ENTITY, before, entity_id, surface=surface)
-    await deindex_subject(db, ENTITY, entity_id)
 
 
 async def list_logs(db: AsyncSession, habit_id: uuid.UUID) -> list[HabitLog]:
@@ -155,3 +167,36 @@ async def habit_stats(
     )
     today_score = today_log.score if today_log and tracking_type == "score" else None
     return streak, logged_today, today_score
+
+
+async def habit_stats_by_id(
+    db: AsyncSession, habits: Sequence[Habit], *, today: date | None = None
+) -> dict[uuid.UUID, tuple[int, bool, int | None]]:
+    """Return stats for a batch of habits without per-habit log queries."""
+    if not habits:
+        return {}
+
+    today = today or date.today()
+    habit_by_id = {habit.id: habit for habit in habits}
+    logs_by_habit: dict[uuid.UUID, list[HabitLog]] = {habit.id: [] for habit in habits}
+    result = await db.execute(
+        select(HabitLog)
+        .where(HabitLog.habit_id.in_(habit_by_id))
+        .order_by(HabitLog.habit_id, HabitLog.date)
+    )
+    for log in result.scalars().all():
+        logs_by_habit[log.habit_id].append(log)
+
+    stats: dict[uuid.UUID, tuple[int, bool, int | None]] = {}
+    for habit_id, habit in habit_by_id.items():
+        logs = logs_by_habit[habit_id]
+        tracking_type = habit.tracking_type
+        streak = compute_streak(logs, today=today, tracking_type=tracking_type)
+        today_log = next((log for log in logs if log.date == today), None)
+        logged_today = bool(
+            today_log
+            and (today_log.score is not None if tracking_type == "score" else today_log.done)
+        )
+        today_score = today_log.score if today_log and tracking_type == "score" else None
+        stats[habit_id] = (streak, logged_today, today_score)
+    return stats

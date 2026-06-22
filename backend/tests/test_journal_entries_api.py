@@ -67,6 +67,30 @@ async def test_journal_entry_minimal_payload(client, db):
     assert data["productivity"] is None
 
 
+async def test_journal_entries_list_pagination_headers(client, db):
+    await login(client, db)
+
+    for i, day in enumerate(["2026-02-01", "2026-02-02", "2026-02-03"]):
+        created = await client.post(
+            "/journal-entries",
+            json={"date": day, "body": f"Paged journal {i}"},
+        )
+        assert created.status_code == 201
+
+    first = await client.get("/journal-entries?limit=2&offset=0")
+    assert first.status_code == 200
+    assert len(first.json()) == 2
+    assert first.headers["X-Total-Count"] == "3"
+    assert first.headers["X-Limit"] == "2"
+    assert first.headers["X-Offset"] == "0"
+    assert first.headers["X-Next-Offset"] == "2"
+
+    last = await client.get("/journal-entries?limit=2&offset=2")
+    assert last.status_code == 200
+    assert len(last.json()) == 1
+    assert "X-Next-Offset" not in last.headers
+
+
 async def test_get_missing_journal_entry_404(client, db):
     await login(client, db)
 

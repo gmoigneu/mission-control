@@ -1,4 +1,4 @@
-import { PALETTE, paletteVar } from "./console";
+import { PALETTE, paletteVar } from "./console-data";
 
 const SWATCH = {
   width: 22,

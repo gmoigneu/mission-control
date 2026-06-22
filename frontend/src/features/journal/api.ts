@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { makeResourceHooks } from "../../lib/hooks";
 import { apiFetch } from "../../lib/api";
+import { useAuthenticatedQueryEnabled } from "../../lib/auth";
 import { resource } from "../../lib/resource";
 import type {
   DailyCheckIn,
@@ -11,19 +12,18 @@ import type {
   JournalEntryUpdate,
 } from "../../lib/types";
 
-export const journalResource = resource<JournalEntry, JournalEntryCreate, JournalEntryUpdate>(
+const journalResource = resource<JournalEntry, JournalEntryCreate, JournalEntryUpdate>(
   "/journal-entries",
 );
 
-export const {
-  useList: useJournalEntries,
-  useCreate: useCreateJournalEntry,
-  useUpdate: useUpdateJournalEntry,
-  useRemove: useDeleteJournalEntry,
-} = makeResourceHooks<JournalEntry, JournalEntryCreate, JournalEntryUpdate>(
+const journalHooks = makeResourceHooks<JournalEntry, JournalEntryCreate, JournalEntryUpdate>(
   "journal-entries",
   journalResource,
 );
+
+export const useJournalEntries = journalHooks.useList;
+export const useCreateJournalEntry = journalHooks.useCreate;
+export const useUpdateJournalEntry = journalHooks.useUpdate;
 
 interface DailyCheckInQuery {
   days?: number;
@@ -31,8 +31,10 @@ interface DailyCheckInQuery {
 }
 
 export function useDailyCheckIns(query: DailyCheckInQuery = {}) {
+  const enabled = useAuthenticatedQueryEnabled();
   return useQuery({
     queryKey: ["daily-checkins", query],
+    enabled,
     queryFn: () => {
       const params = new URLSearchParams();
       if (query.days !== undefined) params.set("days", String(query.days));

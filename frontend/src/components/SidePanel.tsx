@@ -1,14 +1,12 @@
 import { X } from "lucide-react";
-import { useEffect, type ReactNode } from "react";
-import { useFocusTrap } from "../lib/useFocusTrap";
+import { useEffect, useEffectEvent, useRef, type ReactNode } from "react";
 
 /**
  * A right-edge slide-over drawer for create/edit forms.
  *
  * Renders nothing while closed, so its contents (form fields) are absent from
- * the DOM until opened. While open it overlays the page with a dimmed backdrop,
- * traps focus (WCAG 2.4.3 / 2.1.2), and closes on Escape or backdrop click —
- * matching the dialog conventions used elsewhere in the shell.
+ * the DOM until opened. While open it uses the browser's native modal dialog
+ * semantics, backdrop, focus handling, and Escape behavior.
  */
 export function SidePanel({
   open,
@@ -21,35 +19,42 @@ export function SidePanel({
   title: string;
   children: ReactNode;
 }) {
-  const ref = useFocusTrap<HTMLDivElement>(open);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const close = useEffectEvent(onClose);
 
   useEffect(() => {
-    if (!open) return;
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+    const dialog = dialogRef.current;
+    if (!dialog || !open) return;
+    if (!dialog.open) {
+      dialog.showModal();
     }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [open, onClose]);
+    function handleCancel(e: Event) {
+      e.preventDefault();
+      close();
+    }
+    dialog.addEventListener("cancel", handleCancel);
+    return () => {
+      dialog.removeEventListener("cancel", handleCancel);
+      if (dialog.open) dialog.close();
+    };
+  }, [open]);
 
   if (!open) return null;
 
   return (
-    <>
+    <dialog
+      ref={dialogRef}
+      className="drawer-dialog"
+      aria-label={title}
+    >
       <button
         type="button"
-        className="drawer-backdrop"
+        className="drawer-backdrop-hitbox"
         aria-label="Close panel"
         tabIndex={-1}
         onClick={onClose}
       />
-      <aside
-        ref={ref}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        className="drawer-panel"
-      >
+      <aside className="drawer-panel">
         <header className="drawer-head">
           <h2 className="title" style={{ fontSize: 18, margin: 0 }}>
             {title}
@@ -65,6 +70,6 @@ export function SidePanel({
         </header>
         <div className="drawer-body">{children}</div>
       </aside>
-    </>
+    </dialog>
   );
 }

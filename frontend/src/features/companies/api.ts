@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { apiFetch } from "../../lib/api";
+import { useAuthenticatedQueryEnabled } from "../../lib/auth";
 import { makeResourceHooks } from "../../lib/hooks";
 import { resource } from "../../lib/resource";
 import type { Company } from "../../lib/types";
 
-export const companiesResource = resource<Company, Partial<Company>, Partial<Company>>("/companies");
+const companiesResource = resource<Company, Partial<Company>, Partial<Company>>("/companies");
 
 export const {
   useList: useCompanies,
@@ -15,9 +16,10 @@ export const {
 } = makeResourceHooks<Company, Partial<Company>, Partial<Company>>("companies", companiesResource);
 
 export function useCompanyBySlug(slug: string) {
+  const enabled = useAuthenticatedQueryEnabled(slug.length > 0);
   return useQuery({
     queryKey: ["companies", "slug", slug],
     queryFn: () => apiFetch<Company>(`/companies/by-slug/${encodeURIComponent(slug)}`),
-    enabled: slug.length > 0,
+    enabled,
   });
 }

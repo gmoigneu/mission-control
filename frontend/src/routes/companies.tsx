@@ -28,7 +28,7 @@ export function CompaniesPage() {
   const [search, setSearch] = useState("");
   const query = search.trim();
   const { data: companies = [] } = useCompanies(query ? { q: query } : undefined);
-  useEditFromSearch(companies, handleEdit);
+  const editRequest = useEditFromSearch(companies);
   const createCompany = useCreateCompany();
   const updateCompany = useUpdateCompany();
   const deleteCompany = useDeleteCompany();
@@ -37,6 +37,7 @@ export function CompaniesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   useHotkey("c", handleNew, !panelOpen);
+  if (editRequest) handleEdit(editRequest);
 
   function handleChange(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>

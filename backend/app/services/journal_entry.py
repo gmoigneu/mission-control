@@ -15,16 +15,25 @@ from app.schemas.journal_entry import (
     JournalEntryCreate,
     JournalEntryUpdate,
 )
-from app.search.index import deindex_subject, index_subject
+from app.services.pagination import apply_window, count_rows
 
 ENTITY = "journal_entry"
 
 
-async def list_journal_entries(db: AsyncSession) -> list[JournalEntry]:
-    result = await db.execute(
-        select(JournalEntry).order_by(JournalEntry.date.desc(), JournalEntry.created_at.desc())
+async def list_journal_entries(
+    db: AsyncSession, *, limit: int | None = None, offset: int = 0
+) -> list[JournalEntry]:
+    stmt = apply_window(
+        select(JournalEntry).order_by(JournalEntry.date.desc(), JournalEntry.created_at.desc()),
+        limit=limit,
+        offset=offset,
     )
+    result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def count_journal_entries(db: AsyncSession) -> int:
+    return await count_rows(db, select(JournalEntry))
 
 
 async def get_or_create_journal_entry(
@@ -131,7 +140,6 @@ async def create_journal_entry(
     db.add(obj)
     await db.flush()
     await record_create(db, ENTITY, obj, surface=surface)
-    await index_subject(db, ENTITY, obj)
     return obj
 
 
@@ -143,7 +151,6 @@ async def update_journal_entry(
         setattr(obj, key, value)
     await db.flush()
     await record_update(db, ENTITY, obj, before, surface=surface)
-    await index_subject(db, ENTITY, obj)
     return obj
 
 
@@ -155,4 +162,3 @@ async def delete_journal_entry(
     await db.delete(obj)
     await db.flush()
     await record_delete(db, ENTITY, before, entity_id, surface=surface)
-    await deindex_subject(db, ENTITY, entity_id)

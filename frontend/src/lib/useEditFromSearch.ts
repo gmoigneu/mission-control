@@ -1,5 +1,5 @@
 import { useLocation } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useState } from "react";
 
 /**
  * Search-param validator for list routes that support deep-linking to a single
@@ -12,30 +12,28 @@ export function editSearch(search: Record<string, unknown>): { edit?: string } {
 }
 
 /**
- * Open a list item's edit drawer when the URL carries `?edit=<id>`.
+ * Return a one-shot edit request when the URL carries `?edit=<id>`.
  *
- * Resolves the id against `items` (once they've loaded) and calls `onOpen` at
- * most once per id, so closing the drawer doesn't immediately reopen it. Reads
- * the param loosely so it works on any route regardless of its search schema.
+ * Resolves the id against `items` once they've loaded. Each id is emitted at
+ * most once, so closing a drawer does not immediately reopen it while the URL
+ * still carries the same search param. Reads the param loosely so it works on
+ * any route regardless of its search schema.
  */
-export function useEditFromSearch<T extends { id: string }>(
-  items: T[],
-  onOpen: (item: T) => void,
-) {
+export function useEditFromSearch<T extends { id: string }>(items: T[]): T | undefined {
   const location = useLocation();
   const rawEdit = (location.search as { edit?: unknown }).edit;
   const editId = rawEdit == null || rawEdit === "" ? undefined : String(rawEdit);
-  const openedRef = useRef<string | null>(null);
+  const [openedId, setOpenedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!editId) {
-      openedRef.current = null;
-      return;
-    }
-    if (openedRef.current === editId) return;
-    const item = items.find((i) => i.id === editId);
-    if (!item) return;
-    openedRef.current = editId;
-    onOpen(item);
-  }, [editId, items, onOpen]);
+  if (!editId) {
+    if (openedId !== null) setOpenedId(null);
+    return undefined;
+  }
+  if (openedId === editId) return undefined;
+
+  const item = items.find((i) => i.id === editId);
+  if (!item) return undefined;
+
+  setOpenedId(editId);
+  return item;
 }

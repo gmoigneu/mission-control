@@ -7,14 +7,21 @@ from app.audit.serialize import model_to_dict
 from app.audit.service import record_create, record_delete, record_update
 from app.models.telos import Telos
 from app.schemas.telos import TelosCreate, TelosUpdate
-from app.search.index import deindex_subject, index_subject
+from app.services.pagination import apply_window, count_rows
 
 ENTITY = "telos"
 
 
-async def list_telos(db: AsyncSession) -> list[Telos]:
-    result = await db.execute(select(Telos).order_by(Telos.created_at))
+async def list_telos(
+    db: AsyncSession, *, limit: int | None = None, offset: int = 0
+) -> list[Telos]:
+    stmt = apply_window(select(Telos).order_by(Telos.created_at), limit=limit, offset=offset)
+    result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def count_telos(db: AsyncSession) -> int:
+    return await count_rows(db, select(Telos))
 
 
 async def get_telos(db: AsyncSession, telos_id: uuid.UUID) -> Telos | None:
@@ -26,7 +33,6 @@ async def create_telos(db: AsyncSession, data: TelosCreate, *, surface: str = "a
     db.add(obj)
     await db.flush()
     await record_create(db, ENTITY, obj, surface=surface)
-    await index_subject(db, ENTITY, obj)
     return obj
 
 
@@ -38,7 +44,6 @@ async def update_telos(
         setattr(obj, key, value)
     await db.flush()
     await record_update(db, ENTITY, obj, before, surface=surface)
-    await index_subject(db, ENTITY, obj)
     return obj
 
 
@@ -48,4 +53,3 @@ async def delete_telos(db: AsyncSession, obj: Telos, *, surface: str = "api") ->
     await db.delete(obj)
     await db.flush()
     await record_delete(db, ENTITY, before, entity_id, surface=surface)
-    await deindex_subject(db, ENTITY, entity_id)

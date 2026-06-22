@@ -1,27 +1,11 @@
 import uuid
-from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.chunk import Chunk
-from app.models.company import Company
-from app.models.context import Context
-from app.models.person import Person
-from app.models.project import Project
-from app.models.task import Task
 from app.search.embedder import embed_text
-
-# subject_type -> (model, display-name attribute, has a `slug` column)
-# The model slot is typed Any because columns are read dynamically below
-# (model.id / getattr(model, name_attr) / model.slug).
-_SUBJECT_META: dict[str, tuple[Any, str, bool]] = {
-    "person": (Person, "name", True),
-    "company": (Company, "name", True),
-    "context": (Context, "name", True),
-    "project": (Project, "title", True),
-    "task": (Task, "title", False),
-}
+from app.search.registry import SEARCHABLE_SPECS
 
 
 async def semantic_search(
@@ -72,17 +56,17 @@ async def _attach_entity_meta(db: AsyncSession, results: list[dict]) -> None:
 
     meta: dict[tuple[str, str], dict] = {}
     for stype, ids in ids_by_type.items():
-        spec = _SUBJECT_META.get(stype)
+        spec = SEARCHABLE_SPECS.get(stype)
         if spec is None:
             continue
-        model, name_attr, has_slug = spec
-        cols = [model.id, getattr(model, name_attr).label("name")]
-        if has_slug:
-            cols.append(model.slug.label("slug"))
+        model = spec.model
+        cols = [model.id, getattr(model, spec.display_attr).label("name")]
+        if spec.slug_attr:
+            cols.append(getattr(model, spec.slug_attr).label("slug"))
         for row in (await db.execute(select(*cols).where(model.id.in_(ids)))).all():
             meta[(stype, str(row.id))] = {
                 "name": row.name,
-                "slug": row.slug if has_slug else None,
+                "slug": row.slug if spec.slug_attr else None,
             }
 
     for r in results:
