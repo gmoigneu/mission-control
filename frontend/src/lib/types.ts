@@ -348,6 +348,95 @@ export interface InboxItemCreate {
 }
 export type InboxItemUpdate = Partial<InboxItemCreate>;
 
+export type PlanningKind =
+  | "evening_plan"
+  | "morning_triage"
+  | "midday_replan"
+  | "follow_through_nudge";
+export type PlanningStatus = "draft" | "sent" | "reviewed" | "dismissed" | "applied";
+export type PlanningAction =
+  | "keep_today"
+  | "move_tomorrow"
+  | "defer"
+  | "mark_done"
+  | "archive"
+  | "clarify"
+  | "convert_inbox_to_task"
+  | "none";
+
+export interface PlanningRecommendation {
+  id: string;
+  type: "task" | "inbox_item";
+  task_id?: string;
+  inbox_item_id?: string;
+  title: string;
+  bucket: string;
+  rank: number;
+  suggested_action: PlanningAction;
+  reason: string;
+  proposed_changes: Record<string, string | null>;
+  status: "pending" | "applied" | "dismissed";
+  due?: string | null;
+  scheduled?: string | null;
+}
+
+export interface PlanningMessageBody {
+  recommendations?: PlanningRecommendation[];
+  sections?: {
+    committed_task_ids?: string[];
+    overdue_task_ids?: string[];
+    due_today_task_ids?: string[];
+    due_soon_task_ids?: string[];
+    stale_or_unclear_task_ids?: string[];
+    inbox_item_ids?: string[];
+  };
+}
+
+export interface PlanningMessage {
+  id: string;
+  kind: PlanningKind;
+  status: PlanningStatus;
+  title: string;
+  summary: string;
+  body: PlanningMessageBody;
+  related_task_ids: string[];
+  related_inbox_item_ids: string[];
+  target_date: string;
+  app_link: string;
+  sent_channels: string[];
+  agent_run_id: string | null;
+  sent_at: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlanningMessageCreate {
+  kind: PlanningKind;
+  status?: PlanningStatus;
+  title: string;
+  summary: string;
+  body?: PlanningMessageBody;
+  related_task_ids?: string[];
+  related_inbox_item_ids?: string[];
+  target_date: string;
+  app_link?: string | null;
+  sent_channels?: string[];
+  agent_run_id?: string | null;
+}
+
+export interface PlanningMessageGenerate {
+  kind: PlanningKind;
+  target_date?: string | null;
+  deliver_telegram?: boolean;
+}
+
+export interface PlanningApplyItem {
+  recommendation_id: string;
+  action?: PlanningAction;
+  changes?: Record<string, string | null>;
+}
+
 export interface EntityTag {
   id: string;
   tag_id: string;

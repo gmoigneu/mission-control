@@ -22,6 +22,7 @@ from app.api import (
     meetings,
     observations,
     people,
+    planning_messages,
     projects,
     relationships,
     reviews,
@@ -77,6 +78,7 @@ def create_app() -> FastAPI:
     app.include_router(companies.router)
     app.include_router(knowledge.router)
     app.include_router(people.router)
+    app.include_router(planning_messages.router)
     app.include_router(meetings.router)
     app.include_router(tasks.router)
     app.include_router(relationships.router)

@@ -32,9 +32,10 @@ async def get_task(db: AsyncSession, task_id: uuid.UUID) -> Task | None:
 
 async def search_tasks(db: AsyncSession, q: str, *, limit: int = 10) -> list[Task]:
     """Title substring lookup — reliable without the search index."""
+    term = q.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
     stmt = (
         select(Task)
-        .where(Task.title.ilike(f"%{q.strip()}%"))
+        .where(Task.title.ilike(f"%{term}%", escape="\\"))
         .order_by(Task.created_at.desc())
         .limit(limit)
     )

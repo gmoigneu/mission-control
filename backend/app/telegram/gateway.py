@@ -19,6 +19,7 @@ from app.db import SessionLocal
 from app.models.telegram_chat import TelegramChat
 from app.models.user import AppUser
 from app.services.auth import get_user_by_email
+from app.services.planning_message import handle_telegram_task_command
 from app.telegram import client
 
 logger = logging.getLogger(__name__)
@@ -115,6 +116,10 @@ async def handle_update(db: AsyncSession, update: dict) -> str | None:
         if command == "/help":
             return _HELP
         return f"Unknown command {command}. Send /help for the list."
+
+    task_reply = await handle_telegram_task_command(db, text)
+    if task_reply is not None:
+        return task_reply
 
     conversation_id = await _ensure_conversation(db, tg_chat)
     history = await build_history_messages(db, conversation_id)

@@ -10,6 +10,8 @@ from app.agent import agent as agent_module
 from app.agent.llm import LLMTurn
 from app.config import settings
 from app.models.agent_run import AgentRun
+from app.models.audit import AuditLog
+from app.models.task import Task
 from app.models.telegram_chat import TelegramChat
 from app.models.user import AppUser
 from app.security import hash_password
@@ -207,6 +209,58 @@ async def test_non_text_message_is_acknowledged(db, monkeypatch):
     reply = await gateway.handle_update(db, _message(7, text=None, photo=[{"file_id": "x"}]))
     assert reply is not None
     assert "text" in reply.lower()
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_explicit_single_task_command_mutates_with_audit_without_agent(db, monkeypatch):
+    monkeypatch.setattr(agent_module, "complete", _fake_complete("should not run"))
+    monkeypatch.setattr(settings, "telegram_allowed_chat_ids", "616")
+    monkeypatch.setattr(settings, "initial_user_email", None)
+    db.add(AppUser(email="cmd@example.com", password_hash=hash_password("pw")))
+    task = Task(title="File taxes", status="open")
+    db.add(task)
+    await db.flush()
+
+    reply = await gateway.handle_update(db, _message(616, "mark File taxes done"))
+
+    assert reply is not None
+    assert "marked done" in reply
+    assert task.status == "done"
+    audits = list(
+        (
+            await db.execute(
+                select(AuditLog).where(
+                    AuditLog.entity_type == "task",
+                    AuditLog.entity_id == task.id,
+                    AuditLog.surface == "telegram",
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert audits
+    runs = list((await db.execute(select(AgentRun))).scalars().all())
+    assert runs == []
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_explicit_task_command_treats_like_wildcards_as_text(db, monkeypatch):
+    monkeypatch.setattr(agent_module, "complete", _fake_complete("should not run"))
+    monkeypatch.setattr(settings, "telegram_allowed_chat_ids", "617")
+    monkeypatch.setattr(settings, "initial_user_email", None)
+    db.add(AppUser(email="wildcard@example.com", password_hash=hash_password("pw")))
+    tasks = [Task(title="File taxes", status="open"), Task(title="Fix login", status="open")]
+    db.add_all(tasks)
+    await db.flush()
+
+    reply = await gateway.handle_update(db, _message(617, "mark % done"))
+
+    assert reply is not None
+    assert "couldn't find" in reply
+    assert all(task.status == "open" for task in tasks)
+    runs = list((await db.execute(select(AgentRun))).scalars().all())
+    assert runs == []
 
 
 # ---------------------------------------------------------------------------
