@@ -20,6 +20,7 @@ from app.api import (
     journal_entries,
     knowledge,
     meetings,
+    notification_policy,
     observations,
     people,
     planning_messages,
@@ -73,6 +74,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(webauthn.router)
     app.include_router(agent.router)
+    app.include_router(notification_policy.router)
     app.include_router(contexts.router)
     app.include_router(projects.router)
     app.include_router(companies.router)
