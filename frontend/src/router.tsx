@@ -4,6 +4,7 @@ import { indexRoute } from "./routes/index";
 import { loginRoute } from "./routes/login";
 import { contextsRoute } from "./routes/contexts";
 import { projectsRoute } from "./routes/projects";
+import { projectDetailRoute } from "./routes/project-detail";
 import { peopleRoute } from "./routes/people";
 import { personDetailRoute } from "./routes/person-detail";
 import { planningRoute } from "./routes/planning";
@@ -34,6 +35,7 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   contextsRoute,
   projectsRoute,
+  projectDetailRoute,
   peopleRoute,
   personDetailRoute,
   planningRoute,

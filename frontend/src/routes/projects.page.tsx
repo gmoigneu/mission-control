@@ -111,7 +111,18 @@ export function ProjectsPage() {
   const contextMap = Object.fromEntries(contexts.map((c) => [c.id, c.name]));
 
   const columns = [
-    { header: "Title", cell: (row: Project) => row.title },
+    {
+      header: "Title",
+      cell: (row: Project) => (
+        <Link
+          to="/projects/$slug"
+          params={{ slug: row.slug }}
+          className="underline hover:text-gray-600"
+        >
+          {row.title}
+        </Link>
+      ),
+    },
     { header: "Slug", cell: (row: Project) => row.slug },
     { header: "Context", cell: (row: Project) => contextMap[row.context_id] ?? row.context_id },
     { header: "Status", cell: (row: Project) => row.status },

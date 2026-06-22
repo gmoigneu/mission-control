@@ -78,6 +78,18 @@ _NODE_DETAIL = (
 )
 
 
+def _neighborhood_nodes(depth: int) -> str:
+    return (
+        "MATCH (root {id: $id}) "
+        f"OPTIONAL MATCH path = (root)-[*1..{depth}]-(m) "
+        "WITH root, [node IN collect(DISTINCT m) WHERE node IS NOT NULL][..$neighbor_limit] AS ms "
+        "WITH [root] + ms AS ns "
+        "UNWIND ns AS n "
+        "RETURN DISTINCT n.id AS id, labels(n)[0] AS label, "
+        "coalesce(n.name, n.title, n.slug, n.id) AS name, properties(n) AS props"
+    )
+
+
 async def full_graph(
     run: Runner, *, context: str | None = None, limit: int = 5000
 ) -> dict:
@@ -109,3 +121,14 @@ async def node_detail(run: Runner, node_id: str) -> dict | None:
     row = rows[0]
     rels = [r for r in (row.get("rels") or []) if r is not None]
     return {"id": node_id, "label": row["label"], "props": row["props"], "rels": rels}
+
+
+async def neighborhood(run: Runner, node_id: str, *, depth: int = 2, limit: int = 80) -> dict:
+    """Return a bounded 1- or 2-hop induced subgraph around a node."""
+    nodes = await run(
+        _neighborhood_nodes(depth),
+        {"id": node_id, "neighbor_limit": max(limit - 1, 0)},
+    )
+    ids = [n["id"] for n in nodes]
+    edges = await run(_EDGES_AMONG, {"ids": ids}) if ids else []
+    return {"nodes": nodes, "edges": edges, "truncated": len(nodes) >= limit}

@@ -33,8 +33,23 @@ it("shows a link to the entity page for a Person", () => {
   render(
     <NodeInspector detail={detail} loading={false} onSelectNode={vi.fn()} onClose={vi.fn()} />,
   );
-  const link = screen.getByRole("link", { name: /open page/i });
+  const link = screen.getByRole("link", { name: "Open" });
   expect(link).toHaveAttribute("href", "/people/alice");
+});
+
+it("maps Project nodes to the project detail page", () => {
+  render(
+    <NodeInspector
+      detail={{ ...detail, label: "Project", props: { title: "Launch", slug: "launch" } }}
+      loading={false}
+      onSelectNode={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  );
+  expect(screen.getByRole("link", { name: "Open" })).toHaveAttribute(
+    "href",
+    "/projects/launch",
+  );
 });
 
 it("shows a loading state", () => {

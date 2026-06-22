@@ -76,3 +76,36 @@ async def test_graph_node_missing_returns_404(client, db):
         assert missing.status_code == 404
     finally:
         app.dependency_overrides.pop(get_runner, None)
+
+
+async def test_graph_neighborhood_returns_snapshot(client, db):
+    await login(client, db)
+    _use_runner(
+        FakeRunner(
+            [
+                ("AS source", [{"source": "a", "target": "b", "type": "KNOWS", "props": {}}]),
+                ("[*1..2]", [
+                    {"id": "a", "label": "Person", "name": "Alice", "props": {}},
+                    {"id": "b", "label": "Project", "name": "Launch", "props": {}},
+                ]),
+            ]
+        )
+    )
+    try:
+        resp = await client.get("/graph/neighborhood/a?depth=2")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert {n["id"] for n in body["nodes"]} == {"a", "b"}
+        assert body["edges"][0]["type"] == "KNOWS"
+    finally:
+        app.dependency_overrides.pop(get_runner, None)
+
+
+async def test_graph_neighborhood_missing_returns_404(client, db):
+    await login(client, db)
+    _use_runner(FakeRunner([("[*1..2]", [])]))
+    try:
+        missing = await client.get("/graph/neighborhood/missing?depth=2")
+        assert missing.status_code == 404
+    finally:
+        app.dependency_overrides.pop(get_runner, None)

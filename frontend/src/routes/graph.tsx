@@ -1,5 +1,6 @@
-import { createRoute } from "@tanstack/react-router";
-import { lazy, Suspense } from "react";
+import { createRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { lazy, Suspense, useCallback } from "react";
+import { graphSearch, type GraphRouteState } from "../features/graph/graph-search";
 import { AppShell } from "../components/AppShell";
 import { RequireAuth } from "../components/RequireAuth";
 import { rootRoute } from "./root";
@@ -9,6 +10,22 @@ const GraphExplorer = lazy(() =>
 );
 
 export function GraphPage() {
+  const search = useSearch({ from: "/graph" }) as GraphRouteState;
+  const navigate = useNavigate({ from: "/graph" });
+
+  const updateGraphSearch = useCallback((patch: GraphRouteState) => {
+    const next = { ...search, ...patch };
+    void navigate({
+      to: "/graph",
+      search: {
+        node: next.node || undefined,
+        context: next.context || undefined,
+        depth: next.depth,
+      },
+      replace: true,
+    } as unknown as Parameters<typeof navigate>[0]);
+  }, [navigate, search]);
+
   return (
     <RequireAuth>
       <AppShell>
@@ -23,7 +40,12 @@ export function GraphPage() {
         >
           <h1 className="title">Graph</h1>
           <Suspense fallback={<output aria-live="polite">Loading graph tools...</output>}>
-            <GraphExplorer />
+            <GraphExplorer
+              node={search.node}
+              context={search.context}
+              depth={search.depth}
+              onRouteStateChange={updateGraphSearch}
+            />
           </Suspense>
         </div>
       </AppShell>
@@ -34,5 +56,6 @@ export function GraphPage() {
 export const graphRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/graph",
+  validateSearch: graphSearch,
   component: GraphPage,
 });

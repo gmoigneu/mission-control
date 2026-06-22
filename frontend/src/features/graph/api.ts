@@ -48,14 +48,32 @@ export function useNeighbors(personId: string | undefined) {
 }
 
 /** Fetch the whole graph snapshot, optionally narrowed to one context slug. */
-export function useGraphSnapshot(context?: string) {
-  const enabled = useAuthenticatedQueryEnabled();
+export function useGraphSnapshot(context?: string, enabledWhen = true) {
+  const enabled = useAuthenticatedQueryEnabled(enabledWhen);
   return useQuery({
     queryKey: ["graph", "full", context ?? ""],
     enabled,
     queryFn: () =>
       apiFetch<GraphSnapshot>(
         context ? `/graph/full?context=${encodeURIComponent(context)}` : "/graph/full",
+      ),
+  });
+}
+
+/** Fetch a bounded neighborhood around a focused node. */
+export function useGraphNeighborhood(
+  nodeId: string | undefined,
+  depth: 1 | 2 = 2,
+  limit = 80,
+  enabledWhen = true,
+) {
+  const enabled = useAuthenticatedQueryEnabled(Boolean(nodeId) && enabledWhen);
+  return useQuery({
+    queryKey: ["graph", "neighborhood", nodeId ?? "", depth, limit],
+    enabled,
+    queryFn: () =>
+      apiFetch<GraphSnapshot>(
+        `/graph/neighborhood/${encodeURIComponent(nodeId ?? "")}?depth=${depth}&limit=${limit}`,
       ),
   });
 }

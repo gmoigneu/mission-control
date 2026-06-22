@@ -30,6 +30,14 @@ async def create_project(payload: ProjectCreate, db: AsyncSession = Depends(get_
     return obj
 
 
+@router.get("/by-slug/{slug}", response_model=ProjectOut)
+async def get_project_by_slug(slug: str, db: AsyncSession = Depends(get_db)):  # noqa: B008
+    obj = await svc.get_project_by_slug(db, slug)
+    if obj is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+    return obj
+
+
 @router.get("/{project_id}", response_model=ProjectOut)
 async def get_project(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):  # noqa: B008
     obj = await svc.get_project(db, project_id)

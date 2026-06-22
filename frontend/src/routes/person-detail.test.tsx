@@ -10,6 +10,28 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { PersonDetailPage } from "./person-detail";
 
+vi.mock("cytoscape-fcose", () => ({ default: {} }));
+vi.mock("cytoscape", () => {
+  const collection = {
+    filter: () => collection,
+    style: () => collection,
+    unselect: () => collection,
+    select: () => collection,
+    length: 1,
+  };
+  const cy = {
+    on: vi.fn(),
+    destroy: vi.fn(),
+    batch: (cb: () => void) => cb(),
+    nodes: () => collection,
+    animate: vi.fn(),
+    resize: vi.fn(),
+    getElementById: () => collection,
+  };
+  const fn = Object.assign(vi.fn(() => cy), { use: vi.fn() });
+  return { default: fn };
+});
+
 afterEach(() => vi.restoreAllMocks());
 
 function renderDetail(fetchMock: ReturnType<typeof vi.fn>) {
@@ -32,9 +54,14 @@ function renderDetail(fetchMock: ReturnType<typeof vi.fn>) {
     path: "/login",
     component: () => <div>login-page</div>,
   });
+  const graph = createRoute({
+    getParentRoute: () => root,
+    path: "/graph",
+    component: () => <div>graph-page</div>,
+  });
   const history = createMemoryHistory({ initialEntries: ["/people/jane-doe"] });
   const router = createRouter({
-    routeTree: root.addChildren([people, detail, login]),
+    routeTree: root.addChildren([people, detail, login, graph]),
     history,
   });
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -133,6 +160,30 @@ it("renders the person detail with observations timeline and graph neighbors", a
         { status: 200 },
       );
     }
+    if (u.includes("/graph/neighborhood/p1") && (!init?.method || init.method === "GET")) {
+      return new Response(
+        JSON.stringify({
+          nodes: [
+            { id: "p1", label: "Person", name: "Jane Doe", props: { slug: "jane-doe" } },
+            { id: "p2", label: "Person", name: "John Roe", props: { slug: "john-roe" } },
+          ],
+          edges: [{ source: "p1", target: "p2", type: "KNOWS", props: {} }],
+          truncated: false,
+        }),
+        { status: 200 },
+      );
+    }
+    if (u.includes("/graph/node/p1") && (!init?.method || init.method === "GET")) {
+      return new Response(
+        JSON.stringify({
+          id: "p1",
+          label: "Person",
+          props: { name: "Jane Doe", slug: "jane-doe" },
+          rels: [{ rel: "KNOWS", dir: "out", id: "p2", label: "Person", name: "John Roe" }],
+        }),
+        { status: 200 },
+      );
+    }
     return new Response(JSON.stringify({}), { status: 200 });
   });
 
@@ -150,6 +201,10 @@ it("renders the person detail with observations timeline and graph neighbors", a
   // Mini relationship graph (neighbors) renders the connected node.
   const connectionLink = await screen.findByRole("link", { name: "John Roe" });
   expect(connectionLink).toHaveAttribute("href", "/people/john-roe");
+  expect(screen.getByRole("link", { name: "Open in graph" })).toHaveAttribute(
+    "href",
+    "/graph?node=p1&depth=2",
+  );
   const companyLinks = await screen.findAllByRole("link", { name: "Acme Corp" });
   expect(companyLinks.some((link) => link.getAttribute("href") === "/companies/acme")).toBe(true);
 
@@ -169,4 +224,5 @@ it("renders the person detail with observations timeline and graph neighbors", a
   const graphBody = JSON.parse(graphCall![1]!.body as string);
   expect(graphBody.intent).toBe("neighbors");
   expect(graphBody.params.person_id).toBe("p1");
+  expect(calls.some(([uu]) => uu.includes("/graph/neighborhood/p1?depth=2"))).toBe(true);
 });

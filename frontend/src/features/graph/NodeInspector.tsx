@@ -3,6 +3,7 @@ import type { GraphNodeDetail } from "../../lib/types";
 interface NodeInspectorProps {
   detail: GraphNodeDetail | undefined;
   loading: boolean;
+  error?: boolean;
   onSelectNode: (id: string) => void;
   onClose: () => void;
 }
@@ -11,10 +12,12 @@ interface NodeInspectorProps {
 function entityHref(detail: GraphNodeDetail): string | undefined {
   const slug = typeof detail.props.slug === "string" ? detail.props.slug : undefined;
   if (detail.label === "Person" && slug) return `/people/${slug}`;
+  if (detail.label === "Project" && slug) return `/projects/${slug}`;
+  if (detail.label === "Company" && slug) return `/companies/${slug}`;
   return undefined;
 }
 
-export function NodeInspector({ detail, loading, onSelectNode, onClose }: NodeInspectorProps) {
+export function NodeInspector({ detail, loading, error, onSelectNode, onClose }: NodeInspectorProps) {
   const href = detail ? entityHref(detail) : undefined;
 
   return (
@@ -34,12 +37,18 @@ export function NodeInspector({ detail, loading, onSelectNode, onClose }: NodeIn
 
       {loading && <p>Loading…</p>}
 
+      {!loading && !detail && (
+        <p style={{ color: "var(--fg-dim)", fontSize: 13 }}>
+          {error ? "Details unavailable." : "Select a node to inspect it."}
+        </p>
+      )}
+
       {!loading && detail && (
         <>
           <h3 style={{ marginTop: 0 }}>{detail.label}</h3>
           {href && (
             <p>
-              <a href={href}>Open page</a>
+              <a href={href}>Open</a>
             </p>
           )}
 

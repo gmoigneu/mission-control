@@ -30,6 +30,11 @@ async def get_project(db: AsyncSession, project_id: uuid.UUID) -> Project | None
     return await db.get(Project, project_id)
 
 
+async def get_project_by_slug(db: AsyncSession, slug: str) -> Project | None:
+    result = await db.execute(select(Project).where(Project.slug == slug))
+    return result.scalar_one_or_none()
+
+
 async def search_projects(db: AsyncSession, q: str, *, limit: int = 10) -> list[Project]:
     """Title/slug substring lookup — reliable without the search index."""
     pattern = f"%{q.strip()}%"

@@ -5,6 +5,7 @@ import { RequireAuth } from "../components/RequireAuth";
 import { Card } from "../components/ui";
 import { useCompanies } from "../features/companies/api";
 import { useContexts } from "../features/contexts/api";
+import { EmbeddedGraph } from "../features/graph/EmbeddedGraph";
 import { useNeighbors } from "../features/graph/api";
 import { useObservations } from "../features/observations/api";
 import { usePersonBySlug } from "../features/people/api";
@@ -102,6 +103,8 @@ function PersonDetailContent({
           <DetailField label="Summary" value={person.summary} />
         </div>
       </Card>
+
+      <EmbeddedGraph nodeId={person.id} title="Person map" depth={2} />
 
       <section className="space-y-2">
         <h2 className="text-lg font-medium">Connections</h2>

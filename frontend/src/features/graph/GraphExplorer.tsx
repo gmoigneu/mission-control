@@ -1,26 +1,26 @@
-import type { Core, Ext } from "cytoscape";
-import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import type { Core } from "cytoscape";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { ConfirmButton } from "../../components/ConfirmButton";
 import { useContexts } from "../contexts/api";
-import { useGraphSnapshot, useNodeDetail, useRebuildGraph } from "./api";
+import { useGraphNeighborhood, useGraphSnapshot, useNodeDetail, useRebuildGraph } from "./api";
 import { GraphControls } from "./GraphControls";
 import { NodeInspector } from "./NodeInspector";
 import { LAYOUTS, NODE_TYPES, stylesheet, type LayoutName } from "./cytoscape-config";
+import { loadGraphEngine } from "./graph-engine";
+import type { GraphRouteState } from "./graph-search";
 import { snapshotToElements } from "./snapshot-to-elements";
+import type { GraphNodeDetail } from "../../lib/types";
 
-let fcoseRegistered = false;
-async function loadGraphEngine() {
-  const [{ default: cytoscape }, { default: fcose }] = await Promise.all([
-    import("cytoscape"),
-    import("cytoscape-fcose"),
-  ]);
-
-  if (!fcoseRegistered) {
-    cytoscape.use(fcose as Ext);
-    fcoseRegistered = true;
-  }
-
-  return cytoscape;
+interface GraphExplorerProps extends GraphRouteState {
+  onRouteStateChange: (patch: GraphRouteState) => void;
 }
 
 const allTypesOn = (): Record<string, boolean> =>
@@ -41,13 +41,13 @@ type GraphExplorerAction =
   | { type: "setSearch"; search: string }
   | { type: "selectNode"; id?: string };
 
-function initialGraphExplorerState(): GraphExplorerState {
+function initialGraphExplorerState(routeState: GraphRouteState): GraphExplorerState {
   return {
-    context: "",
+    context: routeState.context ?? "",
     types: allTypesOn(),
     layout: "fcose",
     search: "",
-    selectedId: undefined,
+    selectedId: routeState.node,
   };
 }
 
@@ -72,18 +72,35 @@ function graphExplorerReducer(
   }
 }
 
-export function GraphExplorer() {
+function focusSelectedNode(cy: Core | null, selectedId: string | undefined) {
+  if (!cy || !selectedId || !("getElementById" in cy)) return;
+  const node = cy.getElementById(selectedId);
+  if (node.length === 0) return;
+  cy.nodes().unselect();
+  node.select();
+  cy.animate({ center: { eles: node }, zoom: 1.45 }, { duration: 250 });
+}
+
+export function GraphExplorer({
+  node,
+  context: routeContext,
+  depth,
+  onRouteStateChange,
+}: GraphExplorerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [cy, setCy] = useState<Core | null>(null);
 
   const [state, dispatch] = useReducer(
     graphExplorerReducer,
-    undefined,
+    { node, context: routeContext, depth },
     initialGraphExplorerState,
   );
   const { context, types, layout, search, selectedId } = state;
 
-  const snapshot = useGraphSnapshot(context || undefined);
+  const focusedMode = Boolean(selectedId && depth);
+  const fullSnapshot = useGraphSnapshot(context || undefined, !focusedMode);
+  const neighborhoodSnapshot = useGraphNeighborhood(selectedId, depth ?? 2, 120, focusedMode);
+  const snapshot = focusedMode ? neighborhoodSnapshot : fullSnapshot;
   const contextsQuery = useContexts();
   const detail = useNodeDetail(selectedId);
   const rebuild = useRebuildGraph();
@@ -92,6 +109,32 @@ export function GraphExplorer() {
     () => (snapshot.data ? snapshotToElements(snapshot.data) : []),
     [snapshot.data],
   );
+  const fallbackDetail: GraphNodeDetail | undefined = useMemo(() => {
+    const node = snapshot.data?.nodes.find((n) => n.id === selectedId);
+    return node
+      ? { id: node.id, label: node.label, props: node.props, rels: [] }
+      : undefined;
+  }, [selectedId, snapshot.data]);
+
+  const selectNode = useCallback(
+    (id?: string) => {
+      dispatch({ type: "selectNode", id });
+      onRouteStateChange({ node: id });
+    },
+    [onRouteStateChange],
+  );
+  const selectNodeFromGraph = useEffectEvent((id: string) => {
+    dispatch({ type: "selectNode", id });
+    onRouteStateChange({ node: id });
+  });
+
+  useEffect(() => {
+    dispatch({ type: "setContext", context: routeContext ?? "" });
+  }, [routeContext]);
+
+  useEffect(() => {
+    dispatch({ type: "selectNode", id: node });
+  }, [node]);
 
   // Create/recreate the Cytoscape instance whenever the element set or layout changes.
   useEffect(() => {
@@ -103,7 +146,7 @@ export function GraphExplorer() {
     void loadGraphEngine().then((cytoscape) => {
       if (canceled) return;
       const cy = cytoscape({ container, elements, style: stylesheet, layout: LAYOUTS[layout] });
-      cy.on("tap", "node", (evt) => dispatch({ type: "selectNode", id: evt.target.id() }));
+      cy.on("tap", "node", (evt) => selectNodeFromGraph(evt.target.id()));
       createdCy = cy;
       setCy(cy);
     });
@@ -130,6 +173,10 @@ export function GraphExplorer() {
     cy?.resize();
   }, [selectedId, cy]);
 
+  useEffect(() => {
+    focusSelectedNode(cy, selectedId);
+  }, [cy, selectedId]);
+
   function runSearch() {
     const term = search.trim().toLowerCase();
     if (!cy || !term) return;
@@ -138,7 +185,7 @@ export function GraphExplorer() {
       .filter((n) => String(n.data("name") ?? "").toLowerCase().includes(term));
     if (match.length > 0) {
       cy.animate({ center: { eles: match[0] }, zoom: 1.5 }, { duration: 300 });
-      dispatch({ type: "selectNode", id: match[0].id() });
+      selectNode(match[0].id());
     }
   }
 
@@ -151,9 +198,10 @@ export function GraphExplorer() {
         onToggleType={(t) => dispatch({ type: "toggleType", nodeType: t })}
         contexts={(contextsQuery.data ?? []).map((c) => ({ slug: c.slug, name: c.name }))}
         context={context}
-        onContextChange={(nextContext) =>
-          dispatch({ type: "setContext", context: nextContext })
-        }
+        onContextChange={(nextContext) => {
+          dispatch({ type: "setContext", context: nextContext });
+          onRouteStateChange({ context: nextContext || undefined });
+        }}
         search={search}
         onSearchChange={(nextSearch) => dispatch({ type: "setSearch", search: nextSearch })}
         onSearchSubmit={runSearch}
@@ -201,10 +249,11 @@ export function GraphExplorer() {
         />
         {selectedId && (
           <NodeInspector
-            detail={detail.data}
+            detail={detail.data ?? fallbackDetail}
             loading={detail.isLoading}
-            onSelectNode={(id) => dispatch({ type: "selectNode", id })}
-            onClose={() => dispatch({ type: "selectNode", id: undefined })}
+            error={detail.isError}
+            onSelectNode={selectNode}
+            onClose={() => selectNode(undefined)}
           />
         )}
       </div>
