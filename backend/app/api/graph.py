@@ -58,3 +58,16 @@ async def graph_node(node_id: str, run: Runner = Depends(get_runner)) -> dict:  
     if detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Node not found")
     return detail
+
+
+@router.get("/neighborhood/{node_id}")
+async def graph_neighborhood(
+    node_id: str,
+    depth: int = Query(default=2, ge=1, le=2),
+    limit: int = Query(default=80, ge=1, le=500),
+    run: Runner = Depends(get_runner),  # noqa: B008
+) -> dict:
+    snapshot = await gq.neighborhood(run, node_id, depth=depth, limit=limit)
+    if not snapshot["nodes"]:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Node not found")
+    return snapshot

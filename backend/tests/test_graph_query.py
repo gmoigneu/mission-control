@@ -1,7 +1,7 @@
 """Tests for graph query helpers (Neo4j-free using a FakeRunner)."""
 from __future__ import annotations
 
-from app.graph.query import connection_path, neighbors, who_at_company
+from app.graph.query import connection_path, neighborhood, neighbors, who_at_company
 
 
 class FakeRunner:
@@ -57,3 +57,13 @@ async def test_neighbors_emits_correct_cypher() -> None:
     assert "Person {id" in cypher or "Person {id:" in cypher or "id: $id" in cypher
     assert "n.slug AS slug" in cypher
     assert params.get("id") == "p1"
+
+
+async def test_neighborhood_emits_bounded_two_hop_cypher() -> None:
+    fake = FakeRunner(returns=[{"id": "p1", "label": "Person", "name": "Alice", "props": {}}])
+    result = await neighborhood(fake, "p1", depth=2, limit=25)
+    assert result["nodes"][0]["id"] == "p1"
+    assert len(fake.calls) == 2
+    cypher, params = fake.calls[0]
+    assert "[*1..2]" in cypher
+    assert params == {"id": "p1", "neighbor_limit": 24}

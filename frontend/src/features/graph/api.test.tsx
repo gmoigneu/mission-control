@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, expect, it, vi } from "vitest";
-import { useGraphSnapshot, useNodeDetail } from "./api";
+import { useGraphNeighborhood, useGraphSnapshot, useNodeDetail } from "./api";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -38,4 +38,14 @@ it("useNodeDetail GETs /graph/node/{id} and is disabled without an id", async ()
   const { result } = renderHook(() => useNodeDetail("a"), { wrapper });
   await waitFor(() => expect(result.current.isSuccess).toBe(true));
   expect(calls.some((u) => u.includes("/api/graph/node/a"))).toBe(true);
+});
+
+it("useGraphNeighborhood GETs a bounded neighborhood", async () => {
+  const calls: string[] = [];
+  mockFetch(calls);
+  const { result } = renderHook(() => useGraphNeighborhood("a", 2, 60), { wrapper });
+  await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  expect(calls.some((u) => u.includes("/api/graph/neighborhood/a?depth=2&limit=60"))).toBe(
+    true,
+  );
 });

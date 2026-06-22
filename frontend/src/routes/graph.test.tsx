@@ -16,6 +16,8 @@ vi.mock("cytoscape", () => {
   const collection = {
     filter: () => collection,
     style: () => collection,
+    unselect: () => collection,
+    select: () => collection,
     length: 0,
   };
   const cy = {
@@ -26,11 +28,13 @@ vi.mock("cytoscape", () => {
     nodes: () => collection,
     animate: vi.fn(),
     resize: vi.fn(),
+    getElementById: () => collection,
   };
   const fn = Object.assign(vi.fn(() => cy), { use: vi.fn() });
   return { default: fn };
 });
 
+import { graphSearch } from "../features/graph/graph-search";
 import { GraphPage } from "./graph";
 
 afterEach(() => vi.restoreAllMocks());
@@ -60,7 +64,12 @@ it("renders the graph page with controls and fetches the snapshot", async () => 
   );
 
   const root = createRootRoute();
-  const graph = createRoute({ getParentRoute: () => root, path: "/graph", component: GraphPage });
+  const graph = createRoute({
+    getParentRoute: () => root,
+    path: "/graph",
+    validateSearch: graphSearch,
+    component: GraphPage,
+  });
   const login = createRoute({
     getParentRoute: () => root,
     path: "/login",
@@ -120,7 +129,12 @@ it("requires confirmation before rebuilding the graph from the toolbar", async (
   );
 
   const root = createRootRoute();
-  const graph = createRoute({ getParentRoute: () => root, path: "/graph", component: GraphPage });
+  const graph = createRoute({
+    getParentRoute: () => root,
+    path: "/graph",
+    validateSearch: graphSearch,
+    component: GraphPage,
+  });
   const login = createRoute({
     getParentRoute: () => root,
     path: "/login",
@@ -183,7 +197,12 @@ it("requires confirmation before rebuilding from the empty graph state", async (
   );
 
   const root = createRootRoute();
-  const graph = createRoute({ getParentRoute: () => root, path: "/graph", component: GraphPage });
+  const graph = createRoute({
+    getParentRoute: () => root,
+    path: "/graph",
+    validateSearch: graphSearch,
+    component: GraphPage,
+  });
   const login = createRoute({
     getParentRoute: () => root,
     path: "/login",
@@ -207,4 +226,66 @@ it("requires confirmation before rebuilding from the empty graph state", async (
   expect(calls.some((u) => u.includes("/admin/rebuild-graph"))).toBe(false);
   await userEvent.click(screen.getByRole("button", { name: "Confirm?" }));
   expect(calls.some((u) => u.includes("/admin/rebuild-graph"))).toBe(true);
+});
+
+it("fetches a focused neighborhood from node and depth URL state", async () => {
+  const calls: string[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      const u = String(url);
+      calls.push(u);
+      if (u.includes("/auth/me")) {
+        return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
+          status: 200,
+        });
+      }
+      if (u.includes("/graph/neighborhood/a")) {
+        return new Response(
+          JSON.stringify({
+            nodes: [{ id: "a", label: "Person", name: "Alice", props: { slug: "alice" } }],
+            edges: [],
+            truncated: false,
+          }),
+          { status: 200 },
+        );
+      }
+      if (u.includes("/graph/node/a")) {
+        return new Response(
+          JSON.stringify({ id: "a", label: "Person", props: { name: "Alice", slug: "alice" }, rels: [] }),
+          { status: 200 },
+        );
+      }
+      if (u.includes("/contexts")) {
+        return new Response(JSON.stringify([]), { status: 200 });
+      }
+      return new Response(JSON.stringify({}), { status: 200 });
+    }),
+  );
+
+  const root = createRootRoute();
+  const graph = createRoute({
+    getParentRoute: () => root,
+    path: "/graph",
+    validateSearch: graphSearch,
+    component: GraphPage,
+  });
+  const login = createRoute({
+    getParentRoute: () => root,
+    path: "/login",
+    component: () => <div>login-page</div>,
+  });
+  const history = createMemoryHistory({ initialEntries: ["/graph?node=a&depth=2"] });
+  const router = createRouter({ routeTree: root.addChildren([graph, login]), history });
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+  render(
+    <QueryClientProvider client={qc}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
+
+  await screen.findByRole("heading", { name: "Graph" });
+  expect(calls.some((u) => u.includes("/graph/neighborhood/a?depth=2"))).toBe(true);
+  expect(calls.some((u) => u.includes("/graph/full"))).toBe(false);
 });

@@ -22,6 +22,11 @@ function renderProjects(fetchMock: ReturnType<typeof vi.fn>) {
     path: "/projects",
     component: ProjectsPage,
   });
+  const projectDetail = createRoute({
+    getParentRoute: () => root,
+    path: "/projects/$slug",
+    component: () => <div>project-detail</div>,
+  });
   const login = createRoute({
     getParentRoute: () => root,
     path: "/login",
@@ -34,7 +39,7 @@ function renderProjects(fetchMock: ReturnType<typeof vi.fn>) {
   });
   const history = createMemoryHistory({ initialEntries: ["/projects"] });
   const router = createRouter({
-    routeTree: root.addChildren([projects, login, activity]),
+    routeTree: root.addChildren([projects, projectDetail, login, activity]),
     history,
   });
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -127,4 +132,42 @@ it("renders the projects page and POSTs with context_id when Add is clicked", as
     expect(body.title).toBe("My Project");
     expect(body.slug).toBe("my-project");
   });
+});
+
+it("links project titles to the project detail page", async () => {
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    const u = String(url);
+    if (u.includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
+        status: 200,
+      });
+    }
+    if (u.includes("/contexts") && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify([]), { status: 200 });
+    }
+    if (u.includes("/projects") && (!init?.method || init.method === "GET")) {
+      return new Response(
+        JSON.stringify([
+          {
+            id: "p1",
+            context_id: "c1",
+            slug: "launch-plan",
+            title: "Launch Plan",
+            status: "active",
+            purpose: null,
+            body: null,
+            created_at: "",
+            updated_at: "",
+          },
+        ]),
+        { status: 200 },
+      );
+    }
+    return new Response(JSON.stringify({}), { status: 200 });
+  });
+
+  renderProjects(fetchMock);
+
+  const link = await screen.findByRole("link", { name: "Launch Plan" });
+  expect(link).toHaveAttribute("href", "/projects/launch-plan");
 });
