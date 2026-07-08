@@ -12,11 +12,11 @@ afterEach(() => {
 
 /** Mock the handful of endpoints the quake touches, dispatching by URL + method. */
 function stubFetch() {
-  const calls: { url: string; method: string }[] = [];
+  const calls: { url: string; method: string; body?: BodyInit | null }[] = [];
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const u = String(url);
     const method = init?.method ?? "GET";
-    calls.push({ url: u, method });
+    calls.push({ url: u, method, body: init?.body });
     const json = (body: unknown) =>
       new Response(JSON.stringify(body), { status: 200 });
 
@@ -91,6 +91,40 @@ it("sends a message and renders Aya's reply", async () => {
   expect(await screen.findByText("Hi there!")).toBeInTheDocument();
   expect(screen.getByText("hello")).toBeInTheDocument();
   expect(calls.some((c) => c.url.includes("/agent/chat") && c.method === "POST")).toBe(true);
+});
+
+it("keeps multiline drafts and sends them intact", async () => {
+  const calls = stubFetch();
+  renderQuake();
+
+  await findPanel();
+  fireEvent.keyDown(window, { ctrlKey: true, code: "Backquote", key: "`" });
+
+  const input = screen.getByLabelText("Message Aya") as HTMLTextAreaElement;
+  fireEvent.change(input, { target: { value: "hello\nthere" } });
+
+  expect(input.value).toBe("hello\nthere");
+
+  await userEvent.keyboard("{Enter}");
+
+  expect(await screen.findByText("Hi there!")).toBeInTheDocument();
+  const chatCall = calls.find((c) => c.url.includes("/agent/chat") && c.method === "POST");
+  expect(chatCall?.body).toBe(JSON.stringify({ message: "hello\nthere", conversation_id: "c1" }));
+});
+
+it("expands the composer to match multiline content", async () => {
+  stubFetch();
+  renderQuake();
+
+  await findPanel();
+  fireEvent.keyDown(window, { ctrlKey: true, code: "Backquote", key: "`" });
+
+  const input = screen.getByLabelText("Message Aya") as HTMLTextAreaElement;
+  Object.defineProperty(input, "scrollHeight", { configurable: true, value: 84 });
+
+  fireEvent.change(input, { target: { value: "one\ntwo\nthree" } });
+
+  await waitFor(() => expect(input.style.height).toBe("84px"));
 });
 
 it("starts a new conversation via the header button", async () => {

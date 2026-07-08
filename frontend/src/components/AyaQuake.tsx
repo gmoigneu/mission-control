@@ -111,7 +111,7 @@ function AyaQuakeInner() {
   const [revertedIds, setRevertedIds] = useState<Set<string>>(new Set());
   const dialogRef = useRef<HTMLDialogElement>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const ayaName = persona?.name?.trim() || "Aya";
   const greeting = persona?.greeting?.trim() || DEFAULT_GREETING;
@@ -155,6 +155,15 @@ function AyaQuakeInner() {
   useEffect(() => {
     if (open) inputRef.current?.focus();
   }, [open]);
+
+  // Keep the composer tall enough for the current draft without letting it
+  // consume the whole quake window.
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    input.style.height = "auto";
+    input.style.height = `${Math.min(input.scrollHeight, 160)}px`;
+  }, [msg, open]);
 
   // Keep the transcript pinned to the latest message.
   useEffect(() => {
@@ -315,11 +324,12 @@ function AyaQuakeInner() {
 
         {/* Composer */}
         <div className="aya-composer">
-          <input
+          <textarea
             ref={inputRef}
             className="input aya-composer-input"
             placeholder="Message Aya…  (/new for a fresh thread)"
             aria-label="Message Aya"
+            rows={1}
             value={msg}
             onChange={(e) => setMsg(e.target.value)}
             disabled={chat.isPending}

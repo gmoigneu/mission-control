@@ -1134,7 +1134,14 @@ dialog.aya-quake:not([open]) { display: flex; }
   margin: 0 auto;
   box-sizing: border-box;
 }
-.aya-composer-input { flex: 1; }
+.aya-composer-input {
+  flex: 1;
+  min-height: 37px;
+  max-height: 160px;
+  line-height: 1.45;
+  resize: none;
+  overflow-y: auto;
+}
 .aya-send-button { flex-shrink: 0; }
 .aya-send-button:disabled { opacity: 0.4; }
 .aya-bubble {
