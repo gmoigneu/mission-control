@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Plus, SlidersHorizontal } from "lucide-react";
+import { Ban, Plus, Save, SlidersHorizontal } from "lucide-react";
 import { useMemo, useReducer } from "react";
 import { AppShell } from "../components/AppShell";
 import { BottomSheet } from "../components/BottomSheet";
@@ -19,8 +19,15 @@ import { useHotkey } from "../lib/useHotkey";
 import { Button, Field, Input, Select, Textarea } from "../components/ui";
 import { useContexts } from "../features/contexts/api";
 import { useProjects } from "../features/projects/api";
-import { useCreateTask, useDeleteTask, useTasks, useUpdateTask } from "../features/tasks/api";
-import type { Context, Project, Task } from "../lib/types";
+import {
+  useCreateTask,
+  useDeleteTask,
+  useDisableTaskRecurrence,
+  useTasks,
+  useUpdateTask,
+  useUpdateTaskRecurrence,
+} from "../features/tasks/api";
+import type { Context, Project, Task, TaskRecurrenceFrequency } from "../lib/types";
 import { tasksSearch, type TasksSearch } from "./tasks-search";
 
 interface FormState {
@@ -33,19 +40,44 @@ interface FormState {
   project_id: string;
   outcome: string;
   body: string;
+  repeat: boolean;
+  recurrence_start_date: string;
+  recurrence_frequency: string;
+  recurrence_weekday: string;
+  recurrence_month_day: string;
 }
 
-const EMPTY_FORM: FormState = {
-  title: "",
-  status: "open",
-  priority: "normal",
-  due: "",
-  scheduled: "",
-  context_id: "",
-  project_id: "",
-  outcome: "",
-  body: "",
-};
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function weekdayFromIso(value: string) {
+  return String((new Date(`${value}T00:00:00`).getDay() + 6) % 7);
+}
+
+function monthDayFromIso(value: string) {
+  return String(new Date(`${value}T00:00:00`).getDate());
+}
+
+function emptyForm(): FormState {
+  const today = todayIso();
+  return {
+    title: "",
+    status: "open",
+    priority: "normal",
+    due: "",
+    scheduled: "",
+    context_id: "",
+    project_id: "",
+    outcome: "",
+    body: "",
+    repeat: false,
+    recurrence_start_date: today,
+    recurrence_frequency: "daily",
+    recurrence_weekday: weekdayFromIso(today),
+    recurrence_month_day: monthDayFromIso(today),
+  };
+}
 
 /** Build a TaskCreate/TaskUpdate payload.
  * On create: omit empty optional FK/date fields entirely.
@@ -70,6 +102,34 @@ function buildPayload(form: FormState, isEdit: boolean) {
       : form.project_id ? { project_id: form.project_id } : {}),
     ...(form.outcome ? { outcome: form.outcome } : { outcome: null }),
     ...(form.body ? { body: form.body } : { body: null }),
+    ...(!isEdit && form.repeat ? { recurrence: buildRecurrenceRule(form) } : {}),
+  };
+}
+
+function buildRecurrenceRule(form: FormState) {
+  const frequency = form.recurrence_frequency as TaskRecurrenceFrequency;
+  return {
+    frequency,
+    start_date: form.recurrence_start_date || todayIso(),
+    ...(frequency === "weekly"
+      ? { weekday: Number(form.recurrence_weekday) }
+      : {}),
+    ...(frequency === "monthly"
+      ? { month_day: Number(form.recurrence_month_day) }
+      : {}),
+  };
+}
+
+function buildRecurrenceUpdatePayload(form: FormState) {
+  return {
+    title: form.title,
+    priority: form.priority,
+    context_id: form.context_id || null,
+    project_id: form.project_id || null,
+    outcome: form.outcome || null,
+    body: form.body || null,
+    active: form.repeat,
+    ...buildRecurrenceRule(form),
   };
 }
 
@@ -88,6 +148,24 @@ const PRIORITY_OPTIONS = [
   { value: "normal", label: "Normal" },
   { value: "high", label: "High" },
 ];
+
+const FREQUENCY_OPTIONS = [
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+];
+
+const WEEKDAY_OPTIONS = [
+  { value: "0", label: "Monday" },
+  { value: "1", label: "Tuesday" },
+  { value: "2", label: "Wednesday" },
+  { value: "3", label: "Thursday" },
+  { value: "4", label: "Friday" },
+  { value: "5", label: "Saturday" },
+  { value: "6", label: "Sunday" },
+];
+
+const WEEKDAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 type ViewMode = "list" | "board";
 type GroupBy = "status" | "due";
@@ -120,7 +198,7 @@ type TasksAction =
   | { type: "openNew" }
   | { type: "editTask"; task: Task }
   | { type: "closePanel" }
-  | { type: "updateForm"; key: keyof FormState; value: string }
+  | { type: "updateForm"; key: keyof FormState; value: FormState[keyof FormState] }
   | { type: "setDescTab"; tab: DescTab }
   | { type: "setView"; view: ViewMode }
   | { type: "setGroupBy"; groupBy: GroupBy }
@@ -131,7 +209,7 @@ type TasksAction =
 
 function initialTasksState(): TasksState {
   return {
-    form: EMPTY_FORM,
+    form: emptyForm(),
     editingId: null,
     panelOpen: false,
     descTab: "write",
@@ -145,6 +223,8 @@ function initialTasksState(): TasksState {
 }
 
 function formFromTask(task: Task): FormState {
+  const recurrence = task.recurrence;
+  const fallbackDate = recurrence?.start_date ?? task.scheduled ?? todayIso();
   return {
     title: task.title,
     status: task.status,
@@ -155,6 +235,13 @@ function formFromTask(task: Task): FormState {
     project_id: task.project_id ?? "",
     outcome: task.outcome ?? "",
     body: task.body ?? "",
+    repeat: recurrence?.active ?? false,
+    recurrence_start_date: fallbackDate,
+    recurrence_frequency: recurrence?.frequency ?? "daily",
+    recurrence_weekday:
+      recurrence?.weekday != null ? String(recurrence.weekday) : weekdayFromIso(fallbackDate),
+    recurrence_month_day:
+      recurrence?.month_day != null ? String(recurrence.month_day) : monthDayFromIso(fallbackDate),
   };
 }
 
@@ -163,7 +250,7 @@ function tasksReducer(state: TasksState, action: TasksAction): TasksState {
     case "openNew":
       return {
         ...state,
-        form: EMPTY_FORM,
+        form: emptyForm(),
         editingId: null,
         descTab: "write",
         panelOpen: true,
@@ -179,7 +266,7 @@ function tasksReducer(state: TasksState, action: TasksAction): TasksState {
     case "closePanel":
       return {
         ...state,
-        form: EMPTY_FORM,
+        form: emptyForm(),
         editingId: null,
         descTab: "write",
         panelOpen: false,
@@ -201,6 +288,17 @@ function tasksReducer(state: TasksState, action: TasksAction): TasksState {
     case "setFiltersOpen":
       return { ...state, filtersOpen: action.open };
   }
+}
+
+function recurrenceSummary(task: Task) {
+  const recurrence = task.recurrence;
+  if (!recurrence) return "";
+  const suffix = recurrence.active ? "" : " paused";
+  if (recurrence.frequency === "daily") return `Daily${suffix}`;
+  if (recurrence.frequency === "weekly") {
+    return `Weekly ${WEEKDAY_SHORT[recurrence.weekday ?? 0]}${suffix}`;
+  }
+  return `Monthly day ${recurrence.month_day ?? 1}${suffix}`;
 }
 
 /** Shared width so every toolbar filter select is the same size. */
@@ -370,6 +468,8 @@ export function TasksPage() {
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
+  const updateTaskRecurrence = useUpdateTaskRecurrence();
+  const disableTaskRecurrence = useDisableTaskRecurrence();
 
   const [state, dispatch] = useReducer(tasksReducer, undefined, initialTasksState);
   const {
@@ -391,7 +491,7 @@ export function TasksPage() {
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
-  function updateForm(key: keyof FormState, value: string) {
+  function updateForm(key: keyof FormState, value: FormState[keyof FormState]) {
     dispatch({ type: "updateForm", key, value });
   }
 
@@ -438,6 +538,23 @@ export function TasksPage() {
   function handleDelete() {
     if (!editingId) return;
     deleteTask.mutate(editingId, { onSuccess: handleClose });
+  }
+
+  const editingTask = editingId ? (tasks.find((task) => task.id === editingId) ?? null) : null;
+
+  function handleUpdateRecurrence() {
+    if (!editingTask?.recurrence_id) return;
+    updateTaskRecurrence.mutate({
+      id: editingTask.recurrence_id,
+      data: buildRecurrenceUpdatePayload(form),
+    });
+  }
+
+  function handleDisableRecurrence() {
+    if (!editingTask?.recurrence_id) return;
+    disableTaskRecurrence.mutate(editingTask.recurrence_id, {
+      onSuccess: () => updateForm("repeat", false),
+    });
   }
 
   /** Inline status change — reuses the shared update hook. */
@@ -508,6 +625,7 @@ export function TasksPage() {
       header: "Project",
       cell: (row: Task) => (row.project_id ? (projectMap[row.project_id] ?? "") : ""),
     },
+    { header: "Repeat", cell: (row: Task) => recurrenceSummary(row) },
     { header: "Due", cell: (row: Task) => row.due ?? "" },
   ];
 
@@ -618,6 +736,7 @@ export function TasksPage() {
         <TaskEditorPanel
           open={panelOpen}
           editing={Boolean(editingId)}
+          task={editingTask}
           form={form}
           descTab={descTab}
           contexts={contexts}
@@ -625,6 +744,8 @@ export function TasksPage() {
           onClose={handleClose}
           onSubmit={handleSubmit}
           onDelete={handleDelete}
+          onUpdateRecurrence={handleUpdateRecurrence}
+          onDisableRecurrence={handleDisableRecurrence}
           onFormChange={updateForm}
           onDescTabChange={(tab) => dispatch({ type: "setDescTab", tab })}
         />
@@ -636,6 +757,7 @@ export function TasksPage() {
 function TaskEditorPanel({
   open,
   editing,
+  task,
   form,
   descTab,
   contexts,
@@ -643,11 +765,14 @@ function TaskEditorPanel({
   onClose,
   onSubmit,
   onDelete,
+  onUpdateRecurrence,
+  onDisableRecurrence,
   onFormChange,
   onDescTabChange,
 }: {
   open: boolean;
   editing: boolean;
+  task: Task | null;
   form: FormState;
   descTab: DescTab;
   contexts: Context[];
@@ -655,7 +780,9 @@ function TaskEditorPanel({
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
   onDelete: () => void;
-  onFormChange: (key: keyof FormState, value: string) => void;
+  onUpdateRecurrence: () => void;
+  onDisableRecurrence: () => void;
+  onFormChange: (key: keyof FormState, value: FormState[keyof FormState]) => void;
   onDescTabChange: (tab: DescTab) => void;
 }) {
   function handleChange(key: keyof FormState) {
@@ -666,6 +793,9 @@ function TaskEditorPanel({
   function handleSelectChange(key: keyof FormState) {
     return (value: string) => onFormChange(key, value);
   }
+
+  const repeatControlsVisible = form.repeat || Boolean(task?.recurrence_id);
+  const repeatSummary = task ? recurrenceSummary(task) : "";
 
   return (
     <SidePanel
@@ -713,6 +843,63 @@ function TaskEditorPanel({
             aria-label="Scheduled"
           />
         </Field>
+        {(!editing || task?.recurrence_id) && (
+          <div className="grid grid-cols-1 gap-3">
+            <label className="row gap-2" style={{ alignItems: "center" }}>
+              <input
+                type="checkbox"
+                checked={form.repeat}
+                onChange={(event) => onFormChange("repeat", event.target.checked)}
+              />
+              <span className="label">Repeat</span>
+            </label>
+            {repeatSummary && (
+              <span className="chip" style={{ width: "fit-content" }}>
+                {repeatSummary}
+              </span>
+            )}
+            {repeatControlsVisible && (
+              <div className="grid grid-cols-1 gap-3">
+                <Field label="Start date">
+                  <Input
+                    type="date"
+                    value={form.recurrence_start_date}
+                    onChange={handleChange("recurrence_start_date")}
+                    aria-label="Start date"
+                  />
+                </Field>
+                <Field label="Frequency">
+                  <Select
+                    value={form.recurrence_frequency}
+                    onChange={handleSelectChange("recurrence_frequency")}
+                    options={FREQUENCY_OPTIONS}
+                  />
+                </Field>
+                {form.recurrence_frequency === "weekly" && (
+                  <Field label="Weekday">
+                    <Select
+                      value={form.recurrence_weekday}
+                      onChange={handleSelectChange("recurrence_weekday")}
+                      options={WEEKDAY_OPTIONS}
+                    />
+                  </Field>
+                )}
+                {form.recurrence_frequency === "monthly" && (
+                  <Field label="Day of month">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={31}
+                      value={form.recurrence_month_day}
+                      onChange={handleChange("recurrence_month_day")}
+                      aria-label="Day of month"
+                    />
+                  </Field>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         <Field label="Context">
           <Select
             value={form.context_id}
@@ -794,7 +981,25 @@ function TaskEditorPanel({
         {editing && (
           <>
             <hr className="hr" />
-            <div className="flex justify-end">
+            <div className="flex flex-wrap justify-between gap-2">
+              {task?.recurrence_id && (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    className="ghost row gap-2"
+                    onClick={onUpdateRecurrence}
+                  >
+                    <Save size={14} /> Save future repeat
+                  </Button>
+                  <Button
+                    type="button"
+                    className="ghost row gap-2"
+                    onClick={onDisableRecurrence}
+                  >
+                    <Ban size={14} /> Disable repeat
+                  </Button>
+                </div>
+              )}
               <ConfirmButton onConfirm={onDelete}>Delete task</ConfirmButton>
             </div>
           </>
@@ -895,6 +1100,7 @@ function MobileTaskCard({
   const ctx = task.context_id ? contextById[task.context_id] : undefined;
   const contextName = task.context_id ? (contextMap[task.context_id] ?? task.context_id) : null;
   const projectName = task.project_id ? (projectMap[task.project_id] ?? task.project_id) : null;
+  const repeat = recurrenceSummary(task);
 
   return (
     <article
@@ -912,11 +1118,12 @@ function MobileTaskCard({
         </button>
         <PriorityIcon priority={task.priority} withLabel />
       </div>
-      {(contextName || projectName || task.due) && (
+      {(contextName || projectName || task.due || repeat) && (
         <div className="row wrap gap-2" style={{ marginTop: 10 }}>
           {contextName && <span className="chip">{contextName}</span>}
           {projectName && <span className="chip">{projectName}</span>}
           {task.due && <span className="chip">Due {task.due}</span>}
+          {repeat && <span className="chip">{repeat}</span>}
         </div>
       )}
       <div className="row" style={{ marginTop: 10 }}>
@@ -1019,6 +1226,7 @@ function BoardCard({
   const contextName = task.context_id
     ? (contextMap[task.context_id] ?? task.context_id)
     : null;
+  const repeat = recurrenceSummary(task);
   return (
     <article
       style={{
@@ -1043,6 +1251,7 @@ function BoardCard({
         <PriorityIcon priority={task.priority} withLabel />
         {task.due && <span style={{ color: "var(--fg-dim)" }}>· {task.due}</span>}
         {contextName && <span style={{ color: "var(--fg-dim)" }}>· {contextName}</span>}
+        {repeat && <span style={{ color: "var(--fg-dim)" }}>· {repeat}</span>}
       </div>
       <div className="row" style={{ marginTop: "8px" }}>
         <StatusBadgeMenu

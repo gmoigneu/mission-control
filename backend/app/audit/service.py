@@ -8,6 +8,8 @@ from app.audit.serialize import model_to_dict
 from app.models.audit import AuditLog
 from app.models.outbox import CHANNEL_GRAPH, CHANNEL_SEARCH, OutboxEvent
 
+AUDIT_ONLY_ENTITY_TYPES = {"task_recurrence"}
+
 
 def _emit(
     db: AsyncSession, entity_type: str, entity_id: Any, op: str, payload: dict | None
@@ -18,6 +20,8 @@ def _emit(
     request path: each drains its own channel, so search/graph work happens in
     the worker rather than inline in the user's write transaction.
     """
+    if entity_type in AUDIT_ONLY_ENTITY_TYPES:
+        return
     for channel in (CHANNEL_GRAPH, CHANNEL_SEARCH):
         db.add(
             OutboxEvent(

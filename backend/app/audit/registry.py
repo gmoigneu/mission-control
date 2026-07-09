@@ -15,7 +15,7 @@ from app.models.project import Project
 from app.models.relationship import Relationship
 from app.models.review import Review
 from app.models.tag import Tag
-from app.models.task import Task
+from app.models.task import Task, TaskRecurrence
 from app.models.task_link import TaskLink
 from app.models.telos import Telos
 from app.models.tone import Tone
@@ -31,6 +31,7 @@ ENTITY_MODELS: dict[str, type] = {
     "person": Person,
     "meeting": Meeting,
     "task": Task,
+    "task_recurrence": TaskRecurrence,
     "relationship": Relationship,
     "observation": Observation,
     "review": Review,

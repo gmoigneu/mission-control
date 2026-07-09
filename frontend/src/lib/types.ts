@@ -245,7 +245,33 @@ export interface Task {
   outcome: string | null;
   body: string | null;
   source: string | null;
+  recurrence_id: string | null;
+  recurrence: TaskRecurrence | null;
   completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export type TaskRecurrenceFrequency = "daily" | "weekly" | "monthly";
+export interface TaskRecurrenceRule {
+  frequency: TaskRecurrenceFrequency;
+  start_date: string;
+  weekday?: number | null;
+  month_day?: number | null;
+}
+export interface TaskRecurrence {
+  id: string;
+  title: string;
+  priority: string;
+  context_id: string | null;
+  project_id: string | null;
+  outcome: string | null;
+  body: string | null;
+  source: string | null;
+  frequency: TaskRecurrenceFrequency;
+  start_date: string;
+  weekday: number | null;
+  month_day: number | null;
+  active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -260,8 +286,26 @@ export interface TaskCreate {
   outcome?: string | null;
   body?: string | null;
   source?: string | null;
+  recurrence?: TaskRecurrenceRule | null;
 }
 export type TaskUpdate = Partial<TaskCreate>;
+export type TaskRecurrenceUpdate = Partial<
+  Pick<
+    TaskRecurrence,
+    | "title"
+    | "priority"
+    | "context_id"
+    | "project_id"
+    | "outcome"
+    | "body"
+    | "source"
+    | "frequency"
+    | "start_date"
+    | "weekday"
+    | "month_day"
+    | "active"
+  >
+>;
 
 export interface Tag {
   id: string;
