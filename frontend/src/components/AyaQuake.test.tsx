@@ -5,6 +5,7 @@ import { afterEach, expect, it, vi } from "vitest";
 
 import { AyaQuake } from "./AyaQuake";
 import { AyaProvider } from "../features/agent/AyaContext";
+import { MAX_CHAT_MESSAGE_CHARS } from "../features/agent/limits";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -38,6 +39,30 @@ function stubFetch() {
       });
     }
     // persona and anything else — empty payloads are fine.
+    return json({});
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return calls;
+}
+
+function stubFetchWithChatStatus(status: number, body = "nope") {
+  const calls: { url: string; method: string; body?: BodyInit | null }[] = [];
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    const u = String(url);
+    const method = init?.method ?? "GET";
+    calls.push({ url: u, method, body: init?.body });
+    const json = (payload: unknown) =>
+      new Response(JSON.stringify(payload), { status: 200 });
+
+    if (u.includes("/auth/me")) {
+      return json({ id: "u1", email: "g@x.com", name: "G" });
+    }
+    if (u.includes("/agent/conversation/current")) {
+      return json({ id: "c1", messages: [] });
+    }
+    if (u.includes("/agent/chat")) {
+      return new Response(body, { status });
+    }
     return json({});
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -110,6 +135,36 @@ it("keeps multiline drafts and sends them intact", async () => {
   expect(await screen.findByText("Hi there!")).toBeInTheDocument();
   const chatCall = calls.find((c) => c.url.includes("/agent/chat") && c.method === "POST");
   expect(chatCall?.body).toBe(JSON.stringify({ message: "hello\nthere", conversation_id: "c1" }));
+});
+
+it("blocks oversized drafts before sending", async () => {
+  const calls = stubFetch();
+  renderQuake();
+
+  await findPanel();
+  fireEvent.keyDown(window, { ctrlKey: true, code: "Backquote", key: "`" });
+
+  const input = screen.getByLabelText("Message Aya") as HTMLTextAreaElement;
+  fireEvent.change(input, { target: { value: "x".repeat(MAX_CHAT_MESSAGE_CHARS + 1) } });
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(/Chat messages can be up to/);
+  expect(screen.getByLabelText("Send")).toBeDisabled();
+  await userEvent.keyboard("{Enter}");
+  expect(calls.some((c) => c.url.includes("/agent/chat") && c.method === "POST")).toBe(false);
+});
+
+it("shows a specific message for server-side oversized rejection", async () => {
+  stubFetchWithChatStatus(413, '{"detail":"too large"}');
+  renderQuake();
+
+  await findPanel();
+  fireEvent.keyDown(window, { ctrlKey: true, code: "Backquote", key: "`" });
+
+  const input = screen.getByLabelText("Message Aya") as HTMLTextAreaElement;
+  fireEvent.change(input, { target: { value: "hello" } });
+  await userEvent.keyboard("{Enter}");
+
+  expect(await screen.findByText(/too large for chat/i)).toBeInTheDocument();
 });
 
 it("expands the composer to match multiline content", async () => {

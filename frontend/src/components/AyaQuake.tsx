@@ -5,7 +5,9 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { Markdown } from "./Markdown";
 import { useMe } from "../lib/auth";
+import { ApiError } from "../lib/api";
 import { useAya } from "../features/agent/AyaContext";
+import { MAX_CHAT_MESSAGE_CHARS, chatMessageTooLongText } from "../features/agent/limits";
 import { usePersona } from "../features/persona/api";
 import {
   type AgentWrite,
@@ -20,6 +22,32 @@ import {
 } from "../features/agent/api";
 
 const DEFAULT_GREETING = "Hi G — I'm Aya. Tell me what to do, and I'll act on your data.";
+const FAILED_MESSAGE_PREVIEW_CHARS = 240;
+
+function failedUserText(text: string): string {
+  if (text.length <= MAX_CHAT_MESSAGE_CHARS) return text;
+  return `Message not sent because it was too large (${text.length.toLocaleString()} characters).`;
+}
+
+function chatErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.status === 413) {
+      return "That message is too large for chat. Shorten it or split it into smaller parts.";
+    }
+    if (error.status === 408 || error.status === 504) {
+      return "Aya timed out while handling that message. Try a shorter version.";
+    }
+    if (error.status >= 500) {
+      return "Aya hit a server error while handling that message. Try a shorter version.";
+    }
+  }
+  return "Something went wrong. Please try again.";
+}
+
+function failedUserPreview(text: string): string {
+  if (text.length <= FAILED_MESSAGE_PREVIEW_CHARS) return text;
+  return `${text.slice(0, FAILED_MESSAGE_PREVIEW_CHARS).trimEnd()}...`;
+}
 
 function conversationMessageKey(message: ConversationMessage): string {
   const writeIds = message.writes.map((write) => write.id).join(",");
@@ -116,6 +144,9 @@ function AyaQuakeInner() {
   const ayaName = persona?.name?.trim() || "Aya";
   const greeting = persona?.greeting?.trim() || DEFAULT_GREETING;
   const serverMessages = useMemo(() => conv.data?.messages ?? [], [conv.data?.messages]);
+  const trimmedLength = msg.trim().length;
+  const messageTooLong = trimmedLength > MAX_CHAT_MESSAGE_CHARS;
+  const composerNotice = messageTooLong ? chatMessageTooLongText(trimmedLength) : null;
 
   // Ctrl+` toggles the window from anywhere (VS Code-style; safe inside inputs
   // because it requires the Ctrl modifier).
@@ -192,6 +223,7 @@ function AyaQuakeInner() {
   async function handleSend() {
     const text = msg.trim();
     if (!text || chat.isPending) return;
+    if (text.length > MAX_CHAT_MESSAGE_CHARS) return;
     if (text === "/new") {
       await handleNew();
       return;
@@ -213,13 +245,14 @@ function AyaQuakeInner() {
         res.conversation_id ?? conv.data?.id ?? null,
       );
       invalidateForWrites(qc, res.writes);
-    } catch {
+    } catch (error) {
+      const userText = failedUserText(text);
       appendTurns(
         [
-          { role: "user", text, writes: [], run_id: null },
+          { role: "user", text: failedUserPreview(userText), writes: [], run_id: null },
           {
             role: "assistant",
-            text: "Something went wrong. Please try again.",
+            text: chatErrorMessage(error),
             writes: [],
             run_id: null,
             error: true,
@@ -329,6 +362,8 @@ function AyaQuakeInner() {
             className="input aya-composer-input"
             placeholder="Message Aya…  (/new for a fresh thread)"
             aria-label="Message Aya"
+            aria-invalid={messageTooLong}
+            aria-describedby={composerNotice ? "aya-composer-notice" : undefined}
             rows={1}
             value={msg}
             onChange={(e) => setMsg(e.target.value)}
@@ -340,10 +375,15 @@ function AyaQuakeInner() {
               }
             }}
           />
+          {composerNotice && (
+            <div id="aya-composer-notice" className="aya-composer-notice" role="alert">
+              {composerNotice}
+            </div>
+          )}
           <button
             type="button"
             onClick={() => void handleSend()}
-            disabled={!msg.trim() || chat.isPending}
+            disabled={!msg.trim() || messageTooLong || chat.isPending}
             title="Send"
             aria-label="Send"
             className="iconbtn aya-send-button"

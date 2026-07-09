@@ -40,6 +40,12 @@ from app.schemas.capture import (
 )
 from app.services import capture as capture_svc
 
+MAX_CHAT_MESSAGE_CHARS = 20_000
+CHAT_MESSAGE_TOO_LONG_DETAIL = (
+    f"Chat messages can be up to {MAX_CHAT_MESSAGE_CHARS:,} characters. "
+    "Shorten the message or split it into smaller parts."
+)
+
 router = APIRouter(
     prefix="/agent",
     tags=["agent"],
@@ -85,6 +91,12 @@ async def agent_chat(
     user: AppUser = Depends(get_current_user),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> AgentResponse:
+    if len(payload.message) > MAX_CHAT_MESSAGE_CHARS:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=CHAT_MESSAGE_TOO_LONG_DETAIL,
+        )
+
     # Resolve the target thread (the caller's chosen one, else the current one),
     # then seed the whole conversation so far so the model keeps context.
     if payload.conversation_id is not None:
