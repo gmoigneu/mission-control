@@ -24,6 +24,36 @@ if (typeof window !== "undefined") {
   window.scrollTo = () => {};
 }
 
+function memoryStorage(): Storage {
+  const values = new Map<string, string>();
+  return {
+    get length() {
+      return values.size;
+    },
+    clear: () => values.clear(),
+    getItem: (key: string) => values.get(key) ?? null,
+    key: (index: number) => Array.from(values.keys())[index] ?? null,
+    removeItem: (key: string) => values.delete(key),
+    setItem: (key: string, value: string) => values.set(key, String(value)),
+  };
+}
+
+// AppShell reads the global localStorage binding. Some test runners in this
+// toolchain disable native localStorage, so provide the tiny Storage surface
+// route tests need.
+if (typeof window !== "undefined" && !window.localStorage) {
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    value: memoryStorage(),
+  });
+}
+if (typeof window !== "undefined" && typeof globalThis.localStorage === "undefined") {
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: window.localStorage,
+  });
+}
+
 // Native dialog methods are still missing in jsdom. Components use the real
 // browser API, and tests only need enough behavior for role queries and cleanup.
 if (

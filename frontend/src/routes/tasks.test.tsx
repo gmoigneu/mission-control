@@ -26,6 +26,8 @@ function makeTask(overrides: Partial<Task> & { id: string; title: string }): Tas
     outcome: null,
     body: null,
     source: null,
+    recurrence_id: null,
+    recurrence: null,
     completed_at: null,
     created_at: "",
     updated_at: "",
@@ -163,6 +165,8 @@ it("renders the tasks page and POSTs with title; empty optional fields are omitt
           outcome: null,
           body: null,
           source: null,
+          recurrence_id: null,
+          recurrence: null,
           completed_at: null,
           created_at: "",
           updated_at: "",
@@ -204,6 +208,146 @@ it("renders the tasks page and POSTs with title; empty optional fields are omitt
     expect("project_id" in body).toBe(false);
     expect("due" in body).toBe(false);
     expect("scheduled" in body).toBe(false);
+  });
+});
+
+it("POSTs recurrence details when Repeat is enabled", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    calls.push([String(url), init]);
+    if (String(url).includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
+        status: 200,
+      });
+    }
+    if (String(url).includes("/contexts") && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify([]), { status: 200 });
+    }
+    if (String(url).includes("/projects") && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify([]), { status: 200 });
+    }
+    if (String(url).includes("/tasks") && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify([]), { status: 200 });
+    }
+    if (String(url).includes("/tasks") && init?.method === "POST") {
+      const body = JSON.parse(String(init.body));
+      return new Response(
+        JSON.stringify(
+          makeTask({
+            id: "t-repeat",
+            title: body.title,
+            recurrence_id: "r1",
+            recurrence: {
+              id: "r1",
+              title: body.title,
+              priority: "normal",
+              context_id: null,
+              project_id: null,
+              outcome: null,
+              body: null,
+              source: null,
+              frequency: "weekly",
+              start_date: "2026-07-13",
+              weekday: 0,
+              month_day: null,
+              active: true,
+              created_at: "",
+              updated_at: "",
+            },
+          }),
+        ),
+        { status: 201 },
+      );
+    }
+    return new Response(JSON.stringify({}), { status: 200 });
+  });
+
+  renderTasks(fetchMock);
+
+  await screen.findByRole("heading", { name: "Tasks" });
+  await userEvent.click(screen.getByRole("button", { name: /create/i }));
+  await userEvent.type(screen.getByRole("textbox", { name: /title/i }), "Repeat this");
+  await userEvent.click(screen.getByRole("checkbox", { name: /repeat/i }));
+  await userEvent.selectOptions(screen.getByRole("combobox", { name: /frequency/i }), "weekly");
+  await userEvent.selectOptions(screen.getByRole("combobox", { name: /weekday/i }), "0");
+  await userEvent.clear(screen.getByLabelText(/start date/i));
+  await userEvent.type(screen.getByLabelText(/start date/i), "2026-07-13");
+  await userEvent.click(screen.getByRole("button", { name: /^add$/i }));
+
+  await waitFor(() => {
+    const postCall = calls.find(
+      ([url, init]) => String(url).includes("/tasks") && init?.method === "POST",
+    );
+    expect(postCall).toBeDefined();
+    const body = JSON.parse(postCall![1]!.body as string);
+    expect(body.recurrence).toEqual({
+      frequency: "weekly",
+      start_date: "2026-07-13",
+      weekday: 0,
+    });
+  });
+});
+
+it("shows recurrence metadata and can disable future repeats", async () => {
+  const calls: Array<[string, RequestInit | undefined]> = [];
+  const task = makeTask({
+    id: "t1",
+    title: "Recurring task",
+    recurrence_id: "r1",
+    recurrence: {
+      id: "r1",
+      title: "Recurring task",
+      priority: "normal",
+      context_id: null,
+      project_id: null,
+      outcome: null,
+      body: null,
+      source: null,
+      frequency: "weekly",
+      start_date: "2026-07-13",
+      weekday: 0,
+      month_day: null,
+      active: true,
+      created_at: "",
+      updated_at: "",
+    },
+  });
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    calls.push([String(url), init]);
+    if (String(url).includes("/auth/me")) {
+      return new Response(JSON.stringify({ id: "u1", email: "g@x.com", name: "G" }), {
+        status: 200,
+      });
+    }
+    if (String(url).includes("/contexts") && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify([]), { status: 200 });
+    }
+    if (String(url).includes("/projects") && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify([]), { status: 200 });
+    }
+    if (String(url).includes("/tasks") && (!init?.method || init.method === "GET")) {
+      return new Response(JSON.stringify([task]), { status: 200 });
+    }
+    if (String(url).includes("/task-recurrences/r1/disable") && init?.method === "POST") {
+      return new Response(JSON.stringify({ ...task.recurrence, active: false }), { status: 200 });
+    }
+    return new Response(JSON.stringify({}), { status: 200 });
+  });
+
+  renderTasks(fetchMock);
+
+  await screen.findByRole("heading", { name: "Tasks" });
+  expect(await screen.findByText("Weekly Mon")).toBeDefined();
+
+  await userEvent.click(screen.getByRole("button", { name: "Recurring task" }));
+  await screen.findByRole("dialog", { name: "Edit task" });
+  await userEvent.click(screen.getByRole("button", { name: /disable repeat/i }));
+
+  await waitFor(() => {
+    const disableCall = calls.find(
+      ([url, init]) => String(url).includes("/task-recurrences/r1/disable") && init?.method === "POST",
+    );
+    expect(disableCall).toBeDefined();
   });
 });
 

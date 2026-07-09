@@ -32,6 +32,7 @@ from app.api import (
     search,
     tags,
     task_links,
+    task_recurrences,
     tasks,
     telegram,
     telos,
@@ -87,6 +88,7 @@ def create_app() -> FastAPI:
     app.include_router(proactive_preferences.router)
     app.include_router(meetings.router)
     app.include_router(tasks.router)
+    app.include_router(task_recurrences.router)
     app.include_router(relationships.router)
     app.include_router(observations.router)
     app.include_router(daily_checkins.router)
