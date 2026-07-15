@@ -7,16 +7,24 @@ deterministic; the gateway logic, thread mapping, and webhook auth are real.
 import pytest
 from sqlalchemy import select
 
+from app.agent import agent as agent_module
+from app.agent.llm import LLMTurn
 from app.config import settings
 from app.models.agent_run import AgentRun
 from app.models.audit import AuditLog
-from app.models.inbox_item import InboxItem
 from app.models.task import Task
 from app.models.telegram_chat import TelegramChat
 from app.models.user import AppUser
 from app.security import hash_password
 from app.telegram import client as tg_client
 from app.telegram import gateway
+
+
+def _fake_complete(reply: str = "hi from aya"):
+    async def fake_complete(messages, tools, system="", db=None):  # noqa: ARG001
+        return LLMTurn(text=reply, tool_calls=[])
+
+    return fake_complete
 
 
 def _message(chat_id: int, text: str | None = None, **extra: object) -> dict:
@@ -141,15 +149,15 @@ async def test_send_message_chunks_rendered_html(monkeypatch):
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_handle_update_runs_agent_and_creates_dedicated_thread(db, monkeypatch):
+    monkeypatch.setattr(agent_module, "complete", _fake_complete("You have two open tasks."))
     monkeypatch.setattr(settings, "telegram_allowed_chat_ids", "555")
     monkeypatch.setattr(settings, "initial_user_email", None)
     user = AppUser(email="tg@example.com", password_hash=hash_password("pw"))
     db.add(user)
     await db.flush()
 
-    reply = await gateway.handle_update(db, _message(555, "Create a task to ship"))
-    assert reply is not None
-    assert "Captured" in reply
+    reply = await gateway.handle_update(db, _message(555, "What are my open tasks?"))
+    assert reply == "You have two open tasks."
 
     chat = await db.get(TelegramChat, 555)
     assert chat is not None
@@ -160,25 +168,26 @@ async def test_handle_update_runs_agent_and_creates_dedicated_thread(db, monkeyp
         (await db.execute(select(AgentRun).where(AgentRun.surface == "telegram"))).scalars().all()
     )
     assert len(runs) == 1
-    task = (await db.execute(select(Task))).scalar_one_or_none()
-    assert task is not None
-    assert task.title == "ship"
+    assert runs[0].conversation_id == chat.conversation_id
 
 
 @pytest.mark.asyncio(loop_scope="session")
-async def test_handle_update_ambiguous_message_falls_back_to_inbox(db, monkeypatch):
+async def test_handle_update_general_message_is_processed_by_agent(db, monkeypatch):
+    monkeypatch.setattr(agent_module, "complete", _fake_complete("Hello! What can I help with?"))
     monkeypatch.setattr(settings, "telegram_allowed_chat_ids", "556")
     monkeypatch.setattr(settings, "initial_user_email", None)
     user = AppUser(email="tg-inbox@example.com", password_hash=hash_password("pw"))
     db.add(user)
     await db.flush()
 
-    reply = await gateway.handle_update(db, _message(556, "Sarah prefers async updates"))
-    assert reply is not None
-    assert "inbox" in reply.lower()
-    item = (await db.execute(select(InboxItem))).scalar_one_or_none()
-    assert item is not None
-    assert item.source == "telegram"
+    reply = await gateway.handle_update(db, _message(556, "Hello?"))
+
+    assert reply == "Hello! What can I help with?"
+    runs = list(
+        (await db.execute(select(AgentRun).where(AgentRun.surface == "telegram"))).scalars().all()
+    )
+    assert len(runs) == 1
+    assert runs[0].input == "Hello?"
 
 
 @pytest.mark.asyncio(loop_scope="session")
