@@ -3,8 +3,15 @@
 import uuid
 
 import pytest
+from fastapi import HTTPException, status
 from sqlalchemy import select
 
+from app.api.agent import (
+    CHAT_MESSAGE_TOO_LONG_DETAIL,
+    MAX_CHAT_MESSAGE_CHARS,
+    ChatRequest,
+    agent_chat,
+)
 from app.models.capture import Capture
 from app.models.context import Context
 from app.models.inbox_item import InboxItem
@@ -101,6 +108,17 @@ async def test_agent_chat_creates_task(client, db):
     stmt = select(Task)
     tasks = list((await db.execute(stmt)).scalars().all())
     assert len(tasks) >= 1
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_agent_chat_rejects_oversized_message_before_run():
+    payload = ChatRequest(message="x" * (MAX_CHAT_MESSAGE_CHARS + 1))
+
+    with pytest.raises(HTTPException) as exc:
+        await agent_chat(payload, user=None, db=None)  # type: ignore[arg-type]
+
+    assert exc.value.status_code == status.HTTP_413_CONTENT_TOO_LARGE
+    assert exc.value.detail == CHAT_MESSAGE_TOO_LONG_DETAIL
 
 
 @pytest.mark.asyncio(loop_scope="session")
