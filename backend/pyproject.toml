@@ -19,6 +19,7 @@ dependencies = [
     "python-frontmatter>=1.1",
     "httpx>=0.28",
     "markdown-it-py>=4.2",
+    "mcp>=1.27,<2",
     "openai>=1.0",
     "webauthn>=2.7.1",
 ]
