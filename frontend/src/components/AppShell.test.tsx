@@ -79,3 +79,15 @@ it("flips the shared Aya open state when the toggle is clicked", async () => {
   await userEvent.click(toggle);
   expect(toggle).toHaveAttribute("aria-pressed", "false");
 });
+
+it("updates the desktop navigation toggle label when collapsed", async () => {
+  renderAppShell();
+  const collapse = await screen.findByRole("button", { name: "Collapse navigation" });
+
+  expect(collapse).toHaveAttribute("title", "Collapse navigation");
+
+  await userEvent.click(collapse);
+
+  const expand = await screen.findByRole("button", { name: "Expand navigation" });
+  expect(expand).toHaveAttribute("title", "Expand navigation");
+});

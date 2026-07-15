@@ -1113,11 +1113,13 @@ function SideNav({
   onNavigate: (to: string) => void;
   onToggleNavOpen: () => void;
 }) {
+  const navToggleLabel = navOpen ? "Collapse navigation" : "Expand navigation";
+
   return (
     <nav className={"leftnav " + (mobileNav ? "mobile-open" : "")}>
       {NAV.map((n, i) =>
         "divider" in n && n.divider ? (
-          <div key={i} className="hr leftnav-divider" />
+          <div key={`divider-${i}`} className="hr leftnav-divider" />
         ) : (
           <NavItemComp
             key={(n as Extract<NavEntry, { divider?: false }>).key}
@@ -1140,7 +1142,8 @@ function SideNav({
         type="button"
         className="navrail-toggle navrail-toggle-offset desktop-only"
         onClick={onToggleNavOpen}
-        title="Collapse"
+        title={navToggleLabel}
+        aria-label={navToggleLabel}
       >
         {navOpen ? (
           <PanelLeft size={16} strokeWidth={1.6} />
