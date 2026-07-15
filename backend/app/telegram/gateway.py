@@ -5,6 +5,7 @@ instead of a session cookie. Access is gated by an allowlist of chat ids
 (``settings.telegram_allowed_chat_id_set``) which all map to the single app user;
 each chat gets its own persistent conversation thread (see TelegramChat).
 """
+
 import logging
 import uuid
 
@@ -12,13 +13,12 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agent.conversation_store import create_conversation
+from app.agent.agent import run_agent
+from app.agent.conversation_store import build_history_messages, create_conversation
 from app.config import settings
 from app.db import SessionLocal
 from app.models.telegram_chat import TelegramChat
 from app.models.user import AppUser
-from app.schemas.capture import CaptureRequest
-from app.services import capture as capture_svc
 from app.services.auth import get_user_by_email
 from app.services.planning_message import handle_telegram_task_command
 from app.telegram import client
@@ -122,24 +122,10 @@ async def handle_update(db: AsyncSession, update: dict) -> str | None:
     if task_reply is not None:
         return task_reply
 
-    await _ensure_conversation(db, tg_chat)
-    capture, result, _writes, _run_id = await capture_svc.create_capture(
-        db,
-        CaptureRequest(
-            text=text,
-            source_surface="telegram",
-            source_metadata={
-                "telegram_chat_id": chat_id,
-                "telegram_message_id": message.get("message_id"),
-            },
-            auto_apply=True,
-        ),
-    )
-    if capture.status == "applied":
-        return f"Captured: {result.suggested_next_action}."
-    app_base = settings.webauthn_rp_origin.rstrip("/")
-    target = f"{app_base}/inbox" if capture.inbox_item_id else app_base
-    return f"Captured to inbox for review: {result.suggested_next_action}.\n{target}"
+    conversation_id = await _ensure_conversation(db, tg_chat)
+    history = await build_history_messages(db, conversation_id)
+    result = await run_agent(db, "telegram", text, conversation_id=conversation_id, history=history)
+    return result.reply or "(no reply)"
 
 
 async def process_update(update: dict) -> None:
