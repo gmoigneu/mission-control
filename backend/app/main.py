@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from sqlalchemy.exc import IntegrityError
 from starlette.middleware.sessions import SessionMiddleware
@@ -40,6 +42,7 @@ from app.api import (
     webauthn,
 )
 from app.config import settings
+from app.mcp_server import ExactASGIRoute, MCPBearerAuth, create_mcp_server
 
 # Postgres error codes relevant to constraint violations
 _PG_FK_VIOLATION = "23503"
@@ -48,13 +51,25 @@ _PG_CHECK_VIOLATION = "23514"
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="mission-control")
+    mcp_server = create_mcp_server()
+    mcp_app = mcp_server.streamable_http_app()
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        async with mcp_server.session_manager.run():
+            yield
+
+    app = FastAPI(title="mission-control", lifespan=lifespan)
     app.add_middleware(
         SessionMiddleware,
         secret_key=settings.session_secret,
         same_site="lax",
         https_only=settings.environment != "development",
     )
+    # Public URL is /api/mcp after the deployment proxy strips the /api prefix.
+    # The mounted app itself is protected by a static deployment-level bearer token.
+    app.state.mcp_server = mcp_server
+    app.router.routes.insert(0, ExactASGIRoute("/mcp", MCPBearerAuth(mcp_app)))
 
     @app.exception_handler(IntegrityError)
     async def integrity_error_handler(request: Request, exc: IntegrityError) -> JSONResponse:

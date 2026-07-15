@@ -1,4 +1,5 @@
 """Agent loop — runs a multi-step tool-calling conversation and records the run."""
+
 from __future__ import annotations
 
 import json
@@ -11,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.agent.context import agent_run_id_var, surface_var
 from app.agent.llm import complete
 from app.agent.persona_store import compose_system, get_persona
-from app.agent.tools import TOOL_HANDLERS, tool_specs_for_llm
+from app.agent.tools import invoke_tool, tool_specs_for_llm
 from app.models.agent_run import AgentRun
 from app.models.audit import AuditLog
 
@@ -83,15 +84,11 @@ async def run_agent(
                 # Execute each tool call and append results
                 tool_results: list[dict] = []
                 for tc in turn.tool_calls:
-                    handler = TOOL_HANDLERS.get(tc.name)
-                    if handler is None:
-                        result_content = json.dumps({"error": f"Unknown tool: {tc.name}"})
-                    else:
-                        try:
-                            result = await handler(db, tc.input)
-                            result_content = json.dumps(result)
-                        except Exception as exc:  # noqa: BLE001
-                            result_content = json.dumps({"error": str(exc)})
+                    try:
+                        result = await invoke_tool(db, tc.name, tc.input)
+                        result_content = json.dumps(result)
+                    except Exception as exc:  # noqa: BLE001
+                        result_content = json.dumps({"error": str(exc)})
 
                     tool_results.append(
                         {
@@ -115,11 +112,7 @@ async def run_agent(
         messages.append({"role": "assistant", "content": reply})
 
         # Collect audit rows written during this run
-        stmt = (
-            select(AuditLog)
-            .where(AuditLog.agent_run_id == run.id)
-            .order_by(AuditLog.created_at)
-        )
+        stmt = select(AuditLog).where(AuditLog.agent_run_id == run.id).order_by(AuditLog.created_at)
         audit_rows = list((await db.execute(stmt)).scalars().all())
         writes = [
             {

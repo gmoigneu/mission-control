@@ -8,6 +8,7 @@ A single-user, self-hosted web app to track and manage life across all devices â
 
 - **Full specification:** [`SPEC.md`](SPEC.md)
 - **Architecture review:** [`docs/REVIEW-2026-05-30.md`](docs/REVIEW-2026-05-30.md)
+- **Remote MCP for coding agents:** [`docs/mcp.md`](docs/mcp.md)
 - **Implementation plans:** [`docs/superpowers/plans/`](docs/superpowers/plans/)
 
 ## Status

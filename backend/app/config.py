@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://mc:mc@localhost:5432/mc"
     test_database_url: str = "postgresql+asyncpg://mc:mc@localhost:5432/mc_test"
     session_secret: str = _INSECURE_DEFAULT
+    # Remote MCP is disabled until this full-account bearer token is configured.
+    # It intentionally lives only in deployment configuration, never in the DB.
+    mcp_token: str | None = None
     initial_user_email: str | None = None
     initial_user_password: str | None = None
     # WebAuthn / passkeys. rp_id is the registrable domain (no scheme/port);
@@ -88,6 +91,8 @@ class Settings(BaseSettings):
                 "environment != 'development'. "
                 "Generate: python -c \"import secrets; print(secrets.token_hex(32))\""
             )
+        if self.mcp_token is not None and len(self.mcp_token) < 32:
+            raise ValueError("MCP_TOKEN must be at least 32 characters when configured")
         return self
 
 
