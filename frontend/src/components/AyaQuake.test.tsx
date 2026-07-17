@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 
 import { AyaQuake } from "./AyaQuake";
-import { AyaProvider } from "../features/agent/AyaContext";
+import { AyaProvider } from "../features/agent/AyaProvider";
 import { MAX_CHAT_MESSAGE_CHARS } from "../features/agent/limits";
 
 afterEach(() => {

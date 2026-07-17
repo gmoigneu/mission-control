@@ -64,7 +64,7 @@ import { useAya } from "../features/agent/AyaContext";
 // ─── Nav definition ───────────────────────────────────────────────────────────
 
 type NavEntry =
-  | { divider: true }
+  | { divider: true; key: string }
   | {
       divider?: false;
       key: string;
@@ -88,14 +88,14 @@ const NAV: NavEntry[] = [
   { key: "knowledge", label: "Knowledge", to: "/knowledge", Icon: BookOpen },
   { key: "inbox", label: "Inbox", to: "/inbox", Icon: Inbox },
   { key: "telos", label: "TELOS", to: "/telos", Icon: Target },
-  { divider: true },
+  { divider: true, key: "primary-secondary" },
   { key: "relationships", label: "Relationships", to: "/relationships", Icon: Share2 },
   { key: "observations", label: "Observations", to: "/observations", Icon: StickyNote },
   { key: "tones", label: "Tones", to: "/tones", Icon: MessageSquareQuote },
   { key: "tags", label: "Tags", to: "/tags", Icon: Tag },
   { key: "entity-tags", label: "Entity Tags", to: "/entity-tags", Icon: Tags },
   { key: "entity-links", label: "Entity Links", to: "/entity-links", Icon: Link2 },
-  { divider: true },
+  { divider: true, key: "secondary-utility" },
   { key: "search", label: "Search", to: "/search", Icon: Search },
   { key: "graph", label: "Graph", to: "/graph", Icon: Network },
   { key: "activity", label: "Activity", to: "/activity", Icon: Activity },
@@ -1117,9 +1117,9 @@ function SideNav({
 
   return (
     <nav className={"leftnav " + (mobileNav ? "mobile-open" : "")}>
-      {NAV.map((n, i) =>
+      {NAV.map((n) =>
         "divider" in n && n.divider ? (
-          <div key={`divider-${i}`} className="hr leftnav-divider" />
+          <div key={n.key} className="hr leftnav-divider" />
         ) : (
           <NavItemComp
             key={(n as Extract<NavEntry, { divider?: false }>).key}

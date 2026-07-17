@@ -13,7 +13,9 @@ function mockMatchMedia(matches: boolean) {
     removeEventListener: (_: string, cb: Listener) => listeners.delete(cb),
     set(next: boolean) {
       mql.matches = next;
-      listeners.forEach((cb) => cb());
+      listeners.forEach((cb) => {
+        cb();
+      });
     },
   };
   window.matchMedia = vi
