@@ -545,7 +545,7 @@ mission-control/
   - Importer tests on a small fixture vault.
   - Undo/revert tests (create/update/delete inverses; whole-run revert).
 - **Frontend:** Vitest + Testing Library for components/hooks; Playwright smoke e2e for core flows (create person, capture, undo).
-- **CI:** lint (ruff/eslint), type-check (mypy/tsc), tests, build.
+- **CI:** lint (Ruff/Biome), type-check (mypy/TypeScript), tests, build.
 
 ---
 

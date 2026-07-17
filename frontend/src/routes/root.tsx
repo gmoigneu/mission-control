@@ -1,7 +1,7 @@
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 
 import { AyaQuake } from "../components/AyaQuake";
-import { AyaProvider } from "../features/agent/AyaContext";
+import { AyaProvider } from "../features/agent/AyaProvider";
 
 export const rootRoute = createRootRoute({
   // AyaProvider wraps both the routed pages (whose AppShell holds the toggle
