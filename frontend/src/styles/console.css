@@ -1341,6 +1341,15 @@ dialog.aya-quake:not([open]) { display: flex; }
   border-color: var(--line);
   background: var(--surface-2);
 }
+.journal-editor-shell .w-md-editor-content {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+}
+.journal-editor-shell .w-md-editor-input {
+  height: auto;
+  flex: 1;
+}
 .journal-editor-shell .w-md-editor-text,
 .journal-editor-shell .w-md-editor-text-pre,
 .journal-editor-shell .w-md-editor-text-input,
