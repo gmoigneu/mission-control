@@ -6,7 +6,7 @@ import {
   createRoute,
   createRouter,
 } from "@tanstack/react-router";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 
@@ -89,7 +89,9 @@ it("renders the graph page with controls and fetches the snapshot", async () => 
   expect(
     (await screen.findAllByRole("button", { name: /rebuild graph/i }, { timeout: 5000 }))[0],
   ).toBeInTheDocument();
-  expect(calls.some((u) => u.includes("/graph/full"))).toBe(true);
+  await waitFor(() => {
+    expect(calls.some((u) => u.includes("/graph/full"))).toBe(true);
+  });
 });
 
 it("requires confirmation before rebuilding the graph from the toolbar", async () => {
