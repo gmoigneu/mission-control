@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from dataclasses import dataclass, field
 
@@ -15,6 +16,8 @@ from app.agent.persona_store import compose_system, get_persona
 from app.agent.tools import invoke_tool, tool_specs_for_llm
 from app.models.agent_run import AgentRun
 from app.models.audit import AuditLog
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -88,6 +91,15 @@ async def run_agent(
                         result = await invoke_tool(db, tc.name, tc.input)
                         result_content = json.dumps(result)
                     except Exception as exc:  # noqa: BLE001
+                        logger.exception(
+                            "Agent tool failed "
+                            "(run_id=%s, conversation_id=%s, surface=%s, tool=%s, error_type=%s)",
+                            run.id,
+                            conversation_id,
+                            surface,
+                            tc.name,
+                            type(exc).__name__,
+                        )
                         result_content = json.dumps({"error": str(exc)})
 
                     tool_results.append(
@@ -135,11 +147,29 @@ async def run_agent(
         return AgentResult(agent_run_id=run.id, reply=reply, writes=writes)
 
     except Exception as exc:
+        logger.exception(
+            "Agent run failed "
+            "(run_id=%s, conversation_id=%s, surface=%s, error_type=%s)",
+            run.id,
+            conversation_id,
+            surface,
+            type(exc).__name__,
+        )
         run.status = "error"
         run.error = str(exc)
         run.transcript = messages[seed_len:]
         run.tool_calls = all_tool_calls
-        await db.flush()
+        try:
+            await db.flush()
+        except Exception as persist_exc:  # noqa: BLE001
+            logger.exception(
+                "Failed to persist agent run error "
+                "(run_id=%s, conversation_id=%s, surface=%s, error_type=%s)",
+                run.id,
+                conversation_id,
+                surface,
+                type(persist_exc).__name__,
+            )
         raise
 
     finally:
